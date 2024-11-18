@@ -390,7 +390,7 @@ export class MetadataBuilder {
             const position = stringHeapStartOffset + heapBuilder.Length;
 
             // It is important to use ordinal comparison otherwise we'll use the current culture!
-            if (prev.endsWith(Key) && !BlobUtilities.IsLowSurrogateChar(Key[0])) {
+            if (prev.endsWith(Key) && !BlobUtilities.IsLowSurrogateChar(Key.charCodeAt(0))) {
                 // Map over the tail of prev string. Watch for null-terminator of prev string.
                 stringVirtualIndexToHeapOffsetMap[Value.GetWriterVirtualIndex()] = position - (BlobUtilities.GetUTF8ByteCount(Key) + 1);
             }

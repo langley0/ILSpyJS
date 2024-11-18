@@ -45,11 +45,11 @@ export class BlobUtilities {
     //     public static void WriteUInt64(this byte[] buffer, int start, ulong value) =>
     //         Unsafe.WriteUnaligned(ref buffer[start], !BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(value) : value);
 
-    //     public const int SizeOfSerializedDecimal = sizeof(byte) + 3 * sizeof(uint);
+    //     public const int SizeOfSerializedDecimal = sizeof(byte) + 3 * sizeof;
 
     //     public static void WriteDecimal(this byte[] buffer, int start, decimal value)
     //     {
-    //         bool isNegative;
+    //         boolean isNegative;
     //         byte scale;
     //         uint low, mid, high;
     //         value.GetBits(out isNegative, out scale, out low, out mid, out high);
@@ -65,7 +65,7 @@ export class BlobUtilities {
     //     public static void WriteGuid(this byte[] buffer, int start, Guid value)
     //     {
     // #if NET
-    //         bool written = value.TryWriteBytes(buffer.AsSpan(start));
+    //         boolean written = value.TryWriteBytes(buffer.AsSpan(start));
     //         // This function is not public, callers have to ensure that enough space is available.
     //         Debug.Assert(written);
     // #else
@@ -102,7 +102,7 @@ export class BlobUtilities {
     // #endif
     //     }
 
-    //     public static void WriteUTF8(this byte[] buffer, int start, char* charPtr, int charCount, int byteCount, bool allowUnpairedSurrogates)
+    //     public static void WriteUTF8(this byte[] buffer, int start, char* charPtr, int charCount, int byteCount, boolean allowUnpairedSurrogates)
     //     {
     //         Debug.Assert(byteCount >= charCount);
     //         const char ReplacementCharacter = '\uFFFD';
@@ -180,23 +180,23 @@ export class BlobUtilities {
     }
 
 
-    //     internal static bool IsSurrogateChar(int c)
+    //     public static boolean IsSurrogateChar(int c)
     //     {
-    //         return unchecked((uint)(c - 0xD800)) <= 0xDFFF - 0xD800;
+    //         return unchecked((c - 0xD800)) <= 0xDFFF - 0xD800;
     //     }
 
-    //     internal static bool IsHighSurrogateChar(int c)
+    //     public static boolean IsHighSurrogateChar(int c)
     //     {
-    //         return unchecked((uint)(c - 0xD800)) <= 0xDBFF - 0xD800;
+    //         return unchecked((c - 0xD800)) <= 0xDBFF - 0xD800;
     //     }
 
-    //     internal static bool IsLowSurrogateChar(int c)
-    //     {
-    //         return unchecked((uint)(c - 0xDC00)) <= 0xDFFF - 0xDC00;
-    //     }
+        public static  IsLowSurrogateChar( c: number):boolean
+        {
+            return (c - 0xDC00) <= (0xDFFF - 0xDC00);
+        }
 
     //     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //     internal static void ValidateRange(int bufferLength, int start, int byteCount, string byteCountParameterName)
+    //     public static void ValidateRange(int bufferLength, int start, int byteCount, string byteCountParameterName)
     //     {
     //         if (start < 0 || start > bufferLength)
     //         {
@@ -209,12 +209,12 @@ export class BlobUtilities {
     //         }
     //     }
 
-    //     internal static int GetUserStringByteLength(int characterCount)
+    //     public static int GetUserStringByteLength(int characterCount)
     //     {
     //         return characterCount * 2 + 1;
     //     }
 
-    //     internal static byte GetUserStringTrailingByte(string str)
+    //     public static byte GetUserStringTrailingByte(string str)
     //     {
     //         // ECMA-335 II.24.2.4:
     //         // This final byte holds the value 1 if and only if any UTF16 character within

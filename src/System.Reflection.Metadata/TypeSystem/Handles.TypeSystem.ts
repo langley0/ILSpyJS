@@ -1,15 +1,22 @@
+import assert from "assert";
+import {
+    StringHandleType,
+    HeapHandleType,
+    StringKind,
+} from "../Internal/MetadataFlags";
+
 export class MethodDefinitionHandle {
     // private const uint tokenType = TokenTypeIds.MethodDef;
     // private const byte tokenTypeSmall = (byte)HandleType.MethodDef;
-    // private readonly int _rowId;
+    // private readonly number _rowId;
 
-    // private MethodDefinitionHandle(int rowId)
+    // private MethodDefinitionHandle(number rowId)
     // {
-    //     Debug.Assert(TokenTypeIds.IsValidRowId(rowId));
+    //     assert(TokenTypeIds.IsValidRowId(rowId));
     //     _rowId = rowId;
     // }
 
-    // internal static MethodDefinitionHandle FromRowId(int rowId)
+    // public static MethodDefinitionHandle FromRowId(number rowId)
     // {
     //     return new MethodDefinitionHandle(rowId);
     // }
@@ -52,7 +59,7 @@ export class MethodDefinitionHandle {
     //     }
     // }
 
-    // internal int RowId { get { return _rowId; } }
+    // public number RowId { get { return _rowId; } }
 
     // public static bool operator ==(MethodDefinitionHandle left, MethodDefinitionHandle right)
     // {
@@ -69,7 +76,7 @@ export class MethodDefinitionHandle {
     //     return _rowId == other._rowId;
     // }
 
-    // public override int GetHashCode()
+    // public override number GetHashCode()
     // {
     //     return _rowId.GetHashCode();
     // }
@@ -92,7 +99,7 @@ export class MethodDefinitionHandle {
     // }
 }
 
-enum VirtualIndex {
+export enum BlobVirtualIndex {
     Nil,
     // B0 3F 5F 7F 11 D5 0A 3A
     ContractPublicKeyToken,
@@ -121,20 +128,20 @@ export class BlobHandle {
     //         _value = value;
     //     }
 
-    //         internal static BlobHandle FromOffset(int heapOffset) {
+    //         public static BlobHandle FromOffset(number heapOffset) {
     //         return new BlobHandle((uint)heapOffset);
     //     }
 
-    //         internal static BlobHandle FromVirtualIndex(VirtualIndex virtualIndex, ushort virtualValue) {
-    //         Debug.Assert(virtualIndex < VirtualIndex.Count);
+    //         public static BlobHandle FromVirtualIndex(VirtualIndex virtualIndex, ushort virtualValue) {
+    //         assert(virtualIndex < VirtualIndex.Count);
     //         return new BlobHandle(TokenTypeIds.VirtualBit | (uint)(virtualValue << 8) | (uint)virtualIndex);
     //     }
 
-    //         internal const int TemplateParameterOffset_AttributeUsageTarget = 2;
+    //         public const number TemplateParameterOffset_AttributeUsageTarget = 2;
 
-    //         internal unsafe void SubstituteTemplateParameters(byte[] blob)
+    //         public unsafe void SubstituteTemplateParameters(byte[] blob)
     // {
-    //     Debug.Assert(blob.Length >= TemplateParameterOffset_AttributeUsageTarget + 4);
+    //     assert(blob.Length >= TemplateParameterOffset_AttributeUsageTarget + 4);
 
     //     fixed(byte * ptr = & blob[TemplateParameterOffset_AttributeUsageTarget])
     //     {
@@ -147,7 +154,7 @@ export class BlobHandle {
     //     // V... -> V111 0001
     //     return new Handle(
     //         (byte)((handle._value & HeapHandleType.VirtualBit) >> 24 | HandleType.Blob),
-    //         (int)(handle._value & HeapHandleType.OffsetMask));
+    //         (number)(handle._value & HeapHandleType.OffsetMask));
     // }
 
     //         public static explicit operator BlobHandle(Handle handle)
@@ -161,26 +168,26 @@ export class BlobHandle {
     //         (uint)handle.Offset);
     // }
 
-    //         internal uint RawValue => _value;
+    //         public uint RawValue => _value;
 
     //         public bool IsNil
     // {
     //             get { return _value == 0; }
     // }
 
-    //         internal int GetHeapOffset()
+    //         public number GetHeapOffset()
     // {
-    //     Debug.Assert(!IsVirtual);
-    //     return (int)_value;
+    //     assert(!IsVirtual);
+    //     return (number)_value;
     // }
 
-    //         internal VirtualIndex GetVirtualIndex()
+    //         public VirtualIndex GetVirtualIndex()
     // {
-    //     Debug.Assert(IsVirtual);
+    //     assert(IsVirtual);
     //     return (VirtualIndex)(_value & 0xff);
     // }
 
-    //         internal bool IsVirtual
+    //         public bool IsVirtual
     // {
     //             get { return (_value & TokenTypeIds.VirtualBit) != 0; }
     // }
@@ -200,9 +207,9 @@ export class BlobHandle {
     //     return _value == other._value;
     // }
 
-    //         public override int GetHashCode()
+    //         public override number GetHashCode()
     // {
-    //     return unchecked((int)_value);
+    //     return unchecked((number)_value);
     // }
 
     //         public static bool operator == (BlobHandle left, BlobHandle right)
@@ -215,136 +222,132 @@ export class BlobHandle {
     //     return !left.Equals(right);
     // }
 }
+export enum StringVirtualIndex {
+    System_Runtime_WindowsRuntime,
+    System_Runtime,
+    System_ObjectModel,
+    System_Runtime_WindowsRuntime_UI_Xaml,
+    System_Runtime_InteropServices_WindowsRuntime,
+    System_Numerics_Vectors,
+
+    Dispose,
+
+    AttributeTargets,
+    AttributeUsageAttribute,
+    Color,
+    CornerRadius,
+    DateTimeOffset,
+    Duration,
+    DurationType,
+    EventHandler1,
+    EventRegistrationToken,
+    Exception,
+    GeneratorPosition,
+    GridLength,
+    GridUnitType,
+    ICommand,
+    IDictionary2,
+    IDisposable,
+    IEnumerable,
+    IEnumerable1,
+    IList,
+    IList1,
+    INotifyCollectionChanged,
+    INotifyPropertyChanged,
+    IReadOnlyDictionary2,
+    IReadOnlyList1,
+    KeyTime,
+    KeyValuePair2,
+    Matrix,
+    Matrix3D,
+    Matrix3x2,
+    Matrix4x4,
+    NotifyCollectionChangedAction,
+    NotifyCollectionChangedEventArgs,
+    NotifyCollectionChangedEventHandler,
+    Nullable1,
+    Plane,
+    Point,
+    PropertyChangedEventArgs,
+    PropertyChangedEventHandler,
+    Quaternion,
+    Rect,
+    RepeatBehavior,
+    RepeatBehaviorType,
+    Size,
+    System,
+    System_Collections,
+    System_Collections_Generic,
+    System_Collections_Specialized,
+    System_ComponentModel,
+    System_Numerics,
+    System_Windows_Input,
+    Thickness,
+    TimeSpan,
+    Type,
+    Uri,
+    Vector2,
+    Vector3,
+    Vector4,
+    Windows_Foundation,
+    Windows_UI,
+    Windows_UI_Xaml,
+    Windows_UI_Xaml_Controls_Primitives,
+    Windows_UI_Xaml_Media,
+    Windows_UI_Xaml_Media_Animation,
+    Windows_UI_Xaml_Media_Media3D,
+
+    Count
+}
 
 
 export class StringHandle {
-    // // bits:
-    // //     31: IsVirtual
-    // // 29..31: type (non-virtual: String, DotTerminatedString; virtual: VirtualString, WinRTPrefixedString)
-    // //  0..28: Heap offset or Virtual index
-    // private readonly uint _value;
+    // bits:
+    //     31: IsVirtual
+    // 29..31: type (non-virtual: String, DotTerminatedString; virtual: VirtualString, WinRTPrefixedString)
+    //  0..28: Heap offset or Virtual index
+    private readonly _value: number;
 
-    // internal enum VirtualIndex
+
+    private constructor(value: number) {
+        assert((value & StringHandleType.TypeMask) == StringHandleType.String ||
+            (value & StringHandleType.TypeMask) == StringHandleType.VirtualString ||
+            (value & StringHandleType.TypeMask) == StringHandleType.WinRTPrefixedString ||
+            (value & StringHandleType.TypeMask) == StringHandleType.DotTerminatedString);
+
+        this._value = value;
+    }
+
+    public static FromOffset(heapOffset: number): StringHandle {
+        return new StringHandle(StringHandleType.String | heapOffset);
+    }
+
+    // public static StringHandle FromVirtualIndex( virtualIndex: VirtualIndex): StringHandle
     // {
-    //     System_Runtime_WindowsRuntime,
-    //     System_Runtime,
-    //     System_ObjectModel,
-    //     System_Runtime_WindowsRuntime_UI_Xaml,
-    //     System_Runtime_InteropServices_WindowsRuntime,
-    //     System_Numerics_Vectors,
-
-    //     Dispose,
-
-    //     AttributeTargets,
-    //     AttributeUsageAttribute,
-    //     Color,
-    //     CornerRadius,
-    //     DateTimeOffset,
-    //     Duration,
-    //     DurationType,
-    //     EventHandler1,
-    //     EventRegistrationToken,
-    //     Exception,
-    //     GeneratorPosition,
-    //     GridLength,
-    //     GridUnitType,
-    //     ICommand,
-    //     IDictionary2,
-    //     IDisposable,
-    //     IEnumerable,
-    //     IEnumerable1,
-    //     IList,
-    //     IList1,
-    //     INotifyCollectionChanged,
-    //     INotifyPropertyChanged,
-    //     IReadOnlyDictionary2,
-    //     IReadOnlyList1,
-    //     KeyTime,
-    //     KeyValuePair2,
-    //     Matrix,
-    //     Matrix3D,
-    //     Matrix3x2,
-    //     Matrix4x4,
-    //     NotifyCollectionChangedAction,
-    //     NotifyCollectionChangedEventArgs,
-    //     NotifyCollectionChangedEventHandler,
-    //     Nullable1,
-    //     Plane,
-    //     Point,
-    //     PropertyChangedEventArgs,
-    //     PropertyChangedEventHandler,
-    //     Quaternion,
-    //     Rect,
-    //     RepeatBehavior,
-    //     RepeatBehaviorType,
-    //     Size,
-    //     System,
-    //     System_Collections,
-    //     System_Collections_Generic,
-    //     System_Collections_Specialized,
-    //     System_ComponentModel,
-    //     System_Numerics,
-    //     System_Windows_Input,
-    //     Thickness,
-    //     TimeSpan,
-    //     Type,
-    //     Uri,
-    //     Vector2,
-    //     Vector3,
-    //     Vector4,
-    //     Windows_Foundation,
-    //     Windows_UI,
-    //     Windows_UI_Xaml,
-    //     Windows_UI_Xaml_Controls_Primitives,
-    //     Windows_UI_Xaml_Media,
-    //     Windows_UI_Xaml_Media_Animation,
-    //     Windows_UI_Xaml_Media_Media3D,
-
-    //     Count
-    // }
-
-    // private StringHandle(uint value)
-    // {
-    //     Debug.Assert((value & StringHandleType.TypeMask) == StringHandleType.String ||
-    //                  (value & StringHandleType.TypeMask) == StringHandleType.VirtualString ||
-    //                  (value & StringHandleType.TypeMask) == StringHandleType.WinRTPrefixedString ||
-    //                  (value & StringHandleType.TypeMask) == StringHandleType.DotTerminatedString);
-
-    //     _value = value;
-    // }
-
-    // internal static StringHandle FromOffset(int heapOffset)
-    // {
-    //     return new StringHandle(StringHandleType.String | (uint)heapOffset);
-    // }
-
-    // internal static StringHandle FromVirtualIndex(VirtualIndex virtualIndex)
-    // {
-    //     Debug.Assert(virtualIndex < VirtualIndex.Count);
+    //     assert(virtualIndex < VirtualIndex.Count);
     //     return new StringHandle(StringHandleType.VirtualString | (uint)virtualIndex);
     // }
 
-    // internal static StringHandle FromWriterVirtualIndex(int virtualIndex)
-    // {
-    //     return new StringHandle(StringHandleType.VirtualString | (uint)virtualIndex);
-    // }
+    public static FromWriterVirtualIndex(virtualIndex: number): StringHandle {
+        return new StringHandle(StringHandleType.VirtualString | virtualIndex);
+    }
 
-    // internal StringHandle WithWinRTPrefix()
+    // public StringHandle WithWinRTPrefix()
     // {
-    //     Debug.Assert(StringKind == StringKind.Plain);
+    //     assert(StringKind == StringKind.Plain);
     //     return new StringHandle(StringHandleType.WinRTPrefixedString | _value);
     // }
 
-    // internal StringHandle WithDotTermination()
+    // public StringHandle WithDotTermination()
     // {
-    //     Debug.Assert(StringKind == StringKind.Plain);
+    //     assert(StringKind == StringKind.Plain);
     //     return new StringHandle(StringHandleType.DotTerminatedString | _value);
     // }
 
-    // internal StringHandle SuffixRaw(int prefixByteLength)
+    // public StringHandle SuffixRaw(number prefixByteLength)
     // {
-    //     Debug.Assert(StringKind == StringKind.Plain);
-    //     Debug.Assert(prefixByteLength >= 0);
+    //     assert(StringKind == StringKind.Plain);
+    //     assert(prefixByteLength >= 0);
     //     return new StringHandle(StringHandleType.String | (_value + (uint)prefixByteLength));
     // }
 
@@ -353,7 +356,7 @@ export class StringHandle {
     //     // VTTx xxxx xxxx xxxx  xxxx xxxx xxxx xxxx -> V111 10TT
     //     return new Handle(
     //         (byte)((handle._value & HeapHandleType.VirtualBit) >> 24 | HandleType.String | (handle._value & StringHandleType.NonVirtualTypeMask) >> HeapHandleType.OffsetBitCount),
-    //         (int)(handle._value & HeapHandleType.OffsetMask));
+    //         (number)(handle._value & HeapHandleType.OffsetMask));
     // }
 
     // public static explicit operator StringHandle(Handle handle)
@@ -370,45 +373,41 @@ export class StringHandle {
     //         (uint)handle.Offset);
     // }
 
-    // internal uint RawValue => _value;
+    public get RawValue() {
+        return this._value;
+    }
 
-    // internal bool IsVirtual
-    // {
-    //     get { return (_value & HeapHandleType.VirtualBit) != 0; }
-    // }
+    public get IsVirtual(): boolean {
+        return (this._value & HeapHandleType.VirtualBit) != 0;
+    }
 
-    // public bool IsNil
-    // {
-    //     get
-    //     {
-    //         // virtual strings are never nil, so include virtual bit
-    //         return (_value & (HeapHandleType.VirtualBit | HeapHandleType.OffsetMask)) == 0;
-    //     }
-    // }
+    public get IsNil(): boolean {
+        // virtual strings are never nil, so include virtual bit
+        return (this._value & (HeapHandleType.VirtualBit | HeapHandleType.OffsetMask)) == 0;
 
-    // internal int GetHeapOffset()
+    }
+
+    // public number GetHeapOffset()
     // {
     //     // WinRT prefixed strings are virtual, the value is a heap offset
-    //     Debug.Assert(!IsVirtual || StringKind == StringKind.WinRTPrefixed);
-    //     return (int)(_value & HeapHandleType.OffsetMask);
+    //     assert(!IsVirtual || StringKind == StringKind.WinRTPrefixed);
+    //     return (number)(_value & HeapHandleType.OffsetMask);
     // }
 
-    // internal VirtualIndex GetVirtualIndex()
+    // public VirtualIndex GetVirtualIndex()
     // {
-    //     Debug.Assert(IsVirtual && StringKind != StringKind.WinRTPrefixed);
+    //     assert(IsVirtual && StringKind != StringKind.WinRTPrefixed);
     //     return (VirtualIndex)(_value & HeapHandleType.OffsetMask);
     // }
 
-    // internal int GetWriterVirtualIndex()
-    // {
-    //     Debug.Assert(IsNil || IsVirtual && StringKind == StringKind.Virtual);
-    //     return (int)(_value & HeapHandleType.OffsetMask);
-    // }
+    public GetWriterVirtualIndex(): number {
+        assert(this.IsNil || this.IsVirtual && this.StringKind == StringKind.Virtual);
+        return this._value & HeapHandleType.OffsetMask;
+    }
 
-    // internal StringKind StringKind
-    // {
-    //     get { return (StringKind)(_value >> HeapHandleType.OffsetBitCount); }
-    // }
+    public get StringKind(): StringKind {
+        return (this._value >> HeapHandleType.OffsetBitCount);
+    }
 
     // public override bool Equals(object? obj)
     // {
@@ -420,9 +419,9 @@ export class StringHandle {
     //     return _value == other._value;
     // }
 
-    // public override int GetHashCode()
+    // public override number GetHashCode()
     // {
-    //     return unchecked((int)_value);
+    //     return unchecked((number)_value);
     // }
 
     // public static bool operator ==(StringHandle left, StringHandle right)
@@ -439,14 +438,14 @@ export class StringHandle {
 export class GuidHandle {
     // // The Guid heap is an array of GUIDs, each 16 bytes wide.
     // // Its first element is numbered 1, its second 2, and so on.
-    // private readonly int _index;
+    // private readonly number _index;
 
-    // private GuidHandle(int index)
+    // private GuidHandle(number index)
     // {
     //     _index = index;
     // }
 
-    // internal static GuidHandle FromIndex(int heapIndex)
+    // public static GuidHandle FromIndex(number heapIndex)
     // {
     //     return new GuidHandle(heapIndex);
     // }
@@ -471,7 +470,7 @@ export class GuidHandle {
     //     get { return _index == 0; }
     // }
 
-    // internal int Index
+    // public number Index
     // {
     //     get { return _index; }
     // }
@@ -486,7 +485,7 @@ export class GuidHandle {
     //     return _index == other._index;
     // }
 
-    // public override int GetHashCode()
+    // public override number GetHashCode()
     // {
     //     return _index;
     // }

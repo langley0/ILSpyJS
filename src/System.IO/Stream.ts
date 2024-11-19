@@ -5,21 +5,21 @@ import { SeekOrigin } from "./SeekOrigin";
 export abstract class Stream {
     public abstract get Length(): number;
     public abstract get Position(): number;
-    public abstract Read(buffer: number[], offset: number, count: number): number;
+    public abstract Read(buffer: Uint8Array, offset: number, count: number): number;
 
     public abstract get CanRead(): boolean;
     public abstract get CanWrite(): boolean;
     public abstract get CanSeek(): boolean;
 
-    public abstract Seek(offset: bigint, origin: SeekOrigin): bigint;
+    public abstract Seek(offset: number, origin: SeekOrigin): number;
 
     public ReadByte(): number {
-        var oneByteArray = new Array<number>(1);
+        var oneByteArray = new Uint8Array(1);
         let r = this.Read(oneByteArray, 0, 1);
         return r == 0 ? -1 : oneByteArray[0];
     }
 
-    public ReadBytes(buffer: number[]): number {
+    public ReadBytes(buffer: Uint8Array): number {
         const numRead = this.Read(buffer, 0, buffer.length);
         if (numRead > buffer.length) {
             throw new Error("Stream implementation returned more bytes than the buffer could hold.");
@@ -53,7 +53,7 @@ export abstract class Stream {
     /// <remarks>
     /// When <paramref name="minimumBytes"/> is 0 (zero), this read operation will be completed without waiting for available data in the stream.
     /// </remarks>
-    public ReadAtLeast(buffer: number[], minimumBytes: number, throwOnEndOfStream: boolean = true): number {
+    public ReadAtLeast(buffer: Uint8Array, minimumBytes: number, throwOnEndOfStream: boolean = true): number {
         assert(minimumBytes <= buffer.length);
 
         let totalRead = 0;
@@ -72,7 +72,7 @@ export abstract class Stream {
     }
 
 
-    protected static ValidateBufferArguments(buffer: number[], offset: number, count: number) {
+    protected static ValidateBufferArguments(buffer: Uint8Array, offset: number, count: number) {
         Throw.ThrowIfNull(buffer, "buffer");
         Throw.ThrowIfNegative(offset, "offset");
         Throw.ThrowIfFalse(count <= buffer.length - offset, "count > buffer.Length - offset");

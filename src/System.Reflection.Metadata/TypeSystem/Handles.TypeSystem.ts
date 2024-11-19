@@ -3,33 +3,37 @@ import {
     StringHandleType,
     HeapHandleType,
     StringKind,
+    TokenTypeIds,
+    HandleType,
 } from "../Internal/MetadataFlags";
 
+import { Handle } from "../Handle";
+import { EntityHandle } from "../EntityHandle";
+
 export class MethodDefinitionHandle {
-    // private const uint tokenType = TokenTypeIds.MethodDef;
-    // private const byte tokenTypeSmall = (byte)HandleType.MethodDef;
-    // private readonly number _rowId;
+    private static readonly tokenType = TokenTypeIds.MethodDef;
+    private static readonly tokenTypeSmall = HandleType.MethodDef;
+    private readonly _rowId: number;
 
-    // private MethodDefinitionHandle(number rowId)
-    // {
-    //     assert(TokenTypeIds.IsValidRowId(rowId));
-    //     _rowId = rowId;
-    // }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
-    // public static MethodDefinitionHandle FromRowId(number rowId)
-    // {
-    //     return new MethodDefinitionHandle(rowId);
-    // }
+    public static FromRowId( rowId: number) : MethodDefinitionHandle
+    {
+        return new MethodDefinitionHandle(rowId);
+    }
 
-    // public static implicit operator Handle(MethodDefinitionHandle handle)
-    // {
-    //     return new Handle(tokenTypeSmall, handle._rowId);
-    // }
+    public get Handle(): Handle
+    {
+        return new Handle(MethodDefinitionHandle.tokenTypeSmall, this._rowId);
+    }
 
-    // public static implicit operator EntityHandle(MethodDefinitionHandle handle)
-    // {
-    //     return new EntityHandle((uint)(tokenType | handle._rowId));
-    // }
+    public get EntityHandle(): EntityHandle
+    {
+        return new EntityHandle(MethodDefinitionHandle.tokenType | this._rowId);
+    }
 
     // public static explicit operator MethodDefinitionHandle(Handle handle)
     // {
@@ -51,15 +55,14 @@ export class MethodDefinitionHandle {
     //     return new MethodDefinitionHandle(handle.RowId);
     // }
 
-    // public bool IsNil
-    // {
-    //     get
-    //     {
-    //         return RowId == 0;
-    //     }
-    // }
+    public get IsNil(): boolean {
+        return this.RowId == 0;
 
-    // public number RowId { get { return _rowId; } }
+    }
+
+    public get RowId(): number {
+        return this._rowId;
+    }
 
     // public static bool operator ==(MethodDefinitionHandle left, MethodDefinitionHandle right)
     // {
@@ -498,5 +501,71 @@ export class GuidHandle {
     // public static bool operator !=(GuidHandle left, GuidHandle right)
     // {
     //     return !left.Equals(right);
+    // }
+}
+
+export class UserStringHandle {
+    // bits:
+    //     31: 0
+    // 24..30: 0
+    //  0..23: index
+    private readonly _offset: number;
+
+    private constructor(offset: number) {
+        // #US string indices must fit into 24bits since they are used in IL stream tokens
+        assert((offset & 0xFF000000) == 0);
+        this._offset = offset;
+    }
+
+    public static FromOffset(heapOffset: number): UserStringHandle {
+        return new UserStringHandle(heapOffset);
+    }
+
+    // public static implicit operator Handle(UserStringHandle handle)
+    // {
+    //     return new Handle((byte)HandleType.UserString, handle._offset);
+    // }
+
+    // public static explicit operator UserStringHandle(Handle handle)
+    // {
+    //     if (handle.VType != HandleType.UserString)
+    //     {
+    //         Throw.InvalidCast();
+    //     }
+
+    //     return new UserStringHandle(handle.Offset);
+    // }
+
+    public get IsNil(): boolean {
+        return this._offset == 0;
+    }
+
+    public GetHeapOffset(): number {
+        return this._offset;
+    }
+
+    // public static bool operator ==(UserStringHandle left, UserStringHandle right)
+    // {
+    //     return left._offset == right._offset;
+    // }
+
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is UserStringHandle && ((UserStringHandle)obj)._offset == _offset;
+    // }
+
+    // public bool Equals(UserStringHandle other)
+    // {
+    //     return _offset == other._offset;
+    // }
+
+    // public override int GetHashCode()
+    // {
+    //     return _offset.GetHashCode();
+    // }
+
+    // public static bool operator !=(UserStringHandle left, UserStringHandle right)
+    // {
+    //     return left._offset != right._offset;
     // }
 }

@@ -4,6 +4,7 @@ import { MetadataTokens } from "./MetadataTokens";
 import { MetadataBuilder } from "./MetadataBuilder";
 import { SerializedMetadata } from "./SerializedMetadataHeaps";
 import { MetadataSizes } from "./MetadataSizes";
+import { BlobBuilder } from "../BlobBuilder";
 
 export class MetadataRootBuilder {
     static readonly DefaultMetadataVersionString = "v4.0.30319";
@@ -56,57 +57,50 @@ export class MetadataRootBuilder {
         this._serializedMetadata = tablesAndHeaps.GetSerializedMetadata(MetadataRootBuilder.EmptyRowCounts, metadataVersionByteCount, false);
     }
 
-    // /// <summary>
-    // /// Returns sizes of various metadata structures.
-    // /// </summary>
-    // public MetadataSizes Sizes => _serializedMetadata.Sizes;
+    /// <summary>
+    /// Returns sizes of various metadata structures.
+    /// </summary>
+    public get Sizes(): MetadataSizes {
+        return this._serializedMetadata.Sizes;
+    }
 
-    // /// <summary>
-    // /// Serializes metadata root content into the given <see cref="BlobBuilder"/>.
-    // /// </summary>
-    // /// <param name="builder">Builder to write to.</param>
-    // /// <param name="methodBodyStreamRva">
-    // /// The relative virtual address of the start of the method body stream.
-    // /// Used to calculate the final value of RVA fields of MethodDef table.
-    // /// </param>
-    // /// <param name="mappedFieldDataStreamRva">
-    // /// The relative virtual address of the start of the field init data stream.
-    // /// Used to calculate the final value of RVA fields of FieldRVA table.
-    // /// </param>
-    // /// <exception cref="ArgumentNullException"><paramref name="builder"/> is null.</exception>
-    // /// <exception cref="ArgumentOutOfRangeException"><paramref name="methodBodyStreamRva"/> or <paramref name="mappedFieldDataStreamRva"/> is negative.</exception>
-    // /// <exception cref="InvalidOperationException">
-    // /// A metadata table is not ordered as required by the specification and <see cref="SuppressValidation"/> is false.
-    // /// </exception>
-    // public void Serialize(BlobBuilder builder, int methodBodyStreamRva, int mappedFieldDataStreamRva)
-    // {
-    //     if (builder is null)
-    //     {
-    //         Throw.ArgumentNull(nameof(builder));
-    //     }
+    /// <summary>
+    /// Serializes metadata root content into the given <see cref="BlobBuilder"/>.
+    /// </summary>
+    /// <param name="builder">Builder to write to.</param>
+    /// <param name="methodBodyStreamRva">
+    /// The relative virtual address of the start of the method body stream.
+    /// Used to calculate the final value of RVA fields of MethodDef table.
+    /// </param>
+    /// <param name="mappedFieldDataStreamRva">
+    /// The relative virtual address of the start of the field init data stream.
+    /// Used to calculate the final value of RVA fields of FieldRVA table.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="methodBodyStreamRva"/> or <paramref name="mappedFieldDataStreamRva"/> is negative.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// A metadata table is not ordered as required by the specification and <see cref="SuppressValidation"/> is false.
+    /// </exception>
+    public Serialize(builder: BlobBuilder, methodBodyStreamRva: number, mappedFieldDataStreamRva: number) {
+        if (methodBodyStreamRva < 0) {
+            Throw.ArgumentOutOfRange('methodBodyStreamRva');
+        }
 
-    //     if (methodBodyStreamRva < 0)
-    //     {
-    //         Throw.ArgumentOutOfRange(nameof(methodBodyStreamRva));
-    //     }
+        if (mappedFieldDataStreamRva < 0) {
+            Throw.ArgumentOutOfRange('mappedFieldDataStreamRva');
+        }
 
-    //     if (mappedFieldDataStreamRva < 0)
-    //     {
-    //         Throw.ArgumentOutOfRange(nameof(mappedFieldDataStreamRva));
-    //     }
+        if (!this.SuppressValidation) {
+            this._tablesAndHeaps.ValidateOrder();
+        }
 
-    //     if (!SuppressValidation)
-    //     {
-    //         _tablesAndHeaps.ValidateOrder();
-    //     }
+        // header:
+        MetadataBuilder.SerializeMetadataHeader(builder, this.MetadataVersion, this._serializedMetadata.Sizes);
 
-    //     // header:
-    //     MetadataBuilder.SerializeMetadataHeader(builder, MetadataVersion, _serializedMetadata.Sizes);
+        // #~ or #- stream:
+        this._tablesAndHeaps.SerializeMetadataTables(builder, this._serializedMetadata.Sizes, this._serializedMetadata.StringMap, methodBodyStreamRva, mappedFieldDataStreamRva);
 
-    //     // #~ or #- stream:
-    //     _tablesAndHeaps.SerializeMetadataTables(builder, _serializedMetadata.Sizes, _serializedMetadata.StringMap, methodBodyStreamRva, mappedFieldDataStreamRva);
-
-    //     // #Strings, #US, #Guid and #Blob streams:
-    //     _tablesAndHeaps.WriteHeapsTo(builder, _serializedMetadata.StringHeap);
-    // }
+        // #Strings, #US, #Guid and #Blob streams:
+        this._tablesAndHeaps.WriteHeapsTo(builder, this._serializedMetadata.StringHeap);
+    }
 }

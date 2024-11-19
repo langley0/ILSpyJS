@@ -19,6 +19,30 @@ export class Throw {
         throw new Error(`InvalidArgument: ${description}, ${parameterName}`);
     }
 
+    static InvalidOperation_TableNotSorted(param: any): never {
+        throw new Error(`InvalidOperation: Table is not sorted.${param}`);
+    }
+
+    static InvalidOperation_PEImageNotAvailable(): never {
+        throw new Error("InvalidOperation: PE image is not available.");
+    }
+
+    static PEReaderDisposed(): never {
+        throw new Error("PEReaderDisposed: The PE reader has been disposed.");
+    }
+
+    static OutOfBounds() : never {
+        throw new Error("OutOfBounds: Attempted to read beyond the end of the stream.");
+    }
+
+    static EntityOrUserStringHandleRequired(): never {
+        throw new Error("InvalidOperation: Entity or UserString handle expected.");
+    }
+
+    static ArgumentException(description: string, parameterName: string): never {
+        throw new Error(`ArgumentException: ${description}, ${parameterName}`);
+    }
+
     static ArgumentNull(parameterName: string): never {
         throw new ArgumentNullException(parameterName);
     }

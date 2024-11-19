@@ -1,13 +1,15 @@
 import assert from "assert";
-import { Throw } from "System";
+import { Throw, Guid } from "System";
 import { BlobUtilities } from "System.Reflection";
 import { SerializedMetadata } from "./SerializedMetadataHeaps";
 import {
     BlobHandle,
+    UserStringHandle,
     StringHandle,
     GuidHandle,
 } from '../TypeSystem/Handles.TypeSystem';
 import { BlobBuilder, } from "../BlobBuilder";
+import { BlobDictionary } from "./BlobDictionary";
 import { MetadataSizes } from "./MetadataSizes";
 import { MetadataTokens } from "./MetadataTokens";
 import { TableIndex } from "./TableIndex";
@@ -54,96 +56,103 @@ import {
     TypeDefRow,
     TypeRefRow,
     TypeSpecRow,
+    DocumentRow,
+    MethodDebugInformationRow,
+    LocalScopeRow,
+    LocalVariableRow,
+    LocalConstantRow,
+    ImportScopeRow,
+    StateMachineMethodRow,
+    CustomDebugInformationRow,
 } from "./MetadataBuilder.Table";
 
 export class MetadataBuilder {
     public GetSerializedMetadata(externalRowCounts: number[], metadataVersionByteCount: number, isStandaloneDebugMetadata: boolean): SerializedMetadata {
-        var stringHeapBuilder = new HeapBlobBuilder(this._stringHeapCapacity);
-        var stringMap = MetadataBuilder.SerializeStringHeap(stringHeapBuilder, this._strings, this._stringHeapStartOffset);
+        const stringHeapBuilder = new HeapBlobBuilder(this._stringHeapCapacity);
+        const stringMap = MetadataBuilder.SerializeStringHeap(stringHeapBuilder, this._strings, this._stringHeapStartOffset);
 
         assert(HeapIndex.UserString == 0);
         assert(HeapIndex.String == 1);
         assert(HeapIndex.Blob == 2);
         assert(HeapIndex.Guid == 3);
 
-        // ??????
-        var heapSizes = ImmutableArray.Create(
-            _userStringBuilder.length,
-            stringHeapBuilder.length,
-            _blobHeapSize,
-            _guidBuilder.length);
+        const heapSizes: ArrayLike<number> = [
+            this._userStringBuilder.Length,
+            stringHeapBuilder.Length,
+            this._blobHeapSize,
+            this._guidBuilder.Length];
 
-        var sizes = new MetadataSizes(this.GetRowCounts(), externalRowCounts, heapSizes, metadataVersionByteCount, isStandaloneDebugMetadata);
+        const sizes = new MetadataSizes(this.GetRowCounts(), externalRowCounts, heapSizes, metadataVersionByteCount, isStandaloneDebugMetadata);
 
         return new SerializedMetadata(sizes, stringHeapBuilder, stringMap);
     }
 
-    // internal static void SerializeMetadataHeader(BlobBuilder builder, string metadataVersion, MetadataSizes sizes)
-    // {
-    //     int startOffset = builder.length;
+    public static SerializeMetadataHeader(builder: BlobBuilder, metadataVersion: string, sizes: MetadataSizes) {
+        // int startOffset = builder.length;
 
-    //     // signature
-    //     builder.WriteUInt32(0x424A5342);
+        // // signature
+        // builder.WriteUInt32(0x424A5342);
 
-    //     // major version
-    //     builder.WriteUInt16(1);
+        // // major version
+        // builder.WriteUInt16(1);
 
-    //     // minor version
-    //     builder.WriteUInt16(1);
+        // // minor version
+        // builder.WriteUInt16(1);
 
-    //     // reserved
-    //     builder.WriteUInt32(0);
+        // // reserved
+        // builder.WriteUInt32(0);
 
-    //     // Spec (section 24.2.1 Metadata Root):
-    //     // Length ... Number of bytes allocated to hold version string (including null terminator), call this x.
-    //     //            Call the length of the string (including the terminator) m (we require m <= 255);
-    //     //            the length x is m rounded up to a multiple of four.
-    //     builder.WriteInt32(sizes.MetadataVersionPaddedLength);
+        // // Spec (section 24.2.1 Metadata Root):
+        // // Length ... Number of bytes allocated to hold version string (including null terminator), call this x.
+        // //            Call the length of the string (including the terminator) m (we require m <= 255);
+        // //            the length x is m rounded up to a multiple of four.
+        // builder.WriteInt32(sizes.MetadataVersionPaddedLength);
 
-    //     int metadataVersionStart = builder.length;
-    //     builder.WriteUTF8(metadataVersion);
-    //     builder.WriteByte(0);
-    //     int metadataVersionEnd = builder.length;
+        // int metadataVersionStart = builder.length;
+        // builder.WriteUTF8(metadataVersion);
+        // builder.WriteByte(0);
+        // int metadataVersionEnd = builder.length;
 
-    //     for (int i = 0; i < sizes.MetadataVersionPaddedLength - (metadataVersionEnd - metadataVersionStart); i++)
-    //     {
-    //         builder.WriteByte(0);
-    //     }
+        // for (int i = 0; i < sizes.MetadataVersionPaddedLength - (metadataVersionEnd - metadataVersionStart); i++)
+        // {
+        //     builder.WriteByte(0);
+        // }
 
-    //     // reserved
-    //     builder.WriteUInt16(0);
+        // // reserved
+        // builder.WriteUInt16(0);
 
-    //     // number of streams
-    //     builder.WriteUInt16((ushort)(5 + (sizes.IsEncDelta ? 1 : 0) + (sizes.IsStandaloneDebugMetadata ? 1 : 0)));
+        // // number of streams
+        // builder.WriteUInt16((ushort)(5 + (sizes.IsEncDelta ? 1 : 0) + (sizes.IsStandaloneDebugMetadata ? 1 : 0)));
 
-    //     // stream headers
-    //     int offsetFromStartOfMetadata = sizes.MetadataHeaderSize;
+        // // stream headers
+        // int offsetFromStartOfMetadata = sizes.MetadataHeaderSize;
 
-    //     // emit the #Pdb stream first so that only a single page has to be read in order to find out PDB ID
-    //     if (sizes.IsStandaloneDebugMetadata)
-    //     {
-    //         SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.StandalonePdbStreamSize, "#Pdb", builder);
-    //     }
+        // // emit the #Pdb stream first so that only a single page has to be read in order to find out PDB ID
+        // if (sizes.IsStandaloneDebugMetadata)
+        // {
+        //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.StandalonePdbStreamSize, "#Pdb", builder);
+        // }
 
-    //     // Spec: Some compilers store metadata in a #- stream, which holds an uncompressed, or non-optimized, representation of metadata tables;
-    //     // this includes extra metadata -Ptr tables. Such PE files do not form part of ECMA-335 standard.
-    //     //
-    //     // Note: EnC delta is stored as uncompressed metadata stream.
-    //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.MetadataTableStreamSize, (sizes.IsCompressed ? "#~" : "#-"), builder);
+        // // Spec: Some compilers store metadata in a #- stream, which holds an uncompressed, or non-optimized, representation of metadata tables;
+        // // this includes extra metadata -Ptr tables. Such PE files do not form part of ECMA-335 standard.
+        // //
+        // // Note: EnC delta is stored as uncompressed metadata stream.
+        // SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.MetadataTableStreamSize, (sizes.IsCompressed ? "#~" : "#-"), builder);
 
-    //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.String), "#Strings", builder);
-    //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.UserString), "#US", builder);
-    //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.Guid), "#GUID", builder);
-    //     SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.Blob), "#Blob", builder);
+        // SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.String), "#Strings", builder);
+        // SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.UserString), "#US", builder);
+        // SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.Guid), "#GUID", builder);
+        // SerializeStreamHeader(ref offsetFromStartOfMetadata, sizes.GetAlignedHeapSize(HeapIndex.Blob), "#Blob", builder);
 
-    //     if (sizes.IsEncDelta)
-    //     {
-    //         SerializeStreamHeader(ref offsetFromStartOfMetadata, 0, "#JTD", builder);
-    //     }
+        // if (sizes.IsEncDelta)
+        // {
+        //     SerializeStreamHeader(ref offsetFromStartOfMetadata, 0, "#JTD", builder);
+        // }
 
-    //     int endOffset = builder.length;
-    //     Debug.Assert(endOffset - startOffset == sizes.MetadataHeaderSize);
-    // }
+        // int endOffset = builder.length;
+        // Debug.Assert(endOffset - startOffset == sizes.MetadataHeaderSize);
+        throw new Error("Not implemented");
+    }
 
     // private static void SerializeStreamHeader(ref int offsetFromStartOfMetadata, int alignedStreamSize, string streamName, BlobBuilder builder)
     // {
@@ -165,12 +174,8 @@ export class MetadataBuilder {
     //     offsetFromStartOfMetadata += alignedStreamSize;
     // }
 
-    private readonly _strings = new Map<string, StringHandle>();
-    private readonly _stringHeapStartOffset: number = 0;
-    private _stringHeapCapacity: number = 4 * 1024;
-
-
-
+    //=======================================================================================================
+    // TABLE SERIALIZATION
     private static readonly MetadataFormatMajorVersion = 2;
     private static readonly MetadataFormatMinorVersion = 0;
 
@@ -180,16 +185,16 @@ export class MetadataBuilder {
     private readonly _classLayoutTable = new Array<ClassLayoutRow>();
 
     private readonly _constantTable = new Array<ConstantRow>();
-    private _constantTableLastParent: number;
-    private _constantTableNeedsSorting: boolean;
+    private _constantTableLastParent: number = 0;
+    private _constantTableNeedsSorting: boolean = false;
 
     private readonly _customAttributeTable = new Array<CustomAttributeRow>();
-    private _customAttributeTableLastParent: number;
-    private _customAttributeTableNeedsSorting: boolean;
+    private _customAttributeTableLastParent: number = 0;
+    private _customAttributeTableNeedsSorting: boolean = false;
 
     private readonly _declSecurityTable = new Array<DeclSecurityRow>();
-    private _declSecurityTableLastParent: number;
-    private _declSecurityTableNeedsSorting: boolean;
+    private _declSecurityTableLastParent: number = 0;
+    private _declSecurityTableNeedsSorting: boolean = false;
 
     private readonly _encLogTable = new Array<EncLogRow>();
     private readonly _encMapTable = new Array<EncMapRow>();
@@ -199,8 +204,8 @@ export class MetadataBuilder {
     private readonly _fieldLayoutTable = new Array<FieldLayoutRow>();
 
     private readonly _fieldMarshalTable = new Array<FieldMarshalRow>();
-    private _fieldMarshalTableLastParent: number;
-    private _fieldMarshalTableNeedsSorting: boolean;
+    private _fieldMarshalTableLastParent: number = 0;
+    private _fieldMarshalTableNeedsSorting: boolean = false;
 
     private readonly _fieldRvaTable = new Array<FieldRvaRow>();
     private readonly _fieldTable = new Array<FieldDefRow>();
@@ -214,8 +219,8 @@ export class MetadataBuilder {
     private readonly _methodImplTable = new Array<MethodImplRow>();
 
     private readonly _methodSemanticsTable = new Array<MethodSemanticsRow>();
-    private _methodSemanticsTableLastAssociation: number;
-    private _methodSemanticsTableNeedsSorting: boolean;
+    private _methodSemanticsTableLastAssociation: number = 0;
+    private _methodSemanticsTableNeedsSorting: boolean = false;
 
     private readonly _methodSpecTable = new Array<MethodSpecRow>();
     private readonly _methodDefTable = new Array<MethodRow>();
@@ -239,7 +244,6 @@ export class MetadataBuilder {
     private readonly _importScopeTable = new Array<ImportScopeRow>();
     private readonly _stateMachineMethodTable = new Array<StateMachineMethodRow>();
     private readonly _customDebugInformationTable = new Array<CustomDebugInformationRow>();
-
 
 
     public GetRowCount(table: TableIndex): number {
@@ -312,7 +316,7 @@ export class MetadataBuilder {
     /// An array of size <see cref="MetadataTokens.TableCount"/> with each item filled with the current row count of the corresponding table.
     /// </returns>
     public GetRowCounts(): ArrayLike<number> {
-        const rowCounts = new Array<number>(MetadataTokens.TableCount);
+        const rowCounts = new Array<number>(MetadataTokens.TableCount).fill(0);
 
         rowCounts[TableIndex.Assembly] = this._assemblyRow !== undefined ? 1 : 0;
         rowCounts[TableIndex.AssemblyRef] = this._assemblyRefTable.length;
@@ -363,6 +367,276 @@ export class MetadataBuilder {
         return rowCounts;
     }
 
+    public SerializeMetadataTables(
+        writer: BlobBuilder,
+        metadataSizes: MetadataSizes,
+        stringMap: ArrayLike<number>,
+        methodBodyStreamRva: number,
+        mappedFieldDataStreamRva: number) {
+        // int startPosition = writer.Count;
+
+        // SerializeTablesHeader(writer, metadataSizes);
+
+        // if (metadataSizes.IsPresent(TableIndex.Module))
+        // {
+        //     SerializeModuleTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.TypeRef))
+        // {
+        //     SerializeTypeRefTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.TypeDef))
+        // {
+        //     SerializeTypeDefTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Field))
+        // {
+        //     SerializeFieldTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MethodDef))
+        // {
+        //     SerializeMethodDefTable(writer, stringMap, metadataSizes, methodBodyStreamRva);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Param))
+        // {
+        //     SerializeParamTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.InterfaceImpl))
+        // {
+        //     SerializeInterfaceImplTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MemberRef))
+        // {
+        //     SerializeMemberRefTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Constant))
+        // {
+        //     SerializeConstantTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.CustomAttribute))
+        // {
+        //     SerializeCustomAttributeTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.FieldMarshal))
+        // {
+        //     SerializeFieldMarshalTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.DeclSecurity))
+        // {
+        //     SerializeDeclSecurityTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ClassLayout))
+        // {
+        //     SerializeClassLayoutTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.FieldLayout))
+        // {
+        //     SerializeFieldLayoutTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.StandAloneSig))
+        // {
+        //     SerializeStandAloneSigTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.EventMap))
+        // {
+        //     SerializeEventMapTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Event))
+        // {
+        //     SerializeEventTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.PropertyMap))
+        // {
+        //     SerializePropertyMapTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Property))
+        // {
+        //     SerializePropertyTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MethodSemantics))
+        // {
+        //     SerializeMethodSemanticsTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MethodImpl))
+        // {
+        //     SerializeMethodImplTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ModuleRef))
+        // {
+        //     SerializeModuleRefTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.TypeSpec))
+        // {
+        //     SerializeTypeSpecTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ImplMap))
+        // {
+        //     SerializeImplMapTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.FieldRva))
+        // {
+        //     SerializeFieldRvaTable(writer, metadataSizes, mappedFieldDataStreamRva);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.EncLog))
+        // {
+        //     SerializeEncLogTable(writer);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.EncMap))
+        // {
+        //     SerializeEncMapTable(writer);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.Assembly))
+        // {
+        //     SerializeAssemblyTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.AssemblyRef))
+        // {
+        //     SerializeAssemblyRefTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.File))
+        // {
+        //     SerializeFileTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ExportedType))
+        // {
+        //     SerializeExportedTypeTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ManifestResource))
+        // {
+        //     SerializeManifestResourceTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.NestedClass))
+        // {
+        //     SerializeNestedClassTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.GenericParam))
+        // {
+        //     SerializeGenericParamTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MethodSpec))
+        // {
+        //     SerializeMethodSpecTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.GenericParamConstraint))
+        // {
+        //     SerializeGenericParamConstraintTable(writer, metadataSizes);
+        // }
+
+        // // debug tables
+        // if (metadataSizes.IsPresent(TableIndex.Document))
+        // {
+        //     SerializeDocumentTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.MethodDebugInformation))
+        // {
+        //     SerializeMethodDebugInformationTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.LocalScope))
+        // {
+        //     SerializeLocalScopeTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.LocalVariable))
+        // {
+        //     SerializeLocalVariableTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.LocalConstant))
+        // {
+        //     SerializeLocalConstantTable(writer, stringMap, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.ImportScope))
+        // {
+        //     SerializeImportScopeTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.StateMachineMethod))
+        // {
+        //     SerializeStateMachineMethodTable(writer, metadataSizes);
+        // }
+
+        // if (metadataSizes.IsPresent(TableIndex.CustomDebugInformation))
+        // {
+        //     SerializeCustomDebugInformationTable(writer, metadataSizes);
+        // }
+
+        // writer.WriteByte(0);
+        // writer.Align(4);
+
+        // int endPosition = writer.Count;
+        // Debug.Assert(metadataSizes.MetadataTableStreamSize == endPosition - startPosition);
+        throw new Error("Not implemented");
+    }
+
+    //=======================================================================================================
+    // HEAP MANAGEMENT
+
+    private readonly _strings = new Map<string, StringHandle>();
+    private readonly _stringHeapStartOffset: number = 0;
+    private _stringHeapCapacity: number = 4 * 1024;
+
+    private static readonly UserStringHeapSizeLimit = 0x01000000;
+    private readonly _userStrings = new Map<string, UserStringHandle>();
+    private readonly _userStringBuilder = new HeapBlobBuilder(4 * 1024);
+    private readonly _userStringHeapStartOffset: number = 0;
+
+    // #String heap
+    // #Blob heap
+    private readonly _blobs = new BlobDictionary(1024);
+    private readonly _blobHeapStartOffset: number = 0;
+    private _blobHeapSize: number = 0;
+
+    // #GUID heap
+    private readonly _guids = new Map<Guid, GuidHandle>();
+    private readonly _guidBuilder = new HeapBlobBuilder(16); // full metadata has just a single guid
+
+    public WriteHeapsTo(builder: BlobBuilder, stringHeap: BlobBuilder) {
+        // WriteAligned(stringHeap, builder);
+        // WriteAligned(_userStringBuilder, builder);
+        // WriteAligned(_guidBuilder, builder);
+        // WriteAlignedBlobHeap(builder);
+        throw new Error("Not implemented");
+    }
+
+
     /// <summary>
     /// Fills in stringIndexMap with data from stringIndex and write to stringWriter.
     /// Releases stringIndex as the stringTable is sealed after this point.
@@ -379,7 +653,7 @@ export class MetadataBuilder {
 
         // Create VirtIdx to Idx map and add entry for empty string
         const totalCount = sorted.length + 1;
-        var stringVirtualIndexToHeapOffsetMap = new Array(totalCount).fill(0);
+        const stringVirtualIndexToHeapOffsetMap = new Array(totalCount).fill(0);
         stringVirtualIndexToHeapOffsetMap[0] = 0;
         heapBuilder.WriteByte(0);
 
@@ -404,5 +678,181 @@ export class MetadataBuilder {
         }
 
         return stringVirtualIndexToHeapOffsetMap;
+    }
+
+    //=======================================================================================================
+    // VALIDATION
+    public ValidateOrder() {
+        // Certain tables are required to be sorted by a primary key, as follows:
+        //
+        // Table                    Keys                                Auto-ordered
+        // --------------------------------------------------------------------------
+        // ClassLayout              Parent                              No*
+        // Constant                 Parent                              Yes
+        // CustomAttribute          Parent                              Yes
+        // DeclSecurity             Parent                              Yes
+        // FieldLayout              Field                               No*
+        // FieldMarshal             Parent                              Yes
+        // FieldRVA                 Field                               No*
+        // GenericParam             Owner, Number                       No**
+        // GenericParamConstraint   Owner                               No**
+        // ImplMap                  MemberForwarded                     No*
+        // InterfaceImpl            Class                               No**
+        // MethodImpl               Class                               No*
+        // MethodSemantics          Association                         Yes
+        // NestedClass              NestedClass                         No*
+        // LocalScope               Method, StartOffset, Length (desc)  No**
+        // StateMachineMethod       MoveNextMethod                      No*
+        // CustomDebugInformation   Parent                              Yes
+        //
+        // Tables of entities that can't be referenced from other tables or blobs
+        // are automatically ordered during serialization and thus don't require validation.
+        //
+        // * We could potentially auto-order these. These tables are adding extra (optional)
+        // information to a primary entity (TypeDef, FiledDef, etc.) and are thus easily emitted
+        // in the same order as the parent entity. Hence they would usually be ordered already and
+        // it would be extra overhead to order them. Let's just required them ordered.
+        //
+        // ** We can't easily automatically order these since they represent entities that can be referenced
+        // by other tables/blobs (e.g. CustomAttribute and CustomDebugInformation). Ordering these tables
+        // would require updating all references.
+
+        this.ValidateClassLayoutTable();
+        this.ValidateFieldLayoutTable();
+        this.ValidateFieldRvaTable();
+        this.ValidateGenericParamTable();
+        this.ValidateGenericParamConstaintTable();
+        this.ValidateImplMapTable();
+        this.ValidateInterfaceImplTable();
+        this.ValidateMethodImplTable();
+        this.ValidateNestedClassTable();
+        this.ValidateLocalScopeTable();
+        this.ValidateStateMachineMethodTable();
+    }
+
+    private ValidateClassLayoutTable() {
+        for (let i = 1; i < this._classLayoutTable.length; i++) {
+            if (this._classLayoutTable[i - 1].Parent >= this._classLayoutTable[i].Parent) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.ClassLayout);
+            }
+        }
+    }
+
+    private ValidateFieldLayoutTable() {
+        for (let i = 1; i < this._fieldLayoutTable.length; i++) {
+            if (this._fieldLayoutTable[i - 1].Field >= this._fieldLayoutTable[i].Field) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.FieldLayout);
+            }
+        }
+    }
+
+    private ValidateFieldRvaTable() {
+        for (let i = 1; i < this._fieldRvaTable.length; i++) {
+            // Spec: each row in the FieldRVA table is an extension to exactly one row in the Field table
+            if (this._fieldRvaTable[i - 1].Field >= this._fieldRvaTable[i].Field) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.FieldRva);
+            }
+        }
+    }
+
+    private ValidateGenericParamTable() {
+        if (this._genericParamTable.length == 0) {
+            return;
+        }
+
+        let current = this._genericParamTable[0];
+        let previous = current;
+
+        for (let i = 1; i < this._genericParamTable.length; i++, previous = current) {
+            current = this._genericParamTable[i];
+
+            if (current.Owner > previous.Owner) {
+                continue;
+            }
+
+            if (previous.Owner == current.Owner && current.Number > previous.Number) {
+                continue;
+            }
+
+            Throw.InvalidOperation_TableNotSorted(TableIndex.GenericParam);
+        }
+    }
+
+    private ValidateGenericParamConstaintTable() {
+        for (let i = 1; i < this._genericParamConstraintTable.length; i++) {
+            if (this._genericParamConstraintTable[i - 1].Owner > this._genericParamConstraintTable[i].Owner) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.GenericParamConstraint);
+            }
+        }
+    }
+
+    private ValidateImplMapTable() {
+        for (let i = 1; i < this._implMapTable.length; i++) {
+            if (this._implMapTable[i - 1].MemberForwarded >= this._implMapTable[i].MemberForwarded) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.ImplMap);
+            }
+        }
+    }
+
+    private ValidateInterfaceImplTable() {
+        for (let i = 1; i < this._interfaceImplTable.length; i++) {
+            if (this._interfaceImplTable[i - 1].Class > this._interfaceImplTable[i].Class) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.InterfaceImpl);
+            }
+        }
+    }
+
+    private ValidateMethodImplTable() {
+        for (let i = 1; i < this._methodImplTable.length; i++) {
+            if (this._methodImplTable[i - 1].Class > this._methodImplTable[i].Class) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.MethodImpl);
+            }
+        }
+    }
+
+    private ValidateNestedClassTable() {
+        for (let i = 1; i < this._nestedClassTable.length; i++) {
+            if (this._nestedClassTable[i - 1].NestedClass >= this._nestedClassTable[i].NestedClass) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.NestedClass);
+            }
+        }
+    }
+
+    private ValidateLocalScopeTable() {
+        if (this._localScopeTable.length == 0) {
+            return;
+        }
+
+        // Spec: The table is required to be sorted first by Method in ascending order,
+        // then by StartOffset in ascending order, then by Length in descending order.
+        let current = this._localScopeTable[0];
+        let previous = current;
+        for (let i = 1; i < this._localScopeTable.length; i++, previous = current) {
+            current = this._localScopeTable[i];
+
+            if (current.Method > previous.Method) {
+                continue;
+            }
+
+            if (current.Method == previous.Method) {
+                if (current.StartOffset > previous.StartOffset) {
+                    continue;
+                }
+
+                if (current.StartOffset == previous.StartOffset && previous.Length >= current.Length) {
+                    continue;
+                }
+            }
+
+            Throw.InvalidOperation_TableNotSorted(TableIndex.LocalScope);
+        }
+    }
+
+    private ValidateStateMachineMethodTable() {
+        for (let i = 1; i < this._stateMachineMethodTable.length; i++) {
+            if (this._stateMachineMethodTable[i - 1].MoveNextMethod >= this._stateMachineMethodTable[i].MoveNextMethod) {
+                Throw.InvalidOperation_TableNotSorted(TableIndex.StateMachineMethod);
+            }
+        }
     }
 }

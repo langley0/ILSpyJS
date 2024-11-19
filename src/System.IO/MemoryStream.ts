@@ -117,7 +117,7 @@ export class MemoryStream extends Stream {
         return this._isOpen;
     }
 
-    public override Seek(offset: bigint, loc: SeekOrigin): bigint {
+    public override Seek(offset: number, loc: SeekOrigin): number {
         this.EnsureNotClosed();
         switch (loc) {
             case SeekOrigin.Begin:
@@ -131,7 +131,7 @@ export class MemoryStream extends Stream {
         }
     }
 
-    private SeekCore(offset: bigint, loc: number): bigint {
+    private SeekCore(offset: number, loc: number): number {
         if (offset > MemoryStream.MemStreamMaxLength - loc)
             throw new Error(`ArgumentOutOfRange_StreamLength ${offset}`);
 
@@ -141,7 +141,7 @@ export class MemoryStream extends Stream {
         this._position = tempPosition;
 
         assert(this._position >= this._origin);
-        return BigInt(this._position - this._origin);
+        return this._position - this._origin;
     }
 
     private EnsureNotClosed() {
@@ -359,7 +359,7 @@ export class MemoryStream extends Stream {
     //     }
     // }
 
-    public override Read(buffer: number[], offset: number, count: number): number {
+    public override Read(buffer: Uint8Array, offset: number, count: number): number {
         Stream.ValidateBufferArguments(buffer, offset, count);
         this.EnsureNotClosed();
 

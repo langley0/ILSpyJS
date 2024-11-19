@@ -4,6 +4,8 @@ export class DirectoryEntry
     {
         public readonly RelativeVirtualAddress: number;
         public readonly Size: number;
+
+        public static readonly Empty = new DirectoryEntry(0, 0);
         
 
         public constructor(relativeVirtualAddress: number, size: number)

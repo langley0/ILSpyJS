@@ -65,7 +65,7 @@ export class CoffHeader
             return this._characteristics;
         }
 
-        static Size =
+        public static Size =
             sizeof('short') + // Machine
             sizeof('short') + // NumberOfSections
             sizeof('int') +   // TimeDateStamp:

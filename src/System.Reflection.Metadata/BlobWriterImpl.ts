@@ -1,6 +1,8 @@
 import assert from "assert";
 import { Throw } from "System"
 import { BlobBuilder } from "./BlobBuilder";
+import { BlobWriter } from "./BlobWriter";
+
 
 export class BlobWriterImpl {
     public static readonly SingleByteCompressedIntegerMaxValue = 0x7f;
@@ -23,28 +25,7 @@ export class BlobWriterImpl {
         return 4;
     }
 
-    // public static  WriteCompressedInteger(  writer: BlobWriter, value: number): void
-    // {
-    //        if (value <= BlobWriterImpl.SingleByteCompressedIntegerMaxValue)
-    //         {
-    //             writer.WriteByte((byte)value);
-    //         }
-    //         else if (value <= BlobWriterImpl.TwoByteCompressedIntegerMaxValue)
-    //         {
-    //             writer.WriteUInt16BE((ushort)(0x8000 | value));
-    //         }
-    //         else if (value <= BlobWriterImpl.MaxCompressedIntegerValue)
-    //         {
-    //             writer.WriteUInt32BE(0xc0000000 | value);
-    //         }
-    //         else
-    //         {
-    //             Throw.ArgumentOutOfRange("value");
-    //         }
-
-    // }
-
-    public static WriteCompressedInteger(writer: BlobBuilder, value: number): void {
+    public static WriteCompressedInteger(writer: BlobWriter, value: number): void {
         if (value <= BlobWriterImpl.SingleByteCompressedIntegerMaxValue) {
             writer.WriteByte(value);
         }
@@ -57,7 +38,10 @@ export class BlobWriterImpl {
         else {
             Throw.ArgumentOutOfRange("value");
         }
+
     }
+
+
 
     // public static  WriteCompressedSignedInteger(BlobWriter writer, int value)
     // {
@@ -272,4 +256,21 @@ export class BlobWriterImpl {
     //         throw new ArgumentException(SR.Format(SR.InvalidConstantValueOfType, type));
     //     }
     // }
+}
+
+export class BlobBuilderImpl {
+    public static WriteCompressedInteger(writer: BlobBuilder, value: number): void {
+        if (value <= BlobWriterImpl.SingleByteCompressedIntegerMaxValue) {
+            writer.WriteByte(value);
+        }
+        else if (value <= BlobWriterImpl.TwoByteCompressedIntegerMaxValue) {
+            writer.WriteUInt16BE(0x8000 | value);
+        }
+        else if (value <= BlobWriterImpl.MaxCompressedIntegerValue) {
+            writer.WriteUInt32BE(0xc0000000 | value);
+        }
+        else {
+            Throw.ArgumentOutOfRange("value");
+        }
+    }
 }

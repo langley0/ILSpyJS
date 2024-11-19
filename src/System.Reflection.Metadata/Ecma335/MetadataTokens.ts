@@ -1,3 +1,6 @@
+import { Throw } from 'System';
+import { Handle } from '../Handle';
+import { EntityHandle } from '../EntityHandle';
 import { HeapIndexExtensions } from './HeapIndex';
 
 export class MetadataTokens {
@@ -54,7 +57,7 @@ export class MetadataTokens {
     // /// </summary>
     // /// <returns>Metadata token.</returns>
     // /// <exception cref="NotSupportedException">The operation is not supported for the specified <paramref name="handle"/>.</exception>
-    // public static int GetToken(this MetadataReader reader, EntityHandle handle)
+    // public static GetToken(reader: MetadataReader, EntityHandle handle)
     // {
     //     if (handle.IsVirtual)
     //     {
@@ -182,31 +185,33 @@ export class MetadataTokens {
     // /// </returns>
     // public static int GetHeapOffset(StringHandle handle) => handle.IsVirtual ? -1 : handle.GetHeapOffset();
 
-    // /// <summary>
-    // /// Returns the metadata token of the specified <paramref name="handle"/>.
-    // /// </summary>
-    // /// <returns>
-    // /// Metadata token, or 0 if <paramref name="handle"/> can only be interpreted in a context of a specific <see cref="MetadataReader"/>.
-    // /// See <see cref="GetToken(MetadataReader, Handle)"/>.
-    // /// </returns>
-    // /// <exception cref="ArgumentException">
-    // /// Handle represents a metadata entity that doesn't have a token.
-    // /// A token can only be retrieved for a metadata table handle or a heap handle of type <see cref="HandleKind.UserString"/>.
-    // /// </exception>
-    // public static int GetToken(Handle handle)
-    // {
-    //     if (!handle.IsEntityOrUserStringHandle)
-    //     {
-    //         Throw.EntityOrUserStringHandleRequired();
-    //     }
+    /// <summary>
+    /// Returns the metadata token of the specified <paramref name="handle"/>.
+    /// </summary>
+    /// <returns>
+    /// Metadata token, or 0 if <paramref name="handle"/> can only be interpreted in a context of a specific <see cref="MetadataReader"/>.
+    /// See <see cref="GetToken(MetadataReader, Handle)"/>.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Handle represents a metadata entity that doesn't have a token.
+    /// A token can only be retrieved for a metadata table handle or a heap handle of type <see cref="HandleKind.UserString"/>.
+    /// </exception>
+    public static GetToken(handle: Handle | EntityHandle): number {
+        if (handle instanceof EntityHandle) {
+            return handle.IsVirtual ? 0 : handle.Token;
+        } else {
 
-    //     if (handle.IsVirtual)
-    //     {
-    //         return 0;
-    //     }
+            if (!handle.IsEntityOrUserStringHandle) {
+                Throw.EntityOrUserStringHandleRequired();
+            }
 
-    //     return handle.Token;
-    // }
+            if (handle.IsVirtual) {
+                return 0;
+            }
+
+            return handle.Token;
+        }
+    }
 
     // /// <summary>
     // /// Returns the metadata token of the specified <paramref name="handle"/>.
@@ -215,7 +220,7 @@ export class MetadataTokens {
     // /// Metadata token, or 0 if <paramref name="handle"/> can only be interpreted in a context of a specific <see cref="MetadataReader"/>.
     // /// See <see cref="GetToken(MetadataReader, EntityHandle)"/>.
     // /// </returns>
-    // public static int GetToken(EntityHandle handle)
+    // public static GetToken( handle: EntityHandle): number
     // {
     //     return handle.IsVirtual ? 0 : handle.Token;
     // }

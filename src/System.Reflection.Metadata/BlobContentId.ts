@@ -106,7 +106,7 @@ export class BlobContentId {
     //     return new BlobContentId(guid, stamp);
     // }
 
-    public static GetTimeBasedProvider(): (blobs: Blob[]) => BlobContentId
+    public static GetTimeBasedProvider(): (blobs: ArrayLike<Blob>) => BlobContentId
     {
         // In the PE File Header this is a "Time/Date Stamp" whose description is "Time and date
         // the file was created in seconds since January 1st 1970 00:00:00 or 0"

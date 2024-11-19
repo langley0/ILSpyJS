@@ -1,5 +1,7 @@
 import { BlobBuilder } from 'System.Reflection.Metadata';
 import { DebugDirectoryEntryType } from './DebugDirectoryEntryType';
+import { DebugDirectoryEntry } from './DebugDirectoryEntry';
+import { SectionLocation } from '../SectionLocation';
 
 interface Entry {
     Stamp: number;
@@ -12,11 +14,10 @@ interface Entry {
 export class DebugDirectoryBuilder {
 
     private readonly _entries: Entry[];
-    private readonly _dataBuilder: BlobBuilder;
+    private readonly _dataBuilder?: BlobBuilder;
 
     public constructor() {
         this._entries = [];
-        this._dataBuilder = new BlobBuilder();
     }
 
     AddEntry(type: DebugDirectoryEntryType, version: number, stamp: number, dataSize: number) {
@@ -206,44 +207,48 @@ export class DebugDirectoryBuilder {
     //     return builder.Count - start;
     // }
 
-    // internal int TableSize => DebugDirectoryEntry.Size * _entries.Count;
-    // internal int Size => TableSize + _dataBuilder?.Count ?? 0;
+    public get TableSize(): number {
+        return DebugDirectoryEntry.Size * this._entries.length
+    }
+    public get Size(): number {
+        return this.TableSize + (this._dataBuilder?.Count ?? 0);
+    }
 
-    // /// <summary>
-    // /// Serialize the Debug Table and Data.
-    // /// </summary>
-    // /// <param name="builder">Builder.</param>
-    // /// <param name="sectionLocation">The containing PE section location.</param>
-    // /// <param name="sectionOffset">Offset of the table within the containing section.</param>
-    // internal void Serialize(BlobBuilder builder, SectionLocation sectionLocation, int sectionOffset)
-    // {
-    //     int dataOffset = sectionOffset + TableSize;
-    //     foreach (var entry in _entries)
-    //     {
-    //         int addressOfRawData;
-    //         int pointerToRawData;
-    //         if (entry.DataSize > 0)
-    //         {
-    //             addressOfRawData = sectionLocation.RelativeVirtualAddress + dataOffset;
-    //             pointerToRawData = sectionLocation.PointerToRawData + dataOffset;
-    //         }
-    //         else
-    //         {
-    //             addressOfRawData = 0;
-    //             pointerToRawData = 0;
-    //         }
+    /// <summary>
+    /// Serialize the Debug Table and Data.
+    /// </summary>
+    /// <param name="builder">Builder.</param>
+    /// <param name="sectionLocation">The containing PE section location.</param>
+    /// <param name="sectionOffset">Offset of the table within the containing section.</param>
+    public Serialize(builder: BlobBuilder, sectionLocation: SectionLocation, sectionOffset: number)
+    {
+        let dataOffset = sectionOffset + this.TableSize;
+        for (var entry of this._entries)
+        {
+            let addressOfRawData;
+            let pointerToRawData;
+            if (entry.DataSize > 0)
+            {
+                addressOfRawData = sectionLocation.RelativeVirtualAddress + dataOffset;
+                pointerToRawData = sectionLocation.PointerToRawData + dataOffset;
+            }
+            else
+            {
+                addressOfRawData = 0;
+                pointerToRawData = 0;
+            }
 
-    //         builder.WriteUInt32(0); // characteristics, always 0
-    //         builder.WriteUInt32(entry.Stamp);
-    //         builder.WriteUInt32(entry.Version);
-    //         builder.WriteInt32((int)entry.Type);
-    //         builder.WriteInt32(entry.DataSize);
-    //         builder.WriteInt32(addressOfRawData);
-    //         builder.WriteInt32(pointerToRawData);
+            builder.WriteUInt32(0); // characteristics, always 0
+            builder.WriteUInt32(entry.Stamp);
+            builder.WriteUInt32(entry.Version);
+            builder.WriteInt32(entry.Type);
+            builder.WriteInt32(entry.DataSize);
+            builder.WriteInt32(addressOfRawData);
+            builder.WriteInt32(pointerToRawData);
 
-    //         dataOffset += entry.DataSize;
-    //     }
+            dataOffset += entry.DataSize;
+        }
 
-    //     builder.LinkSuffix(_dataBuilder);
-    // }
+        builder.LinkSuffix(this._dataBuilder);
+    }
 }

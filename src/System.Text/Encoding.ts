@@ -8,7 +8,7 @@ export class Encoding {
         this._name = name;
     }
 
-    public GetString(buffer: number[], offset: number | undefined = undefined, length: number | undefined = undefined): string {
+    public GetString(buffer: Uint8Array, offset: number | undefined = undefined, length: number | undefined = undefined): string {
         if (offset === undefined && length === undefined) {
             offset = 0;
             length = buffer.length;

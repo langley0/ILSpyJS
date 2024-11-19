@@ -1,6 +1,6 @@
 import { sizeof, Throw } from "System";
 import { Stream } from "System.IO";
-import { StreamExtensions } from "System.Reflection.Internal";
+import { StreamExtensions } from "System.Reflection";
 import { COR20Constants } from "System.Reflection.Metadata";
 import { SectionHeader } from "./SectionHeader";
 import { CoffHeader } from "./CoffHeader";

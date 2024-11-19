@@ -221,3 +221,51 @@ export interface TypeSpecRow {
 export interface StandaloneSigRow {
     Signature: BlobHandle;
 }
+
+export interface DocumentRow {
+    Name: BlobHandle;
+    HashAlgorithm: GuidHandle;
+    Hash: BlobHandle;
+    Language: GuidHandle;
+}
+
+export interface MethodDebugInformationRow {
+    Document: number;
+    SequencePoints: BlobHandle;
+}
+
+export interface LocalScopeRow {
+    Method: number;
+    ImportScope: number;
+    VariableList: number;
+    ConstantList: number;
+    StartOffset: number;
+    Length: number;
+}
+
+export interface LocalVariableRow {
+    Attributes: number;
+    Index: number;
+    Name: StringHandle;
+}
+
+export interface LocalConstantRow {
+    Name: StringHandle;
+    Signature: BlobHandle;
+}
+
+export interface ImportScopeRow {
+    Parent: number;
+    Imports: BlobHandle;
+}
+
+export interface StateMachineMethodRow {
+    MoveNextMethod: number;
+    KickoffMethod: number;
+}
+
+export interface CustomDebugInformationRow {
+    Parent: number;
+    Kind: GuidHandle;
+    Value: BlobHandle;
+}

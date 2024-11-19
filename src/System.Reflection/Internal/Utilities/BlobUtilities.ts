@@ -1,3 +1,4 @@
+import { Throw } from "System";
 export class BlobUtilities {
     //     public static void WriteBytes(this byte[] buffer, int start, byte value, int byteCount)
     //     {
@@ -190,24 +191,20 @@ export class BlobUtilities {
     //         return unchecked((c - 0xD800)) <= 0xDBFF - 0xD800;
     //     }
 
-        public static  IsLowSurrogateChar( c: number):boolean
-        {
-            return (c - 0xDC00) <= (0xDFFF - 0xDC00);
-        }
+    public static IsLowSurrogateChar(c: number): boolean {
+        return (c - 0xDC00) <= (0xDFFF - 0xDC00);
+    }
 
     //     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //     public static void ValidateRange(int bufferLength, int start, int byteCount, string byteCountParameterName)
-    //     {
-    //         if (start < 0 || start > bufferLength)
-    //         {
-    //             Throw.ArgumentOutOfRange(nameof(start));
-    //         }
+    public static ValidateRange(bufferLength: number, start: number, byteCount: number, byteCountParameterName: string) {
+        if (start < 0 || start > bufferLength) {
+            Throw.ArgumentOutOfRange('start');
+        }
 
-    //         if (byteCount < 0 || byteCount > bufferLength - start)
-    //         {
-    //             Throw.ArgumentOutOfRange(byteCountParameterName);
-    //         }
-    //     }
+        if (byteCount < 0 || byteCount > bufferLength - start) {
+            Throw.ArgumentOutOfRange(byteCountParameterName);
+        }
+    }
 
     //     public static int GetUserStringByteLength(int characterCount)
     //     {

@@ -1,9 +1,10 @@
 import assert from "assert";
 import { Throw, sizeof } from "System";
-import { BitArithmetic } from "System.Reflection.Internal";
+import { BitArithmetic } from "System.Reflection";
 import { TableIndex } from "./TableIndex";
 import { HeapIndex } from "./HeapIndex";
 import { MetadataTokens } from "./MetadataTokens";
+
 
 export class MetadataSizes {
     private static StreamAlignment = 4;
@@ -14,25 +15,25 @@ export class MetadataSizes {
     public readonly MetadataVersionPaddedLength;
 
     public static readonly SortedTypeSystemTables =
-        1 << TableIndex.InterfaceImpl |
-        1 << TableIndex.Constant |
-        1 << TableIndex.CustomAttribute |
-        1 << TableIndex.FieldMarshal |
-        1 << TableIndex.DeclSecurity |
-        1 << TableIndex.ClassLayout |
-        1 << TableIndex.FieldLayout |
-        1 << TableIndex.MethodSemantics |
-        1 << TableIndex.MethodImpl |
-        1 << TableIndex.ImplMap |
-        1 << TableIndex.FieldRva |
-        1 << TableIndex.NestedClass |
-        1 << TableIndex.GenericParam |
-        1 << TableIndex.GenericParamConstraint;
+        BitArithmetic.SetBit64(TableIndex.InterfaceImpl) +
+        BitArithmetic.SetBit64(TableIndex.Constant) +
+        BitArithmetic.SetBit64(TableIndex.CustomAttribute) +
+        BitArithmetic.SetBit64(TableIndex.FieldMarshal) +
+        BitArithmetic.SetBit64(TableIndex.DeclSecurity) +
+        BitArithmetic.SetBit64(TableIndex.ClassLayout) +
+        BitArithmetic.SetBit64(TableIndex.FieldLayout) +
+        BitArithmetic.SetBit64(TableIndex.MethodSemantics) +
+        BitArithmetic.SetBit64(TableIndex.MethodImpl) +
+        BitArithmetic.SetBit64(TableIndex.ImplMap) +
+        BitArithmetic.SetBit64(TableIndex.FieldRva) +
+        BitArithmetic.SetBit64(TableIndex.NestedClass) +
+        BitArithmetic.SetBit64(TableIndex.GenericParam) +
+        BitArithmetic.SetBit64(TableIndex.GenericParamConstraint);
 
     public static readonly SortedDebugTables =
-        1 << TableIndex.LocalScope |
-        1 << TableIndex.StateMachineMethod |
-        1 << TableIndex.CustomDebugInformation;
+        BitArithmetic.SetBit64(TableIndex.LocalScope) +
+        BitArithmetic.SetBit64(TableIndex.StateMachineMethod) +
+        BitArithmetic.SetBit64(TableIndex.CustomDebugInformation);
 
     public readonly IsEncDelta: boolean;
     public readonly IsCompressed: boolean;
@@ -87,12 +88,12 @@ export class MetadataSizes {
     /// <summary>
     /// Non-empty tables that are emitted into the metadata table stream.
     /// </summary>
-    public readonly PresentTablesMask: number;
+    public readonly PresentTablesMask: bigint;
 
     /// <summary>
     /// Non-empty tables stored in an external metadata table stream that might be referenced from the metadata table stream being emitted.
     /// </summary>
-    public readonly ExternalTablesMask: number;
+    public readonly ExternalTablesMask: bigint;
 
     /// <summary>
     /// Overall size of metadata stream storage (stream headers, table stream, heaps, additional streams).
@@ -126,7 +127,7 @@ export class MetadataSizes {
         this.HeapSizes = heapSizes;
 
         // +1 for NUL terminator
-        this.MetadataVersionPaddedLength = BitArithmetic.Align(metadataVersionByteCount + 1, 4);
+        this.MetadataVersionPaddedLength = BitArithmetic.Align32(metadataVersionByteCount + 1, 4);
 
         this.PresentTablesMask = this.ComputeNonEmptyTableMask(rowCounts);
         this.ExternalTablesMask = this.ComputeNonEmptyTableMask(externalRowCounts);
@@ -147,7 +148,7 @@ export class MetadataSizes {
         this.GuidReferenceIsSmall = isCompressed && heapSizes[HeapIndex.Guid] <= ushort_MaxValue;
 
         // table can either be present or external, it can't be both:
-        assert((this.PresentTablesMask & this.ExternalTablesMask) == 0);
+        assert(BitArithmetic.And64(this.PresentTablesMask, this.ExternalTablesMask) == BigInt(0));
 
         this.CustomAttributeTypeCodedIndexIsSmall = this.IsReferenceSmall(3, TableIndex.MethodDef, TableIndex.MemberRef);
         this.DeclSecurityCodedIndexIsSmall = this.IsReferenceSmall(2, TableIndex.MethodDef, TableIndex.TypeDef);
@@ -320,7 +321,7 @@ export class MetadataSizes {
         size += this.GetTableSize(TableIndex.CustomDebugInformation, hasCustomDebugInformationCodedIndexSize + guidReferenceSize + blobReferenceSize);
 
         // +1 for terminating 0 byte
-        size = BitArithmetic.Align(size + 1, MetadataSizes.StreamAlignment);
+        size = BitArithmetic.Align32(size + 1, MetadataSizes.StreamAlignment);
 
         this.MetadataTableStreamSize = size;
 
@@ -340,61 +341,57 @@ export class MetadataSizes {
     }
 
     public IsPresent(table: TableIndex): boolean {
-        return (this.PresentTablesMask & (1 << table)) != 0;
+        return BitArithmetic.And64(this.PresentTablesMask, BitArithmetic.SetBit64(table)) != BigInt(0);
     }
 
-    // /// <summary>
-    // /// Metadata header size.
-    // /// Includes:
-    // /// - metadata storage signature
-    // /// - storage header
-    // /// - stream headers
-    // /// </summary>
-    // public int MetadataHeaderSize
-    // {
-    //     get
-    //     {
-    //         const int RegularStreamHeaderSizes = 76;
-    //         const int EncDeltaMarkerStreamHeaderSize = 16;
-    //         const int StandalonePdbStreamHeaderSize = 16;
+    /// <summary>
+    /// Metadata header size.
+    /// Includes:
+    /// - metadata storage signature
+    /// - storage header
+    /// - stream headers
+    /// </summary>
+    public get MetadataHeaderSize(): number {
+        const RegularStreamHeaderSizes = 76;
+        const EncDeltaMarkerStreamHeaderSize = 16;
+        const StandalonePdbStreamHeaderSize = 16;
 
-    //         Debug.Assert(RegularStreamHeaderSizes ==
-    //             GetMetadataStreamHeaderSize("#~") +
-    //             GetMetadataStreamHeaderSize("#Strings") +
-    //             GetMetadataStreamHeaderSize("#US") +
-    //             GetMetadataStreamHeaderSize("#GUID") +
-    //             GetMetadataStreamHeaderSize("#Blob"));
+        assert(RegularStreamHeaderSizes ==
+            MetadataSizes.GetMetadataStreamHeaderSize("#~") +
+            MetadataSizes.GetMetadataStreamHeaderSize("#Strings") +
+            MetadataSizes.GetMetadataStreamHeaderSize("#US") +
+            MetadataSizes.GetMetadataStreamHeaderSize("#GUID") +
+            MetadataSizes.GetMetadataStreamHeaderSize("#Blob"));
 
-    //         Debug.Assert(EncDeltaMarkerStreamHeaderSize == GetMetadataStreamHeaderSize("#JTD"));
-    //         Debug.Assert(StandalonePdbStreamHeaderSize == GetMetadataStreamHeaderSize("#Pdb"));
+        assert(EncDeltaMarkerStreamHeaderSize == MetadataSizes.GetMetadataStreamHeaderSize("#JTD"));
+        assert(StandalonePdbStreamHeaderSize == MetadataSizes.GetMetadataStreamHeaderSize("#Pdb"));
 
-    //         return
-    //             sizeof(uint) +                 // signature
-    //             sizeof(ushort) +               // major version
-    //             sizeof(ushort) +               // minor version
-    //             sizeof(uint) +                 // reserved
-    //             sizeof(uint) +                 // padded metadata version length
-    //             MetadataVersionPaddedLength +  // metadata version
-    //             sizeof(ushort) +               // storage header: reserved
-    //             sizeof(ushort) +               // stream count
-    //             (IsStandaloneDebugMetadata ? StandalonePdbStreamHeaderSize : 0) +
-    //             RegularStreamHeaderSizes +
-    //             (IsEncDelta ? EncDeltaMarkerStreamHeaderSize : 0);
-    //     }
-    // }
+        return sizeof('uint') +                 // signature
+            sizeof('ushort') +               // major version
+            sizeof('ushort') +               // minor version
+            sizeof('uint') +                 // reserved
+            sizeof('uint') +                 // padded metadata version length
+            this.MetadataVersionPaddedLength +  // metadata version
+            sizeof('ushort') +               // storage header: reserved
+            sizeof('ushort') +               // stream count
+            (this.IsStandaloneDebugMetadata ? StandalonePdbStreamHeaderSize : 0) +
+            RegularStreamHeaderSizes +
+            (this.IsEncDelta ? EncDeltaMarkerStreamHeaderSize : 0);
 
-    // public static int GetMetadataStreamHeaderSize(string streamName)
-    // {
-    //     return
-    //         sizeof(int) + // offset
-    //         sizeof(int) + // size
-    //         BitArithmetic.Align(streamName.Length + 1, 4); // zero-terminated name, padding
-    // }
+    }
 
-    // /// <summary>
-    // /// Total size of metadata (header and all streams).
-    // /// </summary>
-    // public int MetadataSize => MetadataHeaderSize + MetadataStreamStorageSize;
+    public static GetMetadataStreamHeaderSize(streamName: string): number {
+        return sizeof('int') + // offset
+            sizeof('int') + // size
+            BitArithmetic.Align32(streamName.length + 1, 4); // zero-terminated name, padding
+    }
+
+    /// <summary>
+    /// Total size of metadata (header and all streams).
+    /// </summary>
+    public get MetadataSize() {
+        return this.MetadataHeaderSize + this.MetadataStreamStorageSize;
+    }
 
     /// <summary>
     /// Returns aligned size of the specified heap.
@@ -405,7 +402,7 @@ export class MetadataSizes {
             Throw.ArgumentOutOfRange('index');
         }
 
-        return BitArithmetic.Align(this.HeapSizes[i], MetadataSizes.StreamAlignment);
+        return BitArithmetic.Align32(this.HeapSizes[i], MetadataSizes.StreamAlignment);
     }
 
     public CalculateTableStreamHeaderSize(): number {
@@ -418,11 +415,10 @@ export class MetadataSizes {
 
         // present table row counts
         for (let i = 0; i < this.RowCounts.length; i++) {
-            if (((1 << i) & this.PresentTablesMask) != 0) {
+            if (BitArithmetic.And64(BitArithmetic.SetBit64(i), this.PresentTablesMask) != BigInt(0)) {
                 result += sizeof('int');
             }
         }
-
         return result;
     }
 
@@ -433,19 +429,34 @@ export class MetadataSizes {
             MetadataSizes.PdbIdSize +                                                         // PDB ID
             sizeof('int') +                                                       // EntryPoint
             sizeof('long') +                                                      // ReferencedTypeSystemTables
-            BitArithmetic.CountBits(this.ExternalTablesMask) * sizeof('int'); // External row counts
+            BitArithmetic.Count64Bits(this.ExternalTablesMask) * sizeof('int'); // External row counts
 
         assert(result % MetadataSizes.StreamAlignment == 0);
         return result;
     }
 
-    private ComputeNonEmptyTableMask(rowCounts: ArrayLike<number>): number {
-        let mask = 0;
-        for (let i = 0; i < rowCounts.length; i++) {
-            if (rowCounts[i] > 0) {
-                mask |= (1 << i);
+    private ComputeNonEmptyTableMask(rowCounts: ArrayLike<number>): bigint {
+        assert(rowCounts.length <= 64);
+
+        let highBits = 0;
+        let lowBits = 0;
+
+        if (rowCounts.length > 32) {
+            // high bits:
+            for (let i = 0; i < rowCounts.length - 32; i++) {
+                if (rowCounts[i + 32] > 0) {
+                    highBits += (1 << i);
+                }
             }
         }
+        for (let i = 0; i < Math.min(32, rowCounts.length); i++) {
+            if (rowCounts[i] > 0) {
+                lowBits += (1 << i);
+            }
+        }
+
+        // hightbits << 32 + lowbits
+        let mask = BigInt(highBits) * BigInt(0x100000000) + BigInt(lowBits);
         return mask;
     }
 

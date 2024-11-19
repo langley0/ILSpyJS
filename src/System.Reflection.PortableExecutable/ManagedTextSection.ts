@@ -1,6 +1,14 @@
+import assert from "assert";
 import { sizeof } from "System";
-import { Machine } from "System.Reflection.Metadata";
+import { BitArithmetic } from "System.Reflection";
+import {
+    Machine,
+    BlobBuilder,
+    Blob,
+} from "System.Reflection.Metadata";
 import { Characteristics } from "./PEFileFlags";
+import { CorFlags } from "./CorFlags";
+import { DirectoryEntry } from "./DirectoryEntry";
 
 export class ManagedTextSection {
     public readonly ImageCharacteristics: Characteristics;
@@ -116,335 +124,325 @@ export class ManagedTextSection {
 
     public static readonly MappedFieldDataAlignment = 8;
 
-    //         internal int CalculateOffsetToMappedFieldDataStreamUnaligned()
-    // {
-    //             int result = ComputeOffsetToImportTable();
+    public CalculateOffsetToMappedFieldDataStreamUnaligned(): number {
+        let result = this.ComputeOffsetToImportTable();
 
-    //     if (RequiresStartupStub) {
-    //         result += SizeOfImportTable + SizeOfNameTable;
-    //         result = BitArithmetic.Align(result, Is32Bit ? 4 : 8); //optional padding to make startup stub's target address align on word or double word boundary
-    //         result += SizeOfRuntimeStartupStub;
-    //     }
+        if (this.RequiresStartupStub) {
+            result += this.SizeOfImportTable + ManagedTextSection.SizeOfNameTable;
+            result = BitArithmetic.Align32(result, this.Is32Bit ? 4 : 8); //optional padding to make startup stub's target address align on word or double word boundary
+            result += this.SizeOfRuntimeStartupStub;
+        }
 
-    //     return result;
-    // }
+        return result;
+    }
 
-    //         public int CalculateOffsetToMappedFieldDataStream()
-    // {
-    //             int result = CalculateOffsetToMappedFieldDataStreamUnaligned();
-    //     if (MappedFieldDataSize != 0) {
-    //         result = BitArithmetic.Align(result, MappedFieldDataAlignment);
-    //     }
-    //     return result;
-    // }
+    public CalculateOffsetToMappedFieldDataStream(): number {
+        let result = this.CalculateOffsetToMappedFieldDataStreamUnaligned();
+        if (this.MappedFieldDataSize != 0) {
+            result = BitArithmetic.Align32(result, ManagedTextSection.MappedFieldDataAlignment);
+        }
+        return result;
+    }
 
-    //         internal int ComputeOffsetToDebugDirectory()
-    // {
-    //     Debug.Assert(MetadataSize % 4 == 0);
-    //     Debug.Assert(ResourceDataSize % 4 == 0);
+    public ComputeOffsetToDebugDirectory(): number {
+        assert(this.MetadataSize % 4 == 0);
+        assert(this.ResourceDataSize % 4 == 0);
 
-    //     return
-    //     ComputeOffsetToMetadata() +
-    //         MetadataSize +
-    //         ResourceDataSize +
-    //         StrongNameSignatureSize;
-    // }
+        return this.ComputeOffsetToMetadata() +
+            this.MetadataSize +
+            this.ResourceDataSize +
+            this.StrongNameSignatureSize;
+    }
 
-    //         private int ComputeOffsetToImportTable()
-    // {
-    //     return
-    //     ComputeOffsetToDebugDirectory() +
-    //         DebugDataSize;
-    // }
+    private ComputeOffsetToImportTable(): number {
+        return this.ComputeOffsetToDebugDirectory() +
+            this.DebugDataSize;
+    }
 
-    // private const int CorHeaderSize =
-    //     sizeof(int) +    // header size
-    //     sizeof(short) +  // major runtime version
-    //     sizeof(short) +  // minor runtime version
-    //     sizeof(long) +   // metadata directory
-    //     sizeof(int) +    // COR flags
-    //     sizeof(int) +    // entry point
-    //     sizeof(long) +   // resources directory
-    //     sizeof(long) +   // strong name signature directory
-    //     sizeof(long) +   // code manager table directory
-    //     sizeof(long) +   // vtable fixups directory
-    //     sizeof(long) +   // export address table jumps directory
-    //     sizeof(long);   // managed-native header directory
+    private static readonly CorHeaderSize =
+        sizeof('int') +    // header size
+        sizeof('short') +  // major runtime version
+        sizeof('short') +  // minor runtime version
+        sizeof('long') +   // metadata directory
+        sizeof('int') +    // COR flags
+        sizeof('int') +    // entry point
+        sizeof('long') +   // resources directory
+        sizeof('long') +   // strong name signature directory
+        sizeof('long') +   // code manager table directory
+        sizeof('long') +   // vtable fixups directory
+        sizeof('long') +   // export address table jumps directory
+        sizeof('long');   // managed-native header directory
 
-    //         public int OffsetToILStream => SizeOfImportAddressTable + CorHeaderSize;
+    public get OffsetToILStream(): number {
+        return this.SizeOfImportAddressTable + ManagedTextSection.CorHeaderSize;
+    }
 
-    //         private int ComputeOffsetToMetadata()
-    // {
-    //     return OffsetToILStream + BitArithmetic.Align(ILStreamSize, 4);
-    // }
+    private ComputeOffsetToMetadata(): number {
+        return this.OffsetToILStream + BitArithmetic.Align32(this.ILStreamSize, 4);
+    }
 
-    //         public int ComputeSizeOfTextSection()
-    // {
-    //     Debug.Assert(MappedFieldDataSize % MappedFieldDataAlignment == 0);
-    //     return CalculateOffsetToMappedFieldDataStream() + MappedFieldDataSize;
-    // }
+    public ComputeSizeOfTextSection(): number {
+        assert(this.MappedFieldDataSize % ManagedTextSection.MappedFieldDataAlignment == 0);
+        return this.CalculateOffsetToMappedFieldDataStream() + this.MappedFieldDataSize;
+    }
 
-    //         public int GetEntryPointAddress(int rva)
-    // {
-    //     // TODO: constants
-    //     return RequiresStartupStub ?
-    //         rva + CalculateOffsetToMappedFieldDataStreamUnaligned() - (Is32Bit ? 6 : 10) :
-    //         0;
-    // }
+    public GetEntryPointAddress(rva: number) {
+        // TODO: constants
+        return this.RequiresStartupStub ?
+            rva + this.CalculateOffsetToMappedFieldDataStreamUnaligned() - (this.Is32Bit ? 6 : 10) :
+            0;
+    }
 
-    //         public DirectoryEntry GetImportAddressTableDirectoryEntry(int rva)
-    // {
-    //     return RequiresStartupStub ?
-    //         new DirectoryEntry(rva, SizeOfImportAddressTable) :
-    //                 default (DirectoryEntry);
-    // }
+    public GetImportAddressTableDirectoryEntry(rva: number): DirectoryEntry {
+        return this.RequiresStartupStub ?
+            new DirectoryEntry(rva, this.SizeOfImportAddressTable) :
+            DirectoryEntry.Empty;
+    }
 
-    //         public DirectoryEntry GetImportTableDirectoryEntry(int rva)
-    // {
-    //     // TODO: constants
-    //     return RequiresStartupStub ?
-    //         new DirectoryEntry(rva + ComputeOffsetToImportTable(), (Is32Bit ? 66 : 70) + 13) :
-    //                 default (DirectoryEntry);
-    // }
+    public GetImportTableDirectoryEntry(rva: number): DirectoryEntry {
+        // TODO: constants
+        return this.RequiresStartupStub ?
+            new DirectoryEntry(rva + this.ComputeOffsetToImportTable(), (this.Is32Bit ? 66 : 70) + 13) :
+            DirectoryEntry.Empty;
+    }
 
-    //         public DirectoryEntry GetCorHeaderDirectoryEntry(int rva)
-    // {
-    //     return new DirectoryEntry(rva + SizeOfImportAddressTable, CorHeaderSize);
-    // }
+    public GetCorHeaderDirectoryEntry(rva: number): DirectoryEntry {
+        return new DirectoryEntry(rva + this.SizeOfImportAddressTable, ManagedTextSection.CorHeaderSize);
+    }
 
     // #region Serialization
 
-    //         /// <summary>
-    //         /// Serializes .text section data into a specified <paramref name="builder"/>.
-    //         /// </summary>
-    //         /// <param name="builder">An empty builder to serialize section data to.</param>
-    //         /// <param name="relativeVirtualAddess">Relative virtual address of the section within the containing PE file.</param>
-    //         /// <param name="entryPointTokenOrRelativeVirtualAddress">Entry point token or RVA (<see cref="CorHeader.EntryPointTokenOrRelativeVirtualAddress"/>)</param>
-    //         /// <param name="corFlags">COR Flags (<see cref="CorHeader.Flags"/>).</param>
-    //         /// <param name="baseAddress">Base address of the PE image.</param>
-    //         /// <param name="metadataBuilder"><see cref="BlobBuilder"/> containing metadata. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
-    //         /// <param name="ilBuilder"><see cref="BlobBuilder"/> containing IL stream. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
-    //         /// <param name="mappedFieldDataBuilderOpt"><see cref="BlobBuilder"/> containing mapped field data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
-    //         /// <param name="resourceBuilderOpt"><see cref="BlobBuilder"/> containing managed resource data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
-    //         /// <param name="debugDataBuilderOpt"><see cref="BlobBuilder"/> containing PE debug table and data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
-    //         /// <param name="strongNameSignature">Blob reserved in the <paramref name="builder"/> for strong name signature.</param>
-    //         public void Serialize(
-    //     BlobBuilder builder,
-    //     int relativeVirtualAddess,
-    //     int entryPointTokenOrRelativeVirtualAddress,
-    //     CorFlags corFlags,
-    //     ulong baseAddress,
-    //     BlobBuilder metadataBuilder,
-    //     BlobBuilder ilBuilder,
-    //     BlobBuilder ? mappedFieldDataBuilderOpt,
-    //     BlobBuilder ? resourceBuilderOpt,
-    //     BlobBuilder ? debugDataBuilderOpt,
-    //     out Blob strongNameSignature)
-    // {
-    //     Debug.Assert(builder.Count == 0);
-    //     Debug.Assert(metadataBuilder.Count == MetadataSize);
-    //     Debug.Assert(metadataBuilder.Count % 4 == 0);
-    //     Debug.Assert(ilBuilder.Count == ILStreamSize);
-    //     Debug.Assert((mappedFieldDataBuilderOpt?.Count ?? 0) == MappedFieldDataSize);
-    //     Debug.Assert((resourceBuilderOpt?.Count ?? 0) == ResourceDataSize);
-    //     Debug.Assert((resourceBuilderOpt?.Count ?? 0) % 4 == 0);
+    /// <summary>
+    /// Serializes .text section data into a specified <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">An empty builder to serialize section data to.</param>
+    /// <param name="relativeVirtualAddess">Relative virtual address of the section within the containing PE file.</param>
+    /// <param name="entryPointTokenOrRelativeVirtualAddress">Entry point token or RVA (<see cref="CorHeader.EntryPointTokenOrRelativeVirtualAddress"/>)</param>
+    /// <param name="corFlags">COR Flags (<see cref="CorHeader.Flags"/>).</param>
+    /// <param name="baseAddress">Base address of the PE image.</param>
+    /// <param name="metadataBuilder"><see cref="BlobBuilder"/> containing metadata. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
+    /// <param name="ilBuilder"><see cref="BlobBuilder"/> containing IL stream. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
+    /// <param name="mappedFieldDataBuilderOpt"><see cref="BlobBuilder"/> containing mapped field data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
+    /// <param name="resourceBuilderOpt"><see cref="BlobBuilder"/> containing managed resource data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
+    /// <param name="debugDataBuilderOpt"><see cref="BlobBuilder"/> containing PE debug table and data. Must be populated with data. Linked into the <paramref name="builder"/> and can't be expanded afterwards.</param>
+    /// <param name="strongNameSignature">Blob reserved in the <paramref name="builder"/> for strong name signature.</param>
+    public Serialize(
+        builder: BlobBuilder,
+        relativeVirtualAddess: number,
+        entryPointTokenOrRelativeVirtualAddress: number,
+        corFlags: CorFlags,
+        baseAddress: bigint,
+        metadataBuilder: BlobBuilder,
+        ilBuilder: BlobBuilder,
+        mappedFieldDataBuilderOpt?: BlobBuilder,
+        resourceBuilderOpt?: BlobBuilder,
+        debugDataBuilderOpt?: BlobBuilder,
+    ): Blob {
+        throw new Error("Not implemented");
+        //     assert(builder.Count == 0);
+        //     assert(metadataBuilder.Count == MetadataSize);
+        //     assert(metadataBuilder.Count % 4 == 0);
+        //     assert(ilBuilder.Count == ILStreamSize);
+        //     assert((mappedFieldDataBuilderOpt?.Count ?? 0) == MappedFieldDataSize);
+        //     assert((resourceBuilderOpt?.Count ?? 0) == ResourceDataSize);
+        //     assert((resourceBuilderOpt?.Count ?? 0) % 4 == 0);
 
-    //             // TODO: avoid recalculation
-    //             int importTableRva = GetImportTableDirectoryEntry(relativeVirtualAddess).RelativeVirtualAddress;
-    //             int importAddressTableRva = GetImportAddressTableDirectoryEntry(relativeVirtualAddess).RelativeVirtualAddress;
+        //             // TODO: avoid recalculation
+        //             int importTableRva = GetImportTableDirectoryEntry(relativeVirtualAddess).RelativeVirtualAddress;
+        //             int importAddressTableRva = GetImportAddressTableDirectoryEntry(relativeVirtualAddess).RelativeVirtualAddress;
 
-    //     if (RequiresStartupStub) {
-    //         WriteImportAddressTable(builder, importTableRva);
-    //     }
+        //     if (RequiresStartupStub) {
+        //         WriteImportAddressTable(builder, importTableRva);
+        //     }
 
-    //     WriteCorHeader(builder, relativeVirtualAddess, entryPointTokenOrRelativeVirtualAddress, corFlags);
+        //     WriteCorHeader(builder, relativeVirtualAddess, entryPointTokenOrRelativeVirtualAddress, corFlags);
 
-    //     // IL:
-    //     ilBuilder.Align(4);
-    //     builder.LinkSuffix(ilBuilder);
+        //     // IL:
+        //     ilBuilder.Align(4);
+        //     builder.LinkSuffix(ilBuilder);
 
-    //     // metadata:
-    //     builder.LinkSuffix(metadataBuilder);
+        //     // metadata:
+        //     builder.LinkSuffix(metadataBuilder);
 
-    //     // managed resources:
-    //     if (resourceBuilderOpt != null) {
-    //         builder.LinkSuffix(resourceBuilderOpt);
-    //     }
+        //     // managed resources:
+        //     if (resourceBuilderOpt != null) {
+        //         builder.LinkSuffix(resourceBuilderOpt);
+        //     }
 
-    //     // strong name signature:
-    //     strongNameSignature = builder.ReserveBytes(StrongNameSignatureSize);
+        //     // strong name signature:
+        //     strongNameSignature = builder.ReserveBytes(StrongNameSignatureSize);
 
-    //     // The bytes are required to be 0 for the purpose of calculating hash of the PE content
-    //     // when strong name signing.
-    //     new BlobWriter(strongNameSignature).WriteBytes(0, StrongNameSignatureSize);
+        //     // The bytes are required to be 0 for the purpose of calculating hash of the PE content
+        //     // when strong name signing.
+        //     new BlobWriter(strongNameSignature).WriteBytes(0, StrongNameSignatureSize);
 
-    //     // debug directory and data:
-    //     if (debugDataBuilderOpt != null) {
-    //         builder.LinkSuffix(debugDataBuilderOpt);
-    //     }
+        //     // debug directory and data:
+        //     if (debugDataBuilderOpt != null) {
+        //         builder.LinkSuffix(debugDataBuilderOpt);
+        //     }
 
-    //     if (RequiresStartupStub) {
-    //         WriteImportTable(builder, importTableRva, importAddressTableRva);
-    //         WriteNameTable(builder);
-    //         WriteRuntimeStartupStub(builder, importAddressTableRva, baseAddress);
-    //     }
+        //     if (RequiresStartupStub) {
+        //         WriteImportTable(builder, importTableRva, importAddressTableRva);
+        //         WriteNameTable(builder);
+        //         WriteRuntimeStartupStub(builder, importAddressTableRva, baseAddress);
+        //     }
 
-    //     // mapped field data:
-    //     if (mappedFieldDataBuilderOpt != null) {
-    //         if (mappedFieldDataBuilderOpt.Count != 0)
-    //             builder.Align(MappedFieldDataAlignment);
-    //         builder.LinkSuffix(mappedFieldDataBuilderOpt);
-    //     }
+        //     // mapped field data:
+        //     if (mappedFieldDataBuilderOpt != null) {
+        //         if (mappedFieldDataBuilderOpt.Count != 0)
+        //             builder.Align(MappedFieldDataAlignment);
+        //         builder.LinkSuffix(mappedFieldDataBuilderOpt);
+        //     }
 
-    //     Debug.Assert(builder.Count == ComputeSizeOfTextSection());
-    // }
+        //     assert(builder.Count == ComputeSizeOfTextSection());
+        // }
 
-    //         private void WriteImportAddressTable(BlobBuilder builder, int importTableRva)
-    // {
-    //             int start = builder.Count;
+        //         private void WriteImportAddressTable(BlobBuilder builder, int importTableRva)
+        // {
+        //             int start = builder.Count;
 
-    //             int ilRva = importTableRva + 40;
-    //             int hintRva = ilRva + (Is32Bit ? 12 : 16);
+        //             int ilRva = importTableRva + 40;
+        //             int hintRva = ilRva + (Is32Bit ? 12 : 16);
 
-    //     // Import Address Table
-    //     if (Is32Bit) {
-    //         builder.WriteUInt32((uint)hintRva); // 4
-    //         builder.WriteUInt32(0); // 8
-    //     }
-    //     else {
-    //         builder.WriteUInt64((uint)hintRva); // 8
-    //         builder.WriteUInt64(0); // 16
-    //     }
+        //     // Import Address Table
+        //     if (Is32Bit) {
+        //         builder.WriteUInt32((uint)hintRva); // 4
+        //         builder.WriteUInt32(0); // 8
+        //     }
+        //     else {
+        //         builder.WriteUInt64((uint)hintRva); // 8
+        //         builder.WriteUInt64(0); // 16
+        //     }
 
-    //     Debug.Assert(builder.Count - start == SizeOfImportAddressTable);
-    // }
+        //     assert(builder.Count - start == SizeOfImportAddressTable);
+        // }
 
-    //         private void WriteImportTable(BlobBuilder builder, int importTableRva, int importAddressTableRva)
-    // {
-    //             int start = builder.Count;
+        //         private void WriteImportTable(BlobBuilder builder, int importTableRva, int importAddressTableRva)
+        // {
+        //             int start = builder.Count;
 
-    //             int ilRVA = importTableRva + 40;
-    //             int hintRva = ilRVA + (Is32Bit ? 12 : 16);
-    //             int nameRva = hintRva + 12 + 2;
+        //             int ilRVA = importTableRva + 40;
+        //             int hintRva = ilRVA + (Is32Bit ? 12 : 16);
+        //             int nameRva = hintRva + 12 + 2;
 
-    //     // Import table
-    //     builder.WriteUInt32((uint)ilRVA); // 4
-    //     builder.WriteUInt32(0); // 8
-    //     builder.WriteUInt32(0); // 12
-    //     builder.WriteUInt32((uint)nameRva); // 16
-    //     builder.WriteUInt32((uint)importAddressTableRva); // 20
-    //     builder.WriteBytes(0, 20); // 40
+        //     // Import table
+        //     builder.WriteUInt32((uint)ilRVA); // 4
+        //     builder.WriteUInt32(0); // 8
+        //     builder.WriteUInt32(0); // 12
+        //     builder.WriteUInt32((uint)nameRva); // 16
+        //     builder.WriteUInt32((uint)importAddressTableRva); // 20
+        //     builder.WriteBytes(0, 20); // 40
 
-    //     // Import Lookup table
-    //     if (Is32Bit) {
-    //         builder.WriteUInt32((uint)hintRva); // 44
-    //         builder.WriteUInt32(0); // 48
-    //         builder.WriteUInt32(0); // 52
-    //     }
-    //     else {
-    //         builder.WriteUInt64((uint)hintRva); // 48
-    //         builder.WriteUInt64(0); // 56
-    //     }
+        //     // Import Lookup table
+        //     if (Is32Bit) {
+        //         builder.WriteUInt32((uint)hintRva); // 44
+        //         builder.WriteUInt32(0); // 48
+        //         builder.WriteUInt32(0); // 52
+        //     }
+        //     else {
+        //         builder.WriteUInt64((uint)hintRva); // 48
+        //         builder.WriteUInt64(0); // 56
+        //     }
 
-    //     // Hint table
-    //     builder.WriteUInt16(0); // Hint 54|58
+        //     // Hint table
+        //     builder.WriteUInt16(0); // Hint 54|58
 
-    //     builder.WriteBytes(CorEntryPointName); // 65|69
-    //     builder.WriteByte(0); // 66|70
-    //     Debug.Assert(builder.Count - start == SizeOfImportTable);
-    // }
+        //     builder.WriteBytes(CorEntryPointName); // 65|69
+        //     builder.WriteByte(0); // 66|70
+        //     assert(builder.Count - start == SizeOfImportTable);
+        // }
 
-    //         private static void WriteNameTable(BlobBuilder builder)
-    // {
-    //             int start = builder.Count;
+        //         private static void WriteNameTable(BlobBuilder builder)
+        // {
+        //             int start = builder.Count;
 
-    //     builder.WriteBytes(CorEntryPointDll);
-    //     builder.WriteByte(0);
-    //     builder.WriteUInt16(0);
-    //     Debug.Assert(builder.Count - start == SizeOfNameTable);
-    // }
+        //     builder.WriteBytes(CorEntryPointDll);
+        //     builder.WriteByte(0);
+        //     builder.WriteUInt16(0);
+        //     assert(builder.Count - start == SizeOfNameTable);
+        // }
 
-    //         private void WriteCorHeader(BlobBuilder builder, int textSectionRva, int entryPointTokenOrRva, CorFlags corFlags)
-    // {
-    //     const ushort majorRuntimeVersion = 2;
-    //     const ushort minorRuntimeVersion = 5;
+        //         private void WriteCorHeader(BlobBuilder builder, int textSectionRva, int entryPointTokenOrRva, CorFlags corFlags)
+        // {
+        //     const ushort majorRuntimeVersion = 2;
+        //     const ushort minorRuntimeVersion = 5;
 
-    //             int metadataRva = textSectionRva + ComputeOffsetToMetadata();
-    //             int resourcesRva = metadataRva + MetadataSize;
-    //             int signatureRva = resourcesRva + ResourceDataSize;
+        //             int metadataRva = textSectionRva + ComputeOffsetToMetadata();
+        //             int resourcesRva = metadataRva + MetadataSize;
+        //             int signatureRva = resourcesRva + ResourceDataSize;
 
-    //             int start = builder.Count;
+        //             int start = builder.Count;
 
-    //     // Size:
-    //     builder.WriteUInt32(CorHeaderSize);
+        //     // Size:
+        //     builder.WriteUInt32(CorHeaderSize);
 
-    //     // Version:
-    //     builder.WriteUInt16(majorRuntimeVersion);
-    //     builder.WriteUInt16(minorRuntimeVersion);
+        //     // Version:
+        //     builder.WriteUInt16(majorRuntimeVersion);
+        //     builder.WriteUInt16(minorRuntimeVersion);
 
-    //     // MetadataDirectory:
-    //     builder.WriteUInt32((uint)metadataRva);
-    //     builder.WriteUInt32((uint)MetadataSize);
+        //     // MetadataDirectory:
+        //     builder.WriteUInt32((uint)metadataRva);
+        //     builder.WriteUInt32((uint)MetadataSize);
 
-    //     // COR Flags:
-    //     builder.WriteUInt32((uint)corFlags);
+        //     // COR Flags:
+        //     builder.WriteUInt32((uint)corFlags);
 
-    //     // EntryPoint:
-    //     builder.WriteUInt32((uint)entryPointTokenOrRva);
+        //     // EntryPoint:
+        //     builder.WriteUInt32((uint)entryPointTokenOrRva);
 
-    //     // ResourcesDirectory:
-    //     builder.WriteUInt32((uint)(ResourceDataSize == 0 ? 0 : resourcesRva)); // 28
-    //     builder.WriteUInt32((uint)ResourceDataSize);
+        //     // ResourcesDirectory:
+        //     builder.WriteUInt32((uint)(ResourceDataSize == 0 ? 0 : resourcesRva)); // 28
+        //     builder.WriteUInt32((uint)ResourceDataSize);
 
-    //     // StrongNameSignatureDirectory:
-    //     builder.WriteUInt32((uint)(StrongNameSignatureSize == 0 ? 0 : signatureRva)); // 36
-    //     builder.WriteUInt32((uint)StrongNameSignatureSize);
+        //     // StrongNameSignatureDirectory:
+        //     builder.WriteUInt32((uint)(StrongNameSignatureSize == 0 ? 0 : signatureRva)); // 36
+        //     builder.WriteUInt32((uint)StrongNameSignatureSize);
 
-    //     // CodeManagerTableDirectory (not supported):
-    //     builder.WriteUInt32(0);
-    //     builder.WriteUInt32(0);
+        //     // CodeManagerTableDirectory (not supported):
+        //     builder.WriteUInt32(0);
+        //     builder.WriteUInt32(0);
 
-    //     // VtableFixupsDirectory (not supported):
-    //     builder.WriteUInt32(0);
-    //     builder.WriteUInt32(0);
+        //     // VtableFixupsDirectory (not supported):
+        //     builder.WriteUInt32(0);
+        //     builder.WriteUInt32(0);
 
-    //     // ExportAddressTableJumpsDirectory (not supported):
-    //     builder.WriteUInt32(0);
-    //     builder.WriteUInt32(0);
+        //     // ExportAddressTableJumpsDirectory (not supported):
+        //     builder.WriteUInt32(0);
+        //     builder.WriteUInt32(0);
 
-    //     // ManagedNativeHeaderDirectory (not supported):
-    //     builder.WriteUInt32(0);
-    //     builder.WriteUInt32(0);
+        //     // ManagedNativeHeaderDirectory (not supported):
+        //     builder.WriteUInt32(0);
+        //     builder.WriteUInt32(0);
 
-    //     Debug.Assert(builder.Count - start == CorHeaderSize);
-    //     Debug.Assert(builder.Count % 4 == 0);
-    // }
+        //     assert(builder.Count - start == CorHeaderSize);
+        //     assert(builder.Count % 4 == 0);
+        // }
 
-    //         private void WriteRuntimeStartupStub(BlobBuilder sectionBuilder, int importAddressTableRva, ulong baseAddress)
-    // {
-    //     // entry point code, consisting of a jump indirect to _CorXXXMain
-    //     if (Is32Bit) {
-    //         // Write zeros (nops) to pad the entry point code so that the target address is aligned on a 4 byte boundary.
-    //         // Note that the section is aligned to FileAlignment, which is at least 512, so we can align relatively to the start of the section.
-    //         sectionBuilder.Align(4);
+        //         private void WriteRuntimeStartupStub(BlobBuilder sectionBuilder, int importAddressTableRva, ulong baseAddress)
+        // {
+        //     // entry point code, consisting of a jump indirect to _CorXXXMain
+        //     if (Is32Bit) {
+        //         // Write zeros (nops) to pad the entry point code so that the target address is aligned on a 4 byte boundary.
+        //         // Note that the section is aligned to FileAlignment, which is at least 512, so we can align relatively to the start of the section.
+        //         sectionBuilder.Align(4);
 
-    //         sectionBuilder.WriteUInt16(0);
-    //         sectionBuilder.WriteByte(0xff);
-    //         sectionBuilder.WriteByte(0x25); //4
-    //         sectionBuilder.WriteUInt32((uint)importAddressTableRva + (uint)baseAddress); //8
-    //     }
-    //     else {
-    //         // Write zeros (nops) to pad the entry point code so that the target address is aligned on a 8 byte boundary.
-    //         // Note that the section is aligned to FileAlignment, which is at least 512, so we can align relatively to the start of the section.
-    //         sectionBuilder.Align(8);
+        //         sectionBuilder.WriteUInt16(0);
+        //         sectionBuilder.WriteByte(0xff);
+        //         sectionBuilder.WriteByte(0x25); //4
+        //         sectionBuilder.WriteUInt32((uint)importAddressTableRva + (uint)baseAddress); //8
+        //     }
+        //     else {
+        //         // Write zeros (nops) to pad the entry point code so that the target address is aligned on a 8 byte boundary.
+        //         // Note that the section is aligned to FileAlignment, which is at least 512, so we can align relatively to the start of the section.
+        //         sectionBuilder.Align(8);
 
-    //         sectionBuilder.WriteUInt32(0);
-    //         sectionBuilder.WriteUInt16(0);
-    //         sectionBuilder.WriteByte(0xff);
-    //         sectionBuilder.WriteByte(0x25); //8
-    //         sectionBuilder.WriteUInt64((ulong)importAddressTableRva + baseAddress); //16
-    //     }
-    // }
+        //         sectionBuilder.WriteUInt32(0);
+        //         sectionBuilder.WriteUInt16(0);
+        //         sectionBuilder.WriteByte(0xff);
+        //         sectionBuilder.WriteByte(0x25); //8
+        //         sectionBuilder.WriteUInt64((ulong)importAddressTableRva + baseAddress); //16
+        //     }
+    }
 
     // #endregion
 }

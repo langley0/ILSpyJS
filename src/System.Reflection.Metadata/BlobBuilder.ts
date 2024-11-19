@@ -1,6 +1,9 @@
 import assert from "assert";
-import { Throw, sizeof } from "System";
-import { BlobWriterImpl } from "./BlobWriterImpl";
+import { Throw, sizeof, Guid } from "System";
+import { BitArithmetic, BlobUtilities } from "System.Reflection";
+import { BlobBuilderImpl } from "./BlobWriterImpl";
+import { Blob } from "./Blob";
+import { Chunks, Blobs } from "./BlobBuilder.Enumerators";
 
 export class BlobBuilder {
     // The implementation is akin to StringBuilder.
@@ -38,6 +41,21 @@ export class BlobBuilder {
     // Non-head: highest bit is 1, lower 31 bits are not all 0.
     private _length: number;
 
+    // begin of getter for only Chunks 
+    public get _nextOrPrevious_chunks() {
+        return this._nextOrPrevious;
+    }
+    public get FirstChunk_chunks() {
+        return this.FirstChunk;
+    }
+    public get _buffer_chunks() {
+        return this._buffer;
+    }
+    public get _length_chunks() {
+        return this._length;
+    }
+    // end of getter for only Chunks
+
     private static readonly IsFrozenMask = 0x80000000;
     public get IsHead(): boolean {
         return (this._length & BlobBuilder.IsFrozenMask) == 0;
@@ -68,56 +86,73 @@ export class BlobBuilder {
         return new BlobBuilder(Math.max(this._buffer.length, minimalSize));
     }
 
-    // protected virtual  FreeChunk()
-    // {
-    //     // nop
-    // }
+    protected FreeChunk() // for virtual call
+    {
+        // nop
+    }
 
-    // public  Clear()
-    // {
-    //     if (!IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+    public Clear() {
+        if (!this.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     // Swap buffer with the first chunk.
-    //     // Note that we need to keep holding on all allocated buffers,
-    //     // so that builders with custom allocator can release them.
-    //     var first = FirstChunk;
-    //     if (first != this)
-    //     {
-    //         var firstBuffer = first._buffer;
-    //         first._length = FrozenLength;
-    //         first._buffer = _buffer;
-    //         _buffer = firstBuffer;
-    //     }
+        // Swap buffer with the first chunk.
+        // Note that we need to keep holding on all allocated buffers,
+        // so that builders with custom allocator can release them.
+        var first = this.FirstChunk;
+        if (first != this) {
+            var firstBuffer = first._buffer;
+            first._length = this.FrozenLength;
+            first._buffer = this._buffer;
+            this._buffer = firstBuffer;
+        }
 
-    //     // free all chunks except for the current one
-    //     foreach (BlobBuilder chunk in GetChunks())
-    //     {
-    //         if (chunk != this)
-    //         {
-    //             chunk.ClearAndFreeChunk();
-    //         }
-    //     }
+        // free all chunks except for the current one
+        const chunks = this.GetChunks()
+        while (chunks.MoveNext()) {
+            const chunk = chunks.Current;
+            assert(chunk);
+            if (chunk != this) {
+                chunk.ClearAndFreeChunk();
+            }
+        }
 
-    //     ClearChunk();
-    // }
+        this.ClearChunk();
+    }
 
-    // protected  Free()
-    // {
-    //     Clear();
-    //     FreeChunk();
-    // }
+    protected Free() {
+        this.Clear();
+        this.FreeChunk();
+    }
 
-    // // public for testing
-    // public  ClearChunk()
-    // {
-    //     _length = 0;
-    //     _previousLengthOrFrozenSuffixLengthDelta = 0;
-    //     _nextOrPrevious = this;
-    // }
+    // public for testing
+    public ClearChunk() {
+        this._length = 0;
+        this._previousLengthOrFrozenSuffixLengthDelta = 0;
+        this._nextOrPrevious = this;
+    }
 
+    private CheckInvariants() {
+        assert(this._buffer);
+        assert(this.Length >= 0 && this.Length <= this._buffer.length);
+        assert(this._nextOrPrevious != null);
+
+        if (this.IsHead) {
+            assert(this._previousLengthOrFrozenSuffixLengthDelta >= 0);
+
+            // last chunk:
+            let totalLength = 0;
+            const chunks = this.GetChunks();
+            while (chunks.MoveNext()) {
+                const chunk = chunks.Current;
+                assert(chunk);
+                assert(chunk.IsHead || chunk.Length > 0);
+                totalLength += chunk.Length;
+            }
+
+            assert(totalLength == this.Count);
+        }
+    }
 
     public get Count(): number {
         return this._previousLengthOrFrozenSuffixLengthDelta + this.Length;
@@ -143,30 +178,26 @@ export class BlobBuilder {
         return this._buffer.length;
     }
 
-    // // public for testing
-    // public Chunks GetChunks()
-    // {
-    //     if (!IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+    // public for testing
+    public GetChunks(): Chunks {
+        if (!this.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     return new Chunks(this);
-    // }
+        return new Chunks(this);
+    }
 
-    // /// <summary>
-    // /// Returns a sequence of all blobs that represent the content of the builder.
-    // /// </summary>
-    // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
-    // public Blobs GetBlobs()
-    // {
-    //     if (!IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+    /// <summary>
+    /// Returns a sequence of all blobs that represent the content of the builder.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
+    public GetBlobs(): Blobs {
+        if (!this.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     return new Blobs(this);
-    // }
+        return new Blobs(this);
+    }
 
     // /// <summary>
     // /// Compares the current content of this writer with another one.
@@ -247,43 +278,47 @@ export class BlobBuilder {
     //     return ToArray(0, Count);
     // }
 
-    // /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the buffer content.</exception>
-    // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
-    // public byte[] ToArray(number start, number byteCount)
-    // {
-    //     BlobUtilities.ValidateRange(Count, start, byteCount, nameof(byteCount));
+    /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the buffer content.</exception>
+    /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
+    public ToArray(start?: number, byteCount?: number): Uint8Array {
+        start = start ?? 0;
+        byteCount = byteCount ?? this.Count;
 
-    //     var result = new byte[byteCount];
+        BlobUtilities.ValidateRange(this.Count, start, byteCount, 'byteCount');
 
-    //     number chunkStart = 0;
-    //     number bufferStart = start;
-    //     number bufferEnd = start + byteCount;
-    //     foreach (var chunk in GetChunks())
-    //     {
-    //         number chunkEnd = chunkStart + chunk.Length;
-    //         assert(bufferStart >= chunkStart);
+        var result = new Uint8Array(byteCount);
 
-    //         if (chunkEnd > bufferStart)
-    //         {
-    //             number bytesToCopy = Math.Min(bufferEnd, chunkEnd) - bufferStart;
-    //             assert(bytesToCopy >= 0);
+        let chunkStart = 0;
+        let bufferStart = start;
+        const bufferEnd = start + byteCount;
+        for (const chunk of this.GetChunks().ToArray()) {
+            const chunkEnd = chunkStart + chunk.Length;
+            assert(bufferStart >= chunkStart);
 
-    //             Array.Copy(chunk._buffer, bufferStart - chunkStart, result, bufferStart - start, bytesToCopy);
-    //             bufferStart += bytesToCopy;
+            if (chunkEnd > bufferStart) {
+                const bytesToCopy = Math.min(bufferEnd, chunkEnd) - bufferStart;
+                assert(bytesToCopy >= 0);
 
-    //             if (bufferStart == bufferEnd)
-    //             {
-    //                 break;
-    //             }
-    //         }
+                const src = chunk._buffer;
+                const targetStart = bufferStart - start;
+                const srcStart = bufferStart - chunkStart;
+                const srcEnd = srcStart + bytesToCopy;
+                src.copy(result, targetStart, srcStart, srcEnd);
 
-    //         chunkStart = chunkEnd;
-    //     }
+                bufferStart += bytesToCopy;
 
-    //     assert(bufferStart == bufferEnd);
+                if (bufferStart == bufferEnd) {
+                    break;
+                }
+            }
 
-    //     return result;
-    // }
+            chunkStart = chunkEnd;
+        }
+
+        assert(bufferStart == bufferEnd);
+
+        return result;
+    }
 
     // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
     // public ImmutableArray<byte> ToImmutableArray()
@@ -291,13 +326,11 @@ export class BlobBuilder {
     //     return ToImmutableArray(0, Count);
     // }
 
-    // /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the buffer content.</exception>
-    // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
-    // public ImmutableArray<byte> ToImmutableArray(number start, number byteCount)
-    // {
-    //     byte[]? array = ToArray(start, byteCount);
-    //     return ImmutableCollectionsMarshal.AsImmutableArray(array);
-    // }
+    /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the buffer content.</exception>
+    /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
+    public ToImmutableArray(start?: number, byteCount?: number): Uint8Array {
+        return Uint8Array.from([... this.ToArray(start, byteCount)]);
+    }
 
     // public boolean TryGetSpan(out ReadOnlySpan<byte> buffer)
     // {
@@ -418,82 +451,74 @@ export class BlobBuilder {
     //     CheckInvariants();
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="suffix"/> is null.</exception>
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  LinkSuffix(BlobBuilder suffix)
-    // {
-    //     if (suffix is null)
-    //     {
-    //         Throw.ArgumentNull(nameof(suffix));
-    //     }
+    /// <exception cref="ArgumentNullException"><paramref name="suffix"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public LinkSuffix(suffix?: BlobBuilder) {
+        if (!suffix) {
+            Throw.ArgumentNull("suffix");
+        }
 
-    //     // TODO: consider copying data from right to left while there is space
+        // TODO: consider copying data from right to left while there is space
+        if (!this.IsHead || !suffix.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     if (!IsHead || !suffix.IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+        // avoid chaining empty chunks:
+        if (suffix.Count == 0) {
+            suffix.ClearAndFreeChunk();
+            return;
+        }
 
-    //     // avoid chaining empty chunks:
-    //     if (suffix.Count == 0)
-    //     {
-    //         suffix.ClearAndFreeChunk();
-    //         return;
-    //     }
+        const isEmpty = this.Count == 0;
 
-    //     boolean isEmpty = Count == 0;
+        // swap buffers of the heads:
+        const suffixBuffer = suffix._buffer;
+        const suffixLength = suffix._length;
+        const suffixPreviousLength = suffix.PreviousLength;
+        const oldSuffixLength = suffix.Length;
+        suffix._buffer = this._buffer;
+        suffix._length = this.FrozenLength; // suffix is not a head anymore
+        this._buffer = suffixBuffer;
+        this._length = suffixLength;
 
-    //     // swap buffers of the heads:
-    //     var suffixBuffer = suffix._buffer;
-    //     uint suffixLength = suffix._length;
-    //     number suffixPreviousLength = suffix.PreviousLength;
-    //     number oldSuffixLength = suffix.Length;
-    //     suffix._buffer = _buffer;
-    //     suffix._length = FrozenLength; // suffix is not a head anymore
-    //     _buffer = suffixBuffer;
-    //     _length = suffixLength;
+        this.PreviousLength += suffix.Length + suffixPreviousLength;
 
-    //     PreviousLength += suffix.Length + suffixPreviousLength;
+        // Update the _previousLength of the suffix so that suffix.Count = suffix._previousLength + suffix.Length doesn't change.
+        // Note that the resulting previous length might be negative.
+        // The value is not used, other than for calculating the value of Count property.
+        suffix._previousLengthOrFrozenSuffixLengthDelta = suffixPreviousLength + oldSuffixLength - suffix.Length;
 
-    //     // Update the _previousLength of the suffix so that suffix.Count = suffix._previousLength + suffix.Length doesn't change.
-    //     // Note that the resulting previous length might be negative.
-    //     // The value is not used, other than for calculating the value of Count property.
-    //     suffix._previousLengthOrFrozenSuffixLengthDelta = suffixPreviousLength + oldSuffixLength - suffix.Length;
+        if (!isEmpty) {
+            // First and last chunks:
+            //
+            // [First]->[]->[Last] <- [this]    [SuffixFirst]->[]->[SuffixLast]  <- [suffix]
+            //    ^___________|                       ^_________________|
+            //
+            // Degenerate cases:
+            // this == First == Last and/or suffix == SuffixFirst == SuffixLast.
+            var first = this.FirstChunk;
+            var suffixFirst = suffix.FirstChunk;
+            var last = this._nextOrPrevious;
+            var suffixLast = suffix._nextOrPrevious;
 
-    //     if (!isEmpty)
-    //     {
-    //         // First and last chunks:
-    //         //
-    //         // [First]->[]->[Last] <- [this]    [SuffixFirst]->[]->[SuffixLast]  <- [suffix]
-    //         //    ^___________|                       ^_________________|
-    //         //
-    //         // Degenerate cases:
-    //         // this == First == Last and/or suffix == SuffixFirst == SuffixLast.
-    //         var first = FirstChunk;
-    //         var suffixFirst = suffix.FirstChunk;
-    //         var last = _nextOrPrevious;
-    //         var suffixLast = suffix._nextOrPrevious;
+            // Relink like so:
+            // [First]->[]->[Last] -> [suffix] -> [SuffixFirst]->[]->[SuffixLast]  <- [this]
+            //    ^_______________________________________________________|
+            this._nextOrPrevious = suffixLast;
+            suffix._nextOrPrevious = (suffixFirst != suffix) ? suffixFirst : (first != this) ? first : suffix;
 
-    //         // Relink like so:
-    //         // [First]->[]->[Last] -> [suffix] -> [SuffixFirst]->[]->[SuffixLast]  <- [this]
-    //         //    ^_______________________________________________________|
-    //         _nextOrPrevious = suffixLast;
-    //         suffix._nextOrPrevious = (suffixFirst != suffix) ? suffixFirst : (first != this) ? first : suffix;
+            if (last != this) {
+                last._nextOrPrevious = suffix;
+            }
 
-    //         if (last != this)
-    //         {
-    //             last._nextOrPrevious = suffix;
-    //         }
+            if (suffixLast != suffix) {
+                suffixLast._nextOrPrevious = (first != this) ? first : suffix;
+            }
+        }
 
-    //         if (suffixLast != suffix)
-    //         {
-    //             suffixLast._nextOrPrevious = (first != this) ? first : suffix;
-    //         }
-    //     }
-
-    //     CheckInvariants();
-    //     suffix.CheckInvariants();
-    // }
+        this.CheckInvariants();
+        suffix.CheckInvariants();
+    }
 
     private AddLength(value: number) {
         this._length += value;
@@ -547,21 +572,19 @@ export class BlobBuilder {
         }
     }
 
-    // /// <summary>
-    // /// Reserves a contiguous block of bytes.
-    // /// </summary>
-    // /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public Blob ReserveBytes(number byteCount)
-    // {
-    //     if (byteCount < 0)
-    //     {
-    //         Throw.ArgumentOutOfRange(nameof(byteCount));
-    //     }
+    /// <summary>
+    /// Reserves a contiguous block of bytes.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public ReserveBytes(byteCount: number): Blob {
+        if (byteCount < 0) {
+            Throw.ArgumentOutOfRange('byteCount');
+        }
 
-    //     number start = ReserveBytesImpl(byteCount);
-    //     return new Blob(_buffer, start, byteCount);
-    // }
+        const start = this.ReserveBytesImpl(byteCount);
+        return new Blob(this._buffer, start, byteCount);
+    }
 
     private ReserveBytesImpl(byteCount: number): number {
         assert(byteCount >= 0);
@@ -585,75 +608,65 @@ export class BlobBuilder {
         return this.ReserveBytesImpl(byteCount);
     }
 
-    // /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteBytes(byte value, number byteCount)
-    // {
-    //     if (byteCount < 0)
-    //     {
-    //         Throw.ArgumentOutOfRange(nameof(byteCount));
-    //     }
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteBytes(value: number, byteCount: number) {
+        if (byteCount < 0) {
+            Throw.ArgumentOutOfRange('byteCount');
+        }
 
-    //     if (!IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+        if (!this.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     number bytesToCurrent = Math.Min(FreeBytes, byteCount);
+        const bytesToCurrent = Math.min(this.FreeBytes, byteCount);
 
-    //     _buffer.WriteBytes(Length, value, bytesToCurrent);
-    //     AddLength(bytesToCurrent);
+        for (let i = 0; i < bytesToCurrent; i++) {
+            this._buffer[this.Length + i] = value;
+        }
+        this.AddLength(bytesToCurrent);
 
-    //     number remaining = byteCount - bytesToCurrent;
-    //     if (remaining > 0)
-    //     {
-    //         Expand(remaining);
+        const remaining = byteCount - bytesToCurrent;
+        if (remaining > 0) {
+            this.Expand(remaining);
 
-    //         _buffer.WriteBytes(0, value, remaining);
-    //         AddLength(remaining);
-    //     }
-    // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
-    // /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public   WriteBytes(byte* buffer, number byteCount)
-    // {
-    //     if (buffer is null)
-    //     {
-    //         Throw.ArgumentNull(nameof(buffer));
-    //     }
+            for (let i = 0; i < remaining; i++) {
+                this._buffer[i] = value;
+            }
+            this.AddLength(remaining);
+        }
+    }
 
-    //     if (byteCount < 0)
-    //     {
-    //         Throw.ArgumentOutOfRange(nameof(byteCount));
-    //     }
+    /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteBytesArray(buffer: Uint8Array, byteCount: number) {
+        if (byteCount < 0) {
+            Throw.ArgumentOutOfRange('byteCount');
+        }
 
-    //     if (!IsHead)
-    //     {
-    //         Throw.InvalidOperationBuilderAlreadyLinked();
-    //     }
+        if (!this.IsHead) {
+            Throw.InvalidOperationBuilderAlreadyLinked();
+        }
 
-    //     WriteBytesUnchecked(new ReadOnlySpan<byte>(buffer, byteCount));
-    // }
+        this.WriteBytesUnchecked(buffer.slice(0, byteCount));
+    }
 
-    // private  WriteBytesUnchecked(ReadOnlySpan<byte> buffer)
-    // {
-    //     number bytesToCurrent = Math.Min(FreeBytes, buffer.Length);
+    private WriteBytesUnchecked(buffer: Uint8Array) {
+        const origin = Buffer.from(buffer);
+        const bytesToCurrent = Math.min(this.FreeBytes, buffer.length);
 
-    //     buffer.Slice(0, bytesToCurrent).CopyTo(_buffer.AsSpan(Length));
+        origin.copy(this._buffer, this.Length, 0, bytesToCurrent);
+        this.AddLength(bytesToCurrent);
 
-    //     AddLength(bytesToCurrent);
-
-    //     ReadOnlySpan<byte> remaining = buffer.Slice(bytesToCurrent);
-    //     if (!remaining.IsEmpty)
-    //     {
-    //         Expand(remaining.Length);
-
-    //         remaining.CopyTo(_buffer);
-    //         AddLength(remaining.Length);
-    //     }
-    // }
+        if (buffer.length > bytesToCurrent) {
+            const remaining = Buffer.from(buffer, bytesToCurrent);
+            this.Expand(remaining.length);
+            remaining.copy(this._buffer, 0, 0, remaining.length);
+            this.AddLength(remaining.length);
+        }
+    }
 
     // /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
@@ -773,12 +786,11 @@ export class BlobBuilder {
     //     WriteBytes(0, position - Count);
     // }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  Align(number alignment)
-    // {
-    //     number position = Count;
-    //     WriteBytes(0, BitArithmetic.Align(position, alignment) - position);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public Align(alignment: number) {
+        const position = this.Count;
+        this.WriteBytes(0, BitArithmetic.Align32(position, alignment) - position);
+    }
 
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteBoolean(boolean value)
@@ -792,38 +804,33 @@ export class BlobBuilder {
         this._buffer.writeUInt8(value, start);
     }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteSByte(sbyte value)
-    // {
-    //     WriteByte(unchecked((byte)value));
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteSByte(value: number) {
+        this.WriteByte(value);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteDouble(double value)
-    // {
-    //     number start = ReserveBytesPrimitive(sizeof(double));
-    //     _buffer.WriteDouble(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteDouble(value: number) {
+        const start = this.ReserveBytesPrimitive(sizeof('double'));
+        this._buffer.writeDoubleLE(value, start);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteSingle(float value)
-    // {
-    //     number start = ReserveBytesPrimitive(sizeof(float));
-    //     _buffer.WriteSingle(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteSingle(value: number) {
+        const start = this.ReserveBytesPrimitive(sizeof('float'));
+        this._buffer.writeFloatLE(value, start);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteInt16(short value)
-    // {
-    //     WriteUInt16(unchecked((ushort)value));
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteInt16(value: number) {
+        this.WriteUInt16(value);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteUInt16(ushort value)
-    // {
-    //     number start = ReserveBytesPrimitive(sizeof(ushort));
-    //     _buffer.WriteUInt16(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteUInt16(value: number) {
+        const start = this.ReserveBytesPrimitive(sizeof('ushort'));
+        this._buffer.writeUInt16LE(value, start);
+    }
 
     /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     public WriteInt16BE(value: number) {
@@ -847,51 +854,47 @@ export class BlobBuilder {
         this._buffer.writeUInt32BE(value, start);
     }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteInt32(number value)
-    // {
-    //     WriteUInt32(unchecked((uint)value));
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteInt32(value: number) {
+        this.WriteUInt32(value);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteUInt32(uint value)
-    // {
-    //     number start = ReserveBytesPrimitive(sizeof(uint));
-    //     _buffer.WriteUInt32(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteUInt32(value: number) {
+        const start = this.ReserveBytesPrimitive(sizeof('uint'));
+        this._buffer.writeUInt32LE(value, start);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteInt64(long value)
-    // {
-    //     WriteUInt64(unchecked((ulong)value));
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteInt64(value: bigint) {
+        this.WriteUInt64(value);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteUInt64(ulong value)
-    // {
-    //     number start = ReserveBytesPrimitive(sizeof(ulong));
-    //     _buffer.WriteUInt64(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteUInt64(value: bigint) {
+        const start = this.ReserveBytesPrimitive(sizeof('ulong'));
+        this._buffer.writeBigUInt64LE(value, start);
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteDecimal(decimal value)
-    // {
-    //     number start = ReserveBytesPrimitive(BlobUtilities.SizeOfSerializedDecimal);
-    //     _buffer.WriteDecimal(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteDecimal(value: bigint) {
+        // const start = this.ReserveBytesPrimitive(BlobUtilities.SizeOfSerializedDecimal);
+        // this._buffer.WriteDecimal(start, value);
+        throw new Error("Not implemented");
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteGuid(Guid value)
-    // {
-    //     number start = ReserveBytesPrimitive(BlobUtilities.SizeOfGuid);
-    //     _buffer.WriteGuid(start, value);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteGuid(value: Guid) {
+        // const start = this.ReserveBytesPrimitive(BlobUtilities.SizeOfGuid);
+        // this._buffer.WriteGuid(start, value);
+        throw new Error("Not implemented");
+    }
 
-    // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
-    // public  WriteDateTime(DateTime value)
-    // {
-    //     WriteInt64(value.Ticks);
-    // }
+    /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
+    public WriteDateTime(value: Date) {
+        // this.WriteInt64(BigInt(value.getTime()));
+        throw new Error("Not implemented");
+    }
 
     // /// <summary>
     // /// Writes a reference to a heap (heap offset) or a table (row number).
@@ -1040,31 +1043,30 @@ export class BlobBuilder {
 
         const strBuf = Buffer.from(str, 'utf-8');
 
-        {
-            char * currentPtr = strPtr + start;
-            char * nextPtr;
+        // the max size of compressed number is 4B:
+        const byteLimit = this.FreeBytes - (prependSize ? sizeof('uint') : 0);
 
-            // the max size of compressed number is 4B:
-            const byteLimit = this.FreeBytes - (prependSize ? sizeof('uint') : 0);
+        const bytesToCurrent = Math.min(strBuf.length, byteLimit);
+        const charsToCurrent = bytesToCurrent;
+        const charsToNext = length - charsToCurrent;
+        const bytesToNext = charsToNext;
 
-            number bytesToCurrent = BlobUtilities.GetUTF8ByteCount(currentPtr, length, byteLimit, out nextPtr);
-            number charsToCurrent = (number)(nextPtr - currentPtr);
-            number charsToNext = length - charsToCurrent;
-            number bytesToNext = BlobUtilities.GetUTF8ByteCount(nextPtr, charsToNext);
+        if (prependSize) {
+            this.WriteCompressedInteger(strBuf.length);
+        }
 
-            if (prependSize) {
-                this.WriteCompressedInteger(strBuf.length);
+        for (let i = 0; i < bytesToCurrent; i++) {
+            this._buffer.writeUInt8(strBuf[i], i + this.Length);
+        }
+        this.AddLength(bytesToCurrent);
+
+        if (bytesToNext > 0) {
+            this.Expand(bytesToNext);
+
+            for (let i = 0; i < bytesToNext; i++) {
+                this._buffer.writeUInt8(strBuf[i], i + this.Length);
             }
-
-            this._buffer.WriteUTF8(Length, currentPtr, charsToCurrent, bytesToCurrent, allowUnpairedSurrogates);
-            this.AddLength(bytesToCurrent);
-
-            if (bytesToNext > 0) {
-                this.Expand(bytesToNext);
-
-                this._buffer.WriteUTF8(0, nextPtr, charsToNext, bytesToNext, allowUnpairedSurrogates);
-                this.AddLength(bytesToNext);
-            }
+            this.AddLength(bytesToNext);
         }
     }
 
@@ -1103,7 +1105,7 @@ export class BlobBuilder {
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> can't be represented as a compressed unsigned integer.</exception>
     /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     public WriteCompressedInteger(value: number) {
-        BlobWriterImpl.WriteCompressedInteger(this, value);
+        BlobBuilderImpl.WriteCompressedInteger(this, value);
     }
 
     // /// <summary>
@@ -1132,9 +1134,8 @@ export class BlobBuilder {
     //         BitConverter.ToString(bytes, 0, MaxDisplaySize / 2) + "-...-" + BitConverter.ToString(bytes, length - MaxDisplaySize / 2, MaxDisplaySize / 2);
     // }
 
-    // private  ClearAndFreeChunk()
-    // {
-    //     ClearChunk();
-    //     FreeChunk();
-    // }
+    private ClearAndFreeChunk() {
+        this.ClearChunk();
+        this.FreeChunk();
+    }
 }

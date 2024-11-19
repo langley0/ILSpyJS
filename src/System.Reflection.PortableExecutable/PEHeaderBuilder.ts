@@ -1,6 +1,6 @@
 import { Throw } from "System";
 import { Machine } from 'System.Reflection.Metadata';
-import { BitArithmetic } from 'System.Reflection.Internal';
+import { BitArithmetic } from 'System.Reflection';
 import { PEBuilder } from './PEBuilder';
 import { PEHeaders } from "./PEHeaders";
 import { PEHeader } from "./PEHeader";
@@ -69,11 +69,11 @@ export class PEHeaderBuilder {
         sizeOfStackCommit: bigint = BigInt(0x1000),
         sizeOfHeapReserve: bigint = BigInt(0x00100000),
         sizeOfHeapCommit: bigint = BigInt(0x1000)) {
-        if (fileAlignment < 512 || fileAlignment > 64 * 1024 || BitArithmetic.CountBits(fileAlignment) != 1) {
+        if (fileAlignment < 512 || fileAlignment > 64 * 1024 || BitArithmetic.Count32Bits(fileAlignment) != 1) {
             Throw.ArgumentOutOfRange("fileAlignment");
         }
 
-        if (sectionAlignment < fileAlignment || BitArithmetic.CountBits(sectionAlignment) != 1) {
+        if (sectionAlignment < fileAlignment || BitArithmetic.Count32Bits(sectionAlignment) != 1) {
             Throw.ArgumentOutOfRange("sectionAlignment");
         }
 

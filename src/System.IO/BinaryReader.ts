@@ -20,14 +20,14 @@ export class BinaryReader {
         return this._stream.ReadByte();
     }
 
-    ReadBytes(count: number): number[] {
+    ReadBytes(count: number): Uint8Array {
         Throw.ThrowIfNegative(count);
 
         if (count == 0) {
-            return Array();
+            return new Uint8Array();
         }
 
-        let result = new Array(count);
+        let result = new Uint8Array(count);
         const numRead = this._stream.ReadAtLeast(result, result.length, false);
 
         if (numRead != result.length) {
@@ -39,31 +39,31 @@ export class BinaryReader {
     }
 
     ReadInt16(): number {
-        const buf = Array<number>(2);
+        const buf = new Uint8Array(2);
         this._stream.ReadBytes(buf);
         return Buffer.from(buf).readInt16LE(0);
     }
 
     ReadUInt16(): number {
-        const buf = Array<number>(2);
+        const buf = new Uint8Array(2);
         this._stream.ReadBytes(buf);
         return Buffer.from(buf).readUInt16LE(0);
     }
 
     ReadInt32(): number {
-        const buf = Array<number>(4);
+        const buf = new Uint8Array(4);
         this._stream.ReadBytes(buf);
         return Buffer.from(buf).readInt32LE(0);
     }
 
     ReadUInt32(): number {
-        const buf = Array<number>(4);
+        const buf = new Uint8Array(4);
         this._stream.ReadBytes(buf);
         return Buffer.from(buf).readUInt32LE(0);
     }
 
     ReadUInt64(): bigint {
-        const buf = Array<number>(8);
+        const buf = new Uint8Array(8);
         this._stream.ReadBytes(buf);
         return Buffer.from(buf).readBigUInt64BE(0);
     }

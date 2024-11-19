@@ -25,10 +25,10 @@ export class PEBinaryReader {
 
     public Seek(offset: number) {
         this.CheckBounds(this._startOffset, offset);
-        this._reader.BaseStream.Seek(BigInt(offset), SeekOrigin.Begin);
+        this._reader.BaseStream.Seek(offset, SeekOrigin.Begin);
     }
 
-    public ReadBytes(count: number): number[] {
+    public ReadBytes(count: number): Uint8Array {
         this.CheckBounds(this._reader.BaseStream.Position, count);
         return this._reader.ReadBytes(count);
     }
@@ -72,7 +72,7 @@ export class PEBinaryReader {
     /// is included in the result.
     /// </summary>
     public ReadNullPaddedUTF8(byteCount: number): string {
-        const bytes: number[] = this.ReadBytes(byteCount);
+        const bytes= this.ReadBytes(byteCount);
         let nonPaddedLength = 0;
         for (let i = bytes.length; i > 0; --i) {
             if (bytes[i - 1] != 0) {

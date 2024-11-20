@@ -64,7 +64,7 @@ export class PEBinaryReader {
     }
 
     /// <summary>
-    /// Reads a fixed-length byte block as a null-padded UTF-8 encoded string.
+    /// Reads a fixed-length byte block as a undefined-padded UTF-8 encoded string.
     /// The padding is not included in the returned string.
     ///
     /// Note that it is legal for UTF-8 strings to contain NUL; if NUL occurs

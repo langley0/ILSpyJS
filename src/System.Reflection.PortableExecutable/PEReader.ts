@@ -5,8 +5,17 @@ import {
     AbstractMemoryBlock,
     ExternalMemoryBlockProvider,
     MemoryBlockProvider,
-} from 'System.Reflection';
+    StreamMemoryBlockProvider,
+    StreamExtensions,
+} from 'System.Reflection.Internal';
+import {
+    MetadataReader,
+    MetadataReaderOptions,
+    MetadataStringDecoder,
+} from 'System.Reflection.Metadata';
 import { PEHeaders } from './PEHeaders';
+import { PEStreamOptions } from './PEStreamOptions';
+import { PEMemoryBlock } from "./PEMemoryBlock";
 
 
 /// <summary>
@@ -25,14 +34,14 @@ export class PEReader {
     }
     private _isLoadedImage: boolean;
 
-    // May be null in the event that the entire image is not
+    // May be undefined in the event that the entire image is not
     // deemed necessary and we have been instructed to read
     // the image contents without being lazy.
     //
-    // _lazyPEHeaders are not null in that case.
+    // _lazyPEHeaders are not undefined in that case.
     private _peImage?: MemoryBlockProvider;
 
-    // If we read the data from the image lazily (peImage != null) we defer reading the PE headers.
+    // If we read the data from the image lazily (peImage != undefined) we defer reading the PE headers.
     private _lazyPEHeaders?: PEHeaders;
 
     private _lazyMetadataBlock?: AbstractMemoryBlock;
@@ -100,7 +109,7 @@ export class PEReader {
     // /// Creates a Portable Executable reader over a PE image stored in a stream.
     // /// </summary>
     // /// <param name="peStream">PE image stream.</param>
-    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is undefined.</exception>
     // /// <remarks>
     // /// Ownership of the stream is transferred to the <see cref="PEReader"/> upon successful validation of constructor arguments. It will be
     // /// disposed by the <see cref="PEReader"/> and the caller must not manipulate it.
@@ -129,7 +138,7 @@ export class PEReader {
     // /// specified, the caller retains full ownership of the stream and is assured that it will not be manipulated by the <see cref="PEReader"/>
     // /// after construction.
     // /// </param>
-    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is undefined.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> has an invalid value.</exception>
     // /// <exception cref="IOException">Error reading from the stream (only when prefetching data).</exception>
     // /// <exception cref="BadImageFormatException"><see cref="PEStreamOptions.PrefetchMetadata"/> is specified and the PE headers of the image are invalid.</exception>
@@ -138,95 +147,81 @@ export class PEReader {
     // {
     // }
 
-    // /// <summary>
-    // /// Creates a Portable Executable reader over a PE image of the given size beginning at the stream's current position.
-    // /// </summary>
-    // /// <param name="peStream">PE image stream.</param>
-    // /// <param name="size">PE image size.</param>
-    // /// <param name="options">
-    // /// Options specifying how sections of the PE image are read from the stream.
-    // ///
-    // /// Unless <see cref="PEStreamOptions.LeaveOpen"/> is specified, ownership of the stream is transferred to the <see cref="PEReader"/>
-    // /// upon successful argument validation. It will be disposed by the <see cref="PEReader"/> and the caller must not manipulate it.
-    // ///
-    // /// Unless <see cref="PEStreamOptions.PrefetchMetadata"/> or <see cref="PEStreamOptions.PrefetchEntireImage"/> is specified no data
-    // /// is read from the stream during the construction of the <see cref="PEReader"/>. Furthermore, the stream must not be manipulated
-    // /// by caller while the <see cref="PEReader"/> is alive and undisposed.
-    // ///
-    // /// If <see cref="PEStreamOptions.PrefetchMetadata"/> or <see cref="PEStreamOptions.PrefetchEntireImage"/>, the <see cref="PEReader"/>
-    // /// will have read all of the data requested during construction. As such, if <see cref="PEStreamOptions.LeaveOpen"/> is also
-    // /// specified, the caller retains full ownership of the stream and is assured that it will not be manipulated by the <see cref="PEReader"/>
-    // /// after construction.
-    // /// </param>
-    // /// <exception cref="ArgumentOutOfRangeException">Size is negative or extends past the end of the stream.</exception>
-    // /// <exception cref="IOException">Error reading from the stream (only when prefetching data).</exception>
-    // /// <exception cref="BadImageFormatException"><see cref="PEStreamOptions.PrefetchMetadata"/> is specified and the PE headers of the image are invalid.</exception>
-    // public unsafe PEReader(Stream peStream, PEStreamOptions options, int size)
-    // {
-    //     if (peStream is null)
-    //     {
-    //         Throw.ArgumentNull(nameof(peStream));
-    //     }
+    /// <summary>
+    /// Creates a Portable Executable reader over a PE image of the given size beginning at the stream's current position.
+    /// </summary>
+    /// <param name="peStream">PE image stream.</param>
+    /// <param name="size">PE image size.</param>
+    /// <param name="options">
+    /// Options specifying how sections of the PE image are read from the stream.
+    ///
+    /// Unless <see cref="PEStreamOptions.LeaveOpen"/> is specified, ownership of the stream is transferred to the <see cref="PEReader"/>
+    /// upon successful argument validation. It will be disposed by the <see cref="PEReader"/> and the caller must not manipulate it.
+    ///
+    /// Unless <see cref="PEStreamOptions.PrefetchMetadata"/> or <see cref="PEStreamOptions.PrefetchEntireImage"/> is specified no data
+    /// is read from the stream during the construction of the <see cref="PEReader"/>. Furthermore, the stream must not be manipulated
+    /// by caller while the <see cref="PEReader"/> is alive and undisposed.
+    ///
+    /// If <see cref="PEStreamOptions.PrefetchMetadata"/> or <see cref="PEStreamOptions.PrefetchEntireImage"/>, the <see cref="PEReader"/>
+    /// will have read all of the data requested during construction. As such, if <see cref="PEStreamOptions.LeaveOpen"/> is also
+    /// specified, the caller retains full ownership of the stream and is assured that it will not be manipulated by the <see cref="PEReader"/>
+    /// after construction.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">Size is negative or extends past the end of the stream.</exception>
+    /// <exception cref="IOException">Error reading from the stream (only when prefetching data).</exception>
+    /// <exception cref="BadImageFormatException"><see cref="PEStreamOptions.PrefetchMetadata"/> is specified and the PE headers of the image are invalid.</exception>
+    public static FromStream(peStream: Stream, options?: PEStreamOptions, size?: number): PEReader {
+        if (!peStream.CanRead || !peStream.CanSeek) {
+            Throw.ArgumentException("StreamMustSupportReadAndSeek", "peStream");
+        }
 
-    //     if (!peStream.CanRead || !peStream.CanSeek)
-    //     {
-    //         throw new ArgumentException(SR.StreamMustSupportReadAndSeek, nameof(peStream));
-    //     }
+        options = options ?? PEStreamOptions.Default;
+        size = size ?? 0;
 
-    //     if (!options.IsValid())
-    //     {
-    //         throw new ArgumentOutOfRangeException(nameof(options));
-    //     }
+        const peReader = new PEReader();
 
-    //     IsLoadedImage = (options & PEStreamOptions.IsLoadedImage) != 0;
+        peReader._isLoadedImage = (options & PEStreamOptions.IsLoadedImage) != 0;
 
-    //     long start = peStream.Position;
-    //     int actualSize = StreamExtensions.GetAndValidateSize(peStream, size, nameof(peStream));
+        const start = peStream.Position;
+        const actualSize = StreamExtensions.GetAndValidateSize(peStream, size, 'peStream');
 
-    //     bool closeStream = true;
-    //     try
-    //     {
-    //         if ((options & (PEStreamOptions.PrefetchMetadata | PEStreamOptions.PrefetchEntireImage)) == 0)
-    //         {
-    //             _peImage = new StreamMemoryBlockProvider(peStream, start, actualSize, (options & PEStreamOptions.LeaveOpen) != 0);
-    //             closeStream = false;
-    //         }
-    //         else
-    //         {
-    //             // Read in the entire image or metadata blob:
-    //             if ((options & PEStreamOptions.PrefetchEntireImage) != 0)
-    //             {
-    //                 var imageBlock = StreamMemoryBlockProvider.ReadMemoryBlockNoLock(peStream, start, actualSize);
-    //                 _lazyImageBlock = imageBlock;
-    //                 _peImage = new ExternalMemoryBlockProvider(imageBlock.Pointer, imageBlock.Size);
+        let closeStream = true;
+        try {
+            if ((options & (PEStreamOptions.PrefetchMetadata | PEStreamOptions.PrefetchEntireImage)) == 0) {
+                peReader._peImage = new StreamMemoryBlockProvider(peStream, start, actualSize, (options & PEStreamOptions.LeaveOpen) != 0);
+                closeStream = false;
+            }
+            else {
+                // Read in the entire image or metadata blob:
+                if ((options & PEStreamOptions.PrefetchEntireImage) != 0) {
+                    const imageBlock = StreamMemoryBlockProvider.ReadMemoryBlockNoLock(peStream, start, actualSize);
+                    peReader._lazyImageBlock = imageBlock;
+                    peReader._peImage = new ExternalMemoryBlockProvider(imageBlock.Pointer, imageBlock.Size);
 
-    //                 // if the caller asked for metadata initialize the PE headers (calculates metadata offset):
-    //                 if ((options & PEStreamOptions.PrefetchMetadata) != 0)
-    //                 {
-    //                     InitializePEHeaders();
-    //                 }
-    //             }
-    //             else
-    //             {
-    //                 // The peImage is left null, but the lazyMetadataBlock is initialized up front.
-    //                 _lazyPEHeaders = new PEHeaders(peStream, actualSize, IsLoadedImage);
+                    // if the caller asked for metadata initialize the PE headers (calculates metadata offset):
+                    if ((options & PEStreamOptions.PrefetchMetadata) != 0) {
+                        peReader.InitializePEHeaders();
+                    }
+                }
+                else {
+                    // The peImage is left undefined, but the lazyMetadataBlock is initialized up front.
+                    peReader._lazyPEHeaders = new PEHeaders(peStream, actualSize, peReader.IsLoadedImage);
 
-    //                 if (_lazyPEHeaders.MetadataStartOffset != -1)
-    //                 {
-    //                     _lazyMetadataBlock = StreamMemoryBlockProvider.ReadMemoryBlockNoLock(peStream, _lazyPEHeaders.MetadataStartOffset, _lazyPEHeaders.MetadataSize);
-    //                 }
-    //             }
-    //             // We read all we need, the stream is going to be closed.
-    //         }
-    //     }
-    //     finally
-    //     {
-    //         if (closeStream && (options & PEStreamOptions.LeaveOpen) == 0)
-    //         {
-    //             peStream.Dispose();
-    //         }
-    //     }
-    // }
+                    if (peReader._lazyPEHeaders.MetadataStartOffset != -1) {
+                        peReader._lazyMetadataBlock = StreamMemoryBlockProvider.ReadMemoryBlockNoLock(peStream, peReader._lazyPEHeaders.MetadataStartOffset, peReader._lazyPEHeaders.MetadataSize);
+                    }
+                }
+                // We read all we need, the stream is going to be closed.
+            }
+
+            return peReader;
+        }
+        finally {
+            if (closeStream && (options & PEStreamOptions.LeaveOpen) == 0) {
+                peStream.Dispose();
+            }
+        }
+    }
 
     // /// <summary>
     // /// Creates a Portable Executable reader over a PE image stored in a byte array.
@@ -235,7 +230,7 @@ export class PEReader {
     // /// <remarks>
     // /// The content of the image is not read during the construction of the <see cref="PEReader"/>
     // /// </remarks>
-    // /// <exception cref="ArgumentNullException"><paramref name="peImage"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peImage"/> is undefined.</exception>
     // public PEReader(ImmutableArray<byte> peImage)
     // {
     //     if (peImage.IsDefault)
@@ -256,26 +251,26 @@ export class PEReader {
     // /// </remarks>
     // public void Dispose()
     // {
-    //     _lazyPEHeaders = null;
+    //     _lazyPEHeaders = undefined;
 
     //     _peImage?.Dispose();
-    //     _peImage = null;
+    //     _peImage = undefined;
 
     //     _lazyImageBlock?.Dispose();
-    //     _lazyImageBlock = null;
+    //     _lazyImageBlock = undefined;
 
     //     _lazyMetadataBlock?.Dispose();
-    //     _lazyMetadataBlock = null;
+    //     _lazyMetadataBlock = undefined;
 
-    //     var peSectionBlocks = _lazyPESectionBlocks;
-    //     if (peSectionBlocks != null)
+    //     const peSectionBlocks = _lazyPESectionBlocks;
+    //     if (peSectionBlocks != undefined)
     //     {
-    //         foreach (var block in peSectionBlocks)
+    //         foreach (const block in peSectionBlocks)
     //         {
     //             block?.Dispose();
     //         }
 
-    //         _lazyPESectionBlocks = null;
+    //         _lazyPESectionBlocks = undefined;
     //     }
     // }
 
@@ -325,10 +320,10 @@ export class PEReader {
     // /// <exception cref="InvalidOperationException">PE image not available.</exception>
     // private AbstractMemoryBlock GetEntireImageBlock()
     // {
-    //     if (_lazyImageBlock == null)
+    //     if (_lazyImageBlock == undefined)
     //     {
-    //         var newBlock = GetPEImage().GetMemoryBlock();
-    //         if (Interlocked.CompareExchange(ref _lazyImageBlock, newBlock, null) != null)
+    //         const newBlock = GetPEImage().GetMemoryBlock();
+    //         if (Interlocked.CompareExchange(ref _lazyImageBlock, newBlock, undefined) != undefined)
     //         {
     //             // another thread created the block already, we need to dispose ours:
     //             newBlock.Dispose();
@@ -338,27 +333,21 @@ export class PEReader {
     //     return _lazyImageBlock;
     // }
 
-    // /// <exception cref="IOException">IO error while reading from the underlying stream.</exception>
-    // /// <exception cref="InvalidOperationException">PE image doesn't have metadata.</exception>
-    // private AbstractMemoryBlock GetMetadataBlock()
-    // {
-    //     if (!HasMetadata)
-    //     {
-    //         throw new InvalidOperationException(SR.PEImageDoesNotHaveMetadata);
-    //     }
+    /// <exception cref="IOException">IO error while reading from the underlying stream.</exception>
+    /// <exception cref="InvalidOperationException">PE image doesn't have metadata.</exception>
+    private GetMetadataBlock(): AbstractMemoryBlock {
+        if (!this.HasMetadata) {
+            Throw.InvalidOperationException("PEImageDoesNotHaveMetadata");
+        }
 
-    //     if (_lazyMetadataBlock == null)
-    //     {
-    //         var newBlock = GetPEImage().GetMemoryBlock(PEHeaders.MetadataStartOffset, PEHeaders.MetadataSize);
-    //         if (Interlocked.CompareExchange(ref _lazyMetadataBlock, newBlock, null) != null)
-    //         {
-    //             // another thread created the block already, we need to dispose ours:
-    //             newBlock.Dispose();
-    //         }
-    //     }
+        if (!this._lazyMetadataBlock) {
+            console.log(this._peImage?.Size, this.PEHeaders.MetadataStartOffset + this.PEHeaders.MetadataSize, this.PEHeaders.MetadataStartOffset, this.PEHeaders.MetadataSize);
+            this._lazyMetadataBlock = this.GetPEImage().GetMemoryBlock(this.PEHeaders.MetadataStartOffset, this.PEHeaders.MetadataSize);
+            assert(this._lazyMetadataBlock != undefined);
+        }
 
-    //     return _lazyMetadataBlock;
-    // }
+        return this._lazyMetadataBlock;
+    }
 
     // /// <exception cref="IOException">IO error while reading from the underlying stream.</exception>
     // /// <exception cref="InvalidOperationException">PE image not available.</exception>
@@ -366,15 +355,15 @@ export class PEReader {
     // {
     //     assert(index >= 0 && index < PEHeaders.SectionHeaders.Length);
 
-    //     var peImage = GetPEImage();
+    //     const peImage = GetPEImage();
 
-    //     if (_lazyPESectionBlocks == null)
+    //     if (_lazyPESectionBlocks == undefined)
     //     {
-    //         Interlocked.CompareExchange(ref _lazyPESectionBlocks, new AbstractMemoryBlock[PEHeaders.SectionHeaders.Length], null);
+    //         Interlocked.CompareExchange(ref _lazyPESectionBlocks, new AbstractMemoryBlock[PEHeaders.SectionHeaders.Length], undefined);
     //     }
 
     //     AbstractMemoryBlock? existingBlock = Volatile.Read(ref _lazyPESectionBlocks[index]);
-    //     if (existingBlock != null)
+    //     if (existingBlock != undefined)
     //     {
     //         return existingBlock;
     //     }
@@ -404,7 +393,7 @@ export class PEReader {
     //         newBlock = peImage.GetMemoryBlock(PEHeaders.SectionHeaders[index].PointerToRawData, size);
     //     }
 
-    //     if (Interlocked.CompareExchange(ref _lazyPESectionBlocks[index], newBlock, null) != null)
+    //     if (Interlocked.CompareExchange(ref _lazyPESectionBlocks[index], newBlock, undefined) != undefined)
     //     {
     //         // another thread created the block already, we need to dispose ours:
     //         newBlock.Dispose();
@@ -419,7 +408,7 @@ export class PEReader {
     // /// <remarks>
     // /// Returns false if the <see cref="PEReader"/> is constructed from a stream and only part of it is prefetched into memory.
     // /// </remarks>
-    // public bool IsEntireImageAvailable => _lazyImageBlock != null || _peImage != null;
+    // public bool IsEntireImageAvailable => _lazyImageBlock != undefined || _peImage != undefined;
 
     // /// <summary>
     // /// Gets a pointer to and size of the PE image if available (<see cref="IsEntireImageAvailable"/>).
@@ -430,26 +419,24 @@ export class PEReader {
     //     return new PEMemoryBlock(GetEntireImageBlock());
     // }
 
-    // /// <summary>
-    // /// Returns true if the PE image contains CLI metadata.
-    // /// </summary>
-    // /// <exception cref="BadImageFormatException">The PE headers contain invalid data.</exception>
-    // /// <exception cref="IOException">Error reading from the underlying stream.</exception>
-    // public bool HasMetadata
-    // {
-    //     get { return PEHeaders.MetadataSize > 0; }
-    // }
+    /// <summary>
+    /// Returns true if the PE image contains CLI metadata.
+    /// </summary>
+    /// <exception cref="BadImageFormatException">The PE headers contain invalid data.</exception>
+    /// <exception cref="IOException">Error reading from the underlying stream.</exception>
+    public get HasMetadata(): boolean {
+        return this.PEHeaders.MetadataSize > 0;
+    }
 
-    // /// <summary>
-    // /// Loads PE section that contains CLI metadata.
-    // /// </summary>
-    // /// <exception cref="InvalidOperationException">The PE image doesn't contain metadata (<see cref="HasMetadata"/> returns false).</exception>
-    // /// <exception cref="BadImageFormatException">The PE headers contain invalid data.</exception>
-    // /// <exception cref="IOException">IO error while reading from the underlying stream.</exception>
-    // public PEMemoryBlock GetMetadata()
-    // {
-    //     return new PEMemoryBlock(GetMetadataBlock());
-    // }
+    /// <summary>
+    /// Loads PE section that contains CLI metadata.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The PE image doesn't contain metadata (<see cref="HasMetadata"/> returns false).</exception>
+    /// <exception cref="BadImageFormatException">The PE headers contain invalid data.</exception>
+    /// <exception cref="IOException">IO error while reading from the underlying stream.</exception>
+    public GetMetadata(): PEMemoryBlock {
+        return new PEMemoryBlock(this.GetMetadataBlock());
+    }
 
     // /// <summary>
     // /// Loads PE section that contains the specified <paramref name="relativeVirtualAddress"/> into memory
@@ -476,7 +463,7 @@ export class PEReader {
     //         return default(PEMemoryBlock);
     //     }
 
-    //     var block = GetPESectionBlock(sectionIndex);
+    //     const block = GetPESectionBlock(sectionIndex);
 
     //     int relativeOffset = relativeVirtualAddress - PEHeaders.SectionHeaders[sectionIndex].VirtualAddress;
     //     if (relativeOffset > block.Size)
@@ -494,11 +481,11 @@ export class PEReader {
     // /// <returns>
     // /// An empty block if no section of the given <paramref name="sectionName"/> exists in this PE image.
     // /// </returns>
-    // /// <exception cref="ArgumentNullException"><paramref name="sectionName"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="sectionName"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">PE image not available.</exception>
     // public PEMemoryBlock GetSectionData(string sectionName)
     // {
-    //     if (sectionName is null)
+    //     if (sectionName is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(sectionName));
     //     }
@@ -520,9 +507,9 @@ export class PEReader {
     // /// <exception cref="InvalidOperationException">PE image not available.</exception>
     // public ImmutableArray<DebugDirectoryEntry> ReadDebugDirectory()
     // {
-    //     assert(PEHeaders.PEHeader != null);
+    //     assert(PEHeaders.PEHeader != undefined);
 
-    //     var debugDirectory = PEHeaders.PEHeader.DebugTableDirectory;
+    //     const debugDirectory = PEHeaders.PEHeader.DebugTableDirectory;
     //     if (debugDirectory.Size == 0)
     //     {
     //         return ImmutableArray<DebugDirectoryEntry>.Empty;
@@ -548,7 +535,7 @@ export class PEReader {
     // internal static ImmutableArray<DebugDirectoryEntry> ReadDebugDirectoryEntries(BlobReader reader)
     // {
     //     int entryCount = reader.Length / DebugDirectoryEntry.Size;
-    //     var builder = ImmutableArray.CreateBuilder<DebugDirectoryEntry>(entryCount);
+    //     const builder = ImmutableArray.CreateBuilder<DebugDirectoryEntry>(entryCount);
     //     for (int i = 0; i < entryCount; i++)
     //     {
     //         // Reserved, must be zero.
@@ -562,7 +549,7 @@ export class PEReader {
     //         ushort majorVersion = reader.ReadUInt16();
     //         ushort minorVersion = reader.ReadUInt16();
 
-    //         var type = (DebugDirectoryEntryType)reader.ReadInt32();
+    //         const type = (DebugDirectoryEntryType)reader.ReadInt32();
 
     //         int dataSize = reader.ReadInt32();
     //         int dataRva = reader.ReadInt32();
@@ -594,7 +581,7 @@ export class PEReader {
     //         Throw.InvalidArgument(SR.Format(SR.UnexpectedDebugDirectoryType, nameof(DebugDirectoryEntryType.CodeView)), nameof(entry));
     //     }
 
-    //     using (var block = GetDebugDirectoryEntryDataBlock(entry))
+    //     using (const block = GetDebugDirectoryEntryDataBlock(entry))
     //     {
     //         return DecodeCodeViewDebugDirectoryData(block);
     //     }
@@ -603,7 +590,7 @@ export class PEReader {
     // // internal for testing
     // internal static CodeViewDebugDirectoryData DecodeCodeViewDebugDirectoryData(AbstractMemoryBlock block)
     // {
-    //     var reader = block.GetReader();
+    //     const reader = block.GetReader();
 
     //     if (reader.ReadByte() != (byte)'R' ||
     //         reader.ReadByte() != (byte)'S' ||
@@ -634,7 +621,7 @@ export class PEReader {
     //         Throw.InvalidArgument(SR.Format(SR.UnexpectedDebugDirectoryType, nameof(DebugDirectoryEntryType.PdbChecksum)), nameof(entry));
     //     }
 
-    //     using (var block = GetDebugDirectoryEntryDataBlock(entry))
+    //     using (const block = GetDebugDirectoryEntryDataBlock(entry))
     //     {
     //         return DecodePdbChecksumDebugDirectoryData(block);
     //     }
@@ -643,9 +630,9 @@ export class PEReader {
     // // internal for testing
     // internal static PdbChecksumDebugDirectoryData DecodePdbChecksumDebugDirectoryData(AbstractMemoryBlock block)
     // {
-    //     var reader = block.GetReader();
+    //     const reader = block.GetReader();
 
-    //     var algorithmName = reader.ReadUtf8NullTerminated();
+    //     const algorithmName = reader.ReadUtf8NullTerminated();
     //     byte[]? checksum = reader.ReadBytes(reader.RemainingBytes);
     //     if (algorithmName.Length == 0 || checksum.Length == 0)
     //     {
@@ -666,7 +653,7 @@ export class PEReader {
     // /// <param name="pdbFileStreamProvider">
     // /// If specified, called to open a <see cref="Stream"/> for a given file path.
     // /// The provider is expected to either return a readable and seekable <see cref="Stream"/>,
-    // /// or <c>null</c> if the target file doesn't exist or should be ignored for some reason.
+    // /// or <c>undefined</c> if the target file doesn't exist or should be ignored for some reason.
     // ///
     // /// The provider shall throw <see cref="IOException"/> if it fails to open the file due to an unexpected IO error.
     // /// </param>
@@ -674,7 +661,7 @@ export class PEReader {
     // /// If successful, a new instance of <see cref="MetadataReaderProvider"/> to be used to read the Portable PDB,.
     // /// </param>
     // /// <param name="pdbPath">
-    // /// If successful and the PDB is found in a file, the path to the file. Returns <c>null</c> if the PDB is embedded in the PE image itself.
+    // /// If successful and the PDB is found in a file, the path to the file. Returns <c>undefined</c> if the PDB is embedded in the PE image itself.
     // /// </param>
     // /// <returns>
     // /// True if the PE image has a PDB associated with it and the PDB has been successfully opened.
@@ -689,23 +676,23 @@ export class PEReader {
     // ///
     // /// The first PDB that matches the information specified in the Debug Directory is returned.
     // /// </remarks>
-    // /// <exception cref="ArgumentNullException"><paramref name="peImagePath"/> or <paramref name="pdbFileStreamProvider"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peImagePath"/> or <paramref name="pdbFileStreamProvider"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">The stream returned from <paramref name="pdbFileStreamProvider"/> doesn't support read and seek operations.</exception>
     // /// <exception cref="BadImageFormatException">No matching PDB file is found due to an error: The PE image or the PDB is invalid.</exception>
     // /// <exception cref="IOException">No matching PDB file is found due to an error: An IO error occurred while reading the PE image or the PDB.</exception>
     // public bool TryOpenAssociatedPortablePdb(string peImagePath, Func<string, Stream?> pdbFileStreamProvider, out MetadataReaderProvider? pdbReaderProvider, out string? pdbPath)
     // {
-    //     if (peImagePath is null)
+    //     if (peImagePath is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(peImagePath));
     //     }
-    //     if (pdbFileStreamProvider is null)
+    //     if (pdbFileStreamProvider is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(pdbFileStreamProvider));
     //     }
 
-    //     pdbReaderProvider = null;
-    //     pdbPath = null;
+    //     pdbReaderProvider = undefined;
+    //     pdbPath = undefined;
 
     //     string? peImageDirectory;
     //     try
@@ -717,12 +704,12 @@ export class PEReader {
     //         throw new ArgumentException(e.Message, nameof(peImagePath), e);
     //     }
 
-    //     Exception? errorToReport = null;
-    //     var entries = ReadDebugDirectory();
+    //     Exception? errorToReport = undefined;
+    //     const entries = ReadDebugDirectory();
 
     //     // First try .pdb file specified in CodeView data (we prefer .pdb file on disk over embedded PDB
     //     // since embedded PDB needs decompression which is less efficient than memory-mapping the file).
-    //     var codeViewEntry = ImmutableArrayExtensions.FirstOrDefault(entries, e => e.IsPortableCodeView);
+    //     const codeViewEntry = ImmutableArrayExtensions.FirstOrDefault(entries, e => e.IsPortableCodeView);
     //     if (codeViewEntry.DataSize != 0 &&
     //         TryOpenCodeViewPortablePdb(codeViewEntry, peImageDirectory!, pdbFileStreamProvider, out pdbReaderProvider, out pdbPath, ref errorToReport))
     //     {
@@ -730,11 +717,11 @@ export class PEReader {
     //     }
 
     //     // if it failed try Embedded Portable PDB (if available):
-    //     var embeddedPdbEntry = ImmutableArrayExtensions.FirstOrDefault(entries, e => e.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+    //     const embeddedPdbEntry = ImmutableArrayExtensions.FirstOrDefault(entries, e => e.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
     //     if (embeddedPdbEntry.DataSize != 0)
     //     {
     //         bool openedEmbeddedPdb = false;
-    //         pdbReaderProvider = null;
+    //         pdbReaderProvider = undefined;
     //         TryOpenEmbeddedPortablePdb(embeddedPdbEntry, ref openedEmbeddedPdb, ref pdbReaderProvider, ref errorToReport);
     //         if (openedEmbeddedPdb)
     //             return true;
@@ -742,7 +729,7 @@ export class PEReader {
 
     //     // Report any metadata and IO errors. PDB might exist but we couldn't read some metadata.
     //     // The caller might chose to ignore the failure or report it to the user.
-    //     if (errorToReport != null)
+    //     if (errorToReport != undefined)
     //     {
     //         assert(errorToReport is BadImageFormatException || errorToReport is IOException);
     //         ExceptionDispatchInfo.Capture(errorToReport).Throw();
@@ -753,8 +740,8 @@ export class PEReader {
 
     // private bool TryOpenCodeViewPortablePdb(DebugDirectoryEntry codeViewEntry, string peImageDirectory, Func<string, Stream?> pdbFileStreamProvider, out MetadataReaderProvider? provider, out string? pdbPath, ref Exception? errorToReport)
     // {
-    //     pdbPath = null;
-    //     provider = null;
+    //     pdbPath = undefined;
+    //     provider = undefined;
 
     //     CodeViewDebugDirectoryData data;
 
@@ -768,7 +755,7 @@ export class PEReader {
     //         return false;
     //     }
 
-    //     var id = new BlobContentId(data.Guid, codeViewEntry.Stamp);
+    //     const id = new BlobContentId(data.Guid, codeViewEntry.Stamp);
 
     //     // The interpretation os the path in the CodeView needs to be platform agnostic,
     //     // so that PDBs built on Windows work on Unix-like systems and vice versa.
@@ -788,8 +775,8 @@ export class PEReader {
 
     // private static bool TryOpenPortablePdbFile(string path, BlobContentId id, Func<string, Stream?> pdbFileStreamProvider, out MetadataReaderProvider? provider, ref Exception? errorToReport)
     // {
-    //     provider = null;
-    //     MetadataReaderProvider? candidate = null;
+    //     provider = undefined;
+    //     MetadataReaderProvider? candidate = undefined;
 
     //     try
     //     {
@@ -802,10 +789,10 @@ export class PEReader {
     //         catch (FileNotFoundException)
     //         {
     //             // Not an unexpected IO exception, continue witout reporting the error.
-    //             pdbStream = null;
+    //             pdbStream = undefined;
     //         }
 
-    //         if (pdbStream == null)
+    //         if (pdbStream == undefined)
     //         {
     //             return false;
     //         }
@@ -833,7 +820,7 @@ export class PEReader {
     //     }
     //     finally
     //     {
-    //         if (provider == null)
+    //         if (provider == undefined)
     //         {
     //             candidate?.Dispose();
     //         }
@@ -841,4 +828,13 @@ export class PEReader {
     // }
 
     // partial void TryOpenEmbeddedPortablePdb(DebugDirectoryEntry embeddedPdbEntry, ref bool openedEmbeddedPdb, ref MetadataReaderProvider? provider, ref Exception? errorToReport);
+
+    //================================================================================================
+    // Expension
+    public GetMetadataReader(options?: MetadataReaderOptions, utf8Decoder?: MetadataStringDecoder): MetadataReader {
+        options = options ?? MetadataReaderOptions.Default;
+        const metadata = this.GetMetadata();
+        assert(metadata.Pointer);
+        return new MetadataReader(metadata.Pointer, metadata.Length, options, utf8Decoder, this);
+    }
 }

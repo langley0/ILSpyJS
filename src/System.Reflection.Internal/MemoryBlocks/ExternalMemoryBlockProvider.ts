@@ -33,10 +33,10 @@ export class ExternalMemoryBlockProvider extends MemoryBlockProvider {
 
     // protected override void Dispose(bool disposing)
     // {
-    //     Debug.Assert(disposing);
+    //     assert(disposing);
 
-    //     // we don't own the memory, just null out the pointer.
-    //     _memory = null;
+    //     // we don't own the memory, just undefined out the pointer.
+    //     _memory = undefined;
     //     _size = 0;
     // }
 

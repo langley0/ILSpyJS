@@ -27,7 +27,7 @@ export class BlobWriter {
     }
 
     public constructor(buffer: Uint8Array, start: number, count: number) {
-        assert(buffer != null);
+        assert(buffer != undefined);
         assert(count >= 0);
         assert(count <= buffer.length - start);
 
@@ -122,11 +122,11 @@ export class BlobWriter {
     //         this._buffer.AsSpan(start, byteCount).Fill(value);
     //     }
 
-    //     /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    //     /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     //     /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
     //     public WriteBytes(byte * buffer, int byteCount)
     // {
-    //     if (buffer is null)
+    //     if (buffer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(buffer));
     //     }
@@ -144,10 +144,10 @@ export class BlobWriter {
     //     buffer.CopyTo(_buffer.AsSpan(start));
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="source"/> is undefined.</exception>
     //         public void WriteBytes(BlobBuilder source)
     // {
-    //     if (source is null)
+    //     if (source is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(source));
     //     }
@@ -155,11 +155,11 @@ export class BlobWriter {
     //     source.WriteContentTo(ref this);
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="source"/> is undefined.</exception>
     //         /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
     //         public int WriteBytes(Stream source, int byteCount)
     // {
-    //     if (source is null)
+    //     if (source is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(source));
     //     }
@@ -174,7 +174,7 @@ export class BlobWriter {
     //     return bytesRead;
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     //         public void WriteBytes(ImmutableArray < byte > buffer)
     // {
     //     if (buffer.IsDefault) {
@@ -184,7 +184,7 @@ export class BlobWriter {
     //     WriteBytes(buffer.AsSpan());
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     //         /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the <paramref name="buffer"/>.</exception>
     //         public void WriteBytes(ImmutableArray < byte > buffer, int start, int byteCount)
     // {
@@ -197,10 +197,10 @@ export class BlobWriter {
     //     WriteBytes(buffer.AsSpan(start, byteCount));
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     //         public void WriteBytes(byte[] buffer)
     // {
-    //     if (buffer is null)
+    //     if (buffer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(buffer));
     //     }
@@ -208,11 +208,11 @@ export class BlobWriter {
     //     WriteBytes(buffer.AsSpan());
     // }
 
-    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     //         /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the <paramref name="buffer"/>.</exception>
     //         public void WriteBytes(byte[] buffer, int start, int byteCount)
     // {
-    //     if (buffer is null)
+    //     if (buffer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(buffer));
     //     }
@@ -347,10 +347,10 @@ export class BlobWriter {
     //         /// <summary>
     //         /// Writes UTF-16 (little-endian) encoded string at the current position.
     //         /// </summary>
-    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     //         public void WriteUTF16(char[] value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -361,10 +361,10 @@ export class BlobWriter {
     //         /// <summary>
     //         /// Writes UTF-16 (little-endian) encoded string at the current position.
     //         /// </summary>
-    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     //         public void WriteUTF16(string value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -395,7 +395,7 @@ export class BlobWriter {
     //         /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     //         public void WriteSerializedString(string ? str)
     // {
-    //     if (str == null) {
+    //     if (str == undefined) {
     //         WriteByte(0xff);
     //         return;
     //     }
@@ -416,7 +416,7 @@ export class BlobWriter {
     //         /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     //         public void WriteUserString(string value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -429,10 +429,10 @@ export class BlobWriter {
     //         /// <summary>
     //         /// Writes UTF-8 encoded string at the current position.
     //         /// </summary>
-    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    //         /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     //         public void WriteUTF8(string value, bool allowUnpairedSurrogates)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }

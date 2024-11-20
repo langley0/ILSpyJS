@@ -1,18 +1,18 @@
+import assert from "assert";
 import { sizeof, Throw } from "System";
 import { Stream } from "System.IO";
-import { StreamExtensions } from "System.Reflection";
-import { COR20Constants } from "System.Reflection.Metadata";
-import { SectionHeader } from "./SectionHeader";
-import { CoffHeader } from "./CoffHeader";
-import { CorHeader } from "./CorHeader";
-import { PEHeader } from "./PEHeader";
-import { PEBinaryReader } from "./PEBinaryReader";
-import { DirectoryEntry } from "./DirectoryEntry";
+import { StreamExtensions } from "System.Reflection.Internal";
+import { COR20Constants } from "System.Reflection.Metadata.Ecma335";
 import {
+    SectionHeader,
+    CoffHeader,
+    CorHeader,
+    PEHeader,
+    PEBinaryReader,
+    DirectoryEntry,
     Subsystem,
     Characteristics,
-} from "./PEFileFlags";
-
+} from "System.Reflection.PortableExecutable";
 
 export class PEHeaders {
     private readonly _coffHeader: CoffHeader;
@@ -39,7 +39,7 @@ export class PEHeaders {
     // /// <exception cref="BadImageFormatException">The data read from stream have invalid format.</exception>
     // /// <exception cref="IOException">Error reading from the stream.</exception>
     // /// <exception cref="ArgumentException">The stream doesn't support seek operations.</exception>
-    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is undefined.</exception>
     // public PEHeaders(peStream: Stream)
     //    : this(peStream, 0)
     // {
@@ -53,7 +53,7 @@ export class PEHeaders {
     // /// <exception cref="BadImageFormatException">The data read from stream have invalid format.</exception>
     // /// <exception cref="IOException">Error reading from the stream.</exception>
     // /// <exception cref="ArgumentException">The stream doesn't support seek operations.</exception>
-    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is undefined.</exception>
     // /// <exception cref="ArgumentOutOfRangeException">Size is negative or extends past the end of the stream.</exception>
     // public PEHeaders(Stream peStream, int size)
     //     : this(peStream, size, isLoadedImage: false)
@@ -69,7 +69,7 @@ export class PEHeaders {
     /// <exception cref="BadImageFormatException">The data read from stream have invalid format.</exception>
     /// <exception cref="IOException">Error reading from the stream.</exception>
     /// <exception cref="ArgumentException">The stream doesn't support seek operations.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is undefined.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Size is negative or extends past the end of the stream.</exception>
     public constructor(peStream: Stream, size: number = 0, isLoadedImage: boolean = false) {
         if (!peStream.CanRead || !peStream.CanSeek) {
@@ -103,7 +103,7 @@ export class PEHeaders {
             }
         }
 
-        const [_metadataStartOffset, _metadataSize] = this.CalculateMetadataLocation(BigInt(actualSize));
+        const [_metadataStartOffset, _metadataSize] = this.CalculateMetadataLocation(actualSize);
         this._metadataStartOffset = _metadataStartOffset;
         this._metadataSize = _metadataSize;
     }
@@ -145,11 +145,11 @@ export class PEHeaders {
     /// </summary>
     public get IsCoffOnly(): boolean {
 
-        return this._peHeader == null;
+        return this._peHeader == undefined;
     }
 
     /// <summary>
-    /// Gets the PE header of the image or null if the image is COFF only.
+    /// Gets the PE header of the image or undefined if the image is COFF only.
     /// </summary>
     public get PEHeader(): PEHeader | undefined {
 
@@ -172,7 +172,7 @@ export class PEHeaders {
     }
 
     /// <summary>
-    /// Gets the CLI header or null if the image does not have one.
+    /// Gets the CLI header or undefined if the image does not have one.
     /// </summary>
     public get CorHeader(): CorHeader | undefined {
         return this._corHeader;
@@ -191,7 +191,7 @@ export class PEHeaders {
     /// </summary>
     public get IsConsoleApplication(): boolean {
 
-        return this._peHeader != null && this._peHeader.Subsystem == Subsystem.WindowsCui;
+        return this._peHeader != undefined && this._peHeader.Subsystem == Subsystem.WindowsCui;
 
     }
 
@@ -213,16 +213,17 @@ export class PEHeaders {
     }
 
     private TryCalculateCorHeaderOffset(): number | undefined {
-        const startOffset = this.TryGetDirectoryOffset(this._peHeader!.CorHeaderTableDirectory, false);
+        assert(this._peHeader != undefined);
+        const startOffset = this.TryGetDirectoryOffset(this._peHeader.CorHeaderTableDirectory, false);
         if (startOffset == undefined) {
             return undefined;
         }
 
-        const length = this._peHeader?.CorHeaderTableDirectory.Size;
-        if (length == undefined || length < COR20Constants.SizeOfCorHeader) {
+        const length = this._peHeader.CorHeaderTableDirectory.Size;
+        if (length < COR20Constants.SizeOfCorHeader) {
             throw new Error("Invalid COR header size");
         }
-        return length
+        return startOffset;
     }
 
     SkipDosHeader(reader: PEBinaryReader): boolean {
@@ -271,7 +272,7 @@ export class PEHeaders {
             throw new Error("BadImageFormatException");
         }
 
-        var builder = Array<SectionHeader>(numberOfSections);
+        var builder = Array<SectionHeader>();
 
         for (let i = 0; i < numberOfSections; i++) {
             builder.push(new SectionHeader(reader));
@@ -329,7 +330,7 @@ export class PEHeaders {
         return -1;
     }
 
-    CalculateMetadataLocation(peImageSize: bigint): [start: number, size: number] {
+    CalculateMetadataLocation(peImageSize: number): [start: number, size: number] {
         let start = 0;
         let size = 0;
         if (this.IsCoffOnly) {
@@ -347,17 +348,17 @@ export class PEHeaders {
                 size = this._sectionHeaders[cormeta].SizeOfRawData;
             }
         }
+
         else if (!this._corHeader) {
             return [0, 0];
         }
         else {
-
             const _start = this.TryGetDirectoryOffset(this._corHeader.MetadataDirectory, false);
             if (_start == undefined) {
                 throw new Error("Invalid metadata directory");
             }
-            const start = _start;
-            const size = this._corHeader.MetadataDirectory.Size;
+            start = _start;
+            size = this._corHeader.MetadataDirectory.Size;
         }
 
         if (start < 0 ||

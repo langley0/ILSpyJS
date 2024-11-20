@@ -2,7 +2,7 @@ import { Throw } from "System";
 export class BlobUtilities {
     //     public static void WriteBytes(this byte[] buffer, int start, byte value, int byteCount)
     //     {
-    //         Debug.Assert(buffer.Length > 0);
+    //         assert(buffer.Length > 0);
 
     //         new Span<byte>(buffer, start, byteCount).Fill(value);
     //     }
@@ -68,7 +68,7 @@ export class BlobUtilities {
     // #if NET
     //         boolean written = value.TryWriteBytes(buffer.AsSpan(start));
     //         // This function is not public, callers have to ensure that enough space is available.
-    //         Debug.Assert(written);
+    //         assert(written);
     // #else
     //         fixed (byte* dst = &buffer[start])
     //         {
@@ -105,7 +105,7 @@ export class BlobUtilities {
 
     //     public static void WriteUTF8(this byte[] buffer, int start, char* charPtr, int charCount, int byteCount, boolean allowUnpairedSurrogates)
     //     {
-    //         Debug.Assert(byteCount >= charCount);
+    //         assert(byteCount >= charCount);
     //         const char ReplacementCharacter = '\uFFFD';
 
     //         char* strEnd = charPtr + charCount;
@@ -117,7 +117,7 @@ export class BlobUtilities {
     //             {
     //                 while (charPtr < strEnd)
     //                 {
-    //                     Debug.Assert(*charPtr <= 0x7f);
+    //                     assert(*charPtr <= 0x7f);
     //                     *ptr++ = unchecked((byte)*charPtr++);
     //                 }
     //             }
@@ -171,8 +171,8 @@ export class BlobUtilities {
     //                 }
     //             }
 
-    //             Debug.Assert(ptr == bufferPtr + start + byteCount);
-    //             Debug.Assert(charPtr == strEnd);
+    //             assert(ptr == bufferPtr + start + byteCount);
+    //             assert(charPtr == strEnd);
     //         }
     //     }
 
@@ -226,7 +226,7 @@ export class BlobUtilities {
     //                 return 1;
     //             }
 
-    //             switch ((int)ch)
+    //             switch (ch)
     //             {
     //                 case 0x1:
     //                 case 0x2:

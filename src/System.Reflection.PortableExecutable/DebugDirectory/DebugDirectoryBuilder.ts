@@ -50,7 +50,7 @@ export class DebugDirectoryBuilder {
     // /// <param name="dataSerializer">Serializes data to a <see cref="BlobBuilder"/>.</param>
     // public void AddEntry<TData>(DebugDirectoryEntryType type, uint version, uint stamp, TData data, Action<BlobBuilder, TData> dataSerializer)
     // {
-    //     if (dataSerializer is null)
+    //     if (dataSerializer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(dataSerializer));
     //     }
@@ -68,7 +68,7 @@ export class DebugDirectoryBuilder {
     // /// <param name="pdbPath">Path to the PDB. Shall not be empty.</param>
     // /// <param name="pdbContentId">Unique id of the PDB content.</param>
     // /// <param name="portablePdbVersion">Version of Portable PDB format (e.g. 0x0100 for 1.0), or 0 if the PDB is not portable.</param>
-    // /// <exception cref="ArgumentNullException"><paramref name="pdbPath"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="pdbPath"/> is undefined.</exception>
     // /// <exception cref="ArgumentException"><paramref name="pdbPath"/> contains NUL character.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="portablePdbVersion"/> is smaller than 0x0100.</exception>
     // public void AddCodeViewEntry(
@@ -86,7 +86,7 @@ export class DebugDirectoryBuilder {
     // /// <param name="pdbContentId">Unique id of the PDB content.</param>
     // /// <param name="portablePdbVersion">Version of Portable PDB format (e.g. 0x0100 for 1.0), or 0 if the PDB is not portable.</param>
     // /// <param name="age">Age (iteration) of the PDB. Shall be 1 for Portable PDBs.</param>
-    // /// <exception cref="ArgumentNullException"><paramref name="pdbPath"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="pdbPath"/> is undefined.</exception>
     // /// <exception cref="ArgumentException"><paramref name="pdbPath"/> contains NUL character.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="age"/> is less than 1.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="portablePdbVersion"/> is smaller than 0x0100.</exception>
@@ -96,7 +96,7 @@ export class DebugDirectoryBuilder {
     //     ushort portablePdbVersion,
     //     int age)
     // {
-    //     if (pdbPath is null)
+    //     if (pdbPath is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(pdbPath));
     //     }
@@ -160,11 +160,11 @@ export class DebugDirectoryBuilder {
     // /// </summary>
     // /// <param name="algorithmName">Hash algorithm name (e.g. "SHA256").</param>
     // /// <param name="checksum">Checksum.</param>
-    // /// <exception cref="ArgumentNullException"><paramref name="algorithmName"/> or <paramref name="checksum"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="algorithmName"/> or <paramref name="checksum"/> is undefined.</exception>
     // /// <exception cref="ArgumentException"><paramref name="algorithmName"/> or <paramref name="checksum"/> is empty.</exception>
     // public void AddPdbChecksumEntry(string algorithmName, ImmutableArray<byte> checksum)
     // {
-    //     if (algorithmName is null)
+    //     if (algorithmName is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(algorithmName));
     //     }

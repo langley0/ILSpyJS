@@ -1,6 +1,6 @@
 import { Throw } from "System";
 import { Machine } from 'System.Reflection.Metadata';
-import { BitArithmetic } from 'System.Reflection';
+import { BitArithmetic } from 'System.Reflection.Internal';
 import { PEBuilder } from './PEBuilder';
 import { PEHeaders } from "./PEHeaders";
 import { PEHeader } from "./PEHeader";

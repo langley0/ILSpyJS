@@ -4,21 +4,26 @@ import {
     Blob,
     BlobContentId,
     BlobBuilder,
-    MetadataRootBuilder,
     MethodDefinitionHandle,
     Machine,
-    MetadataTokens,
 } from 'System.Reflection.Metadata';
-import { PEBuilder, Section } from './PEBuilder';
-import { PEHeaderBuilder } from './PEHeaderBuilder';
-import { ManagedTextSection } from './ManagedTextSection';
-import { CorFlags } from './CorFlags';
-import { PEDirectoriesBuilder } from './PEDirectoriesBuilder';
-import { ResourceSectionBuilder } from './ResourceSectionBuilder';
-import { DebugDirectoryBuilder } from './DebugDirectory/DebugDirectoryBuilder';
-import { DirectoryEntry } from './DirectoryEntry';
-import { SectionLocation } from './SectionLocation';
-import { SectionCharacteristics } from './SectionCharacteristics';
+import {
+    MetadataRootBuilder,
+    MetadataTokens,
+} from 'System.Reflection.Metadata.Ecma335';
+
+import {
+    PEBuilder, Section,
+    PEHeaderBuilder,
+    ManagedTextSection,
+    CorFlags,
+    PEDirectoriesBuilder,
+    ResourceSectionBuilder,
+    DebugDirectoryBuilder,
+    DirectoryEntry,
+    SectionLocation,
+    SectionCharacteristics,
+} from 'System.Reflection.PortableExecutable';
 
 export class ManagedPEBuilder extends PEBuilder {
     public ManagedResourcesDataAlignment = ManagedTextSection.ManagedResourcesDataAlignment;
@@ -90,7 +95,7 @@ export class ManagedPEBuilder extends PEBuilder {
         const builder = new Array<Section>();
         builder.push(new Section(this.TextSectionName, SectionCharacteristics.MemRead | SectionCharacteristics.MemExecute | SectionCharacteristics.ContainsCode));
 
-        if (this._nativeResourcesOpt != null) {
+        if (this._nativeResourcesOpt != undefined) {
             builder.push(new Section(this.ResourceSectionName, SectionCharacteristics.MemRead | SectionCharacteristics.ContainsInitializedData));
         }
 
@@ -176,7 +181,7 @@ export class ManagedPEBuilder extends PEBuilder {
     }
 
     private SerializeResourceSection(location: SectionLocation): BlobBuilder {
-        assert(this._nativeResourcesOpt != null);
+        assert(this._nativeResourcesOpt != undefined);
 
         const sectionBuilder = new BlobBuilder();
         this._nativeResourcesOpt.Serialize(sectionBuilder, location);
@@ -217,11 +222,11 @@ export class ManagedPEBuilder extends PEBuilder {
 
     // public void Sign(BlobBuilder peImage, Func<IEnumerable<Blob>, byte[]> signatureProvider)
     // {
-    //     if (peImage is null)
+    //     if (peImage is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(peImage));
     //     }
-    //     if (signatureProvider is null)
+    //     if (signatureProvider is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(signatureProvider));
     //     }

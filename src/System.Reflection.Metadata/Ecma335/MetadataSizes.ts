@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Throw, sizeof } from "System";
-import { BitArithmetic } from "System.Reflection";
+import { BitArithmetic } from "System.Reflection.Internal";
 import { TableIndex } from "./TableIndex";
 import { HeapIndex } from "./HeapIndex";
 import { MetadataTokens } from "./MetadataTokens";

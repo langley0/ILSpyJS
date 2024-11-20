@@ -107,7 +107,7 @@ export class Guid {
     // [CLSCompliant(false)]
     //         public Guid(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
     // {
-    //     _a = (int)a;
+    //     _a = a;
     //     _b = (short)b;
     //     _c = (short)c;
     //     _d = d;
@@ -244,7 +244,7 @@ export class Guid {
 
     //         var result = new GuidResult(GuidParseThrowStyle.All);
     //             bool success = TryParseGuid(g, ref result);
-    //         Debug.Assert(success, "GuidParseThrowStyle.All means throw on all failures");
+    //         assert(success, "GuidParseThrowStyle.All means throw on all failures");
 
     //         this = result.ToGuid();
     //     }
@@ -296,7 +296,7 @@ export class Guid {
     //             long unix_ts_ms = timestamp.ToUnixTimeMilliseconds();
     //         ArgumentOutOfRangeException.ThrowIfNegative(unix_ts_ms, nameof(timestamp));
 
-    //         Unsafe.AsRef(in result._a) = (int)(unix_ts_ms >> 16);
+    //         Unsafe.AsRef(in result._a) = (unix_ts_ms >> 16);
     //         Unsafe.AsRef(in result._b) = (short)(unix_ts_ms);
 
     //         Unsafe.AsRef(in result._c) = (short)((result._c & ~VersionMask) | Version7Value);
@@ -315,14 +315,14 @@ export class Guid {
     //     {
     //         var result = new GuidResult(GuidParseThrowStyle.AllButOverflow);
     //             bool success = TryParseGuid(input, ref result);
-    //         Debug.Assert(success, "GuidParseThrowStyle.AllButOverflow means throw on all failures");
+    //         assert(success, "GuidParseThrowStyle.AllButOverflow means throw on all failures");
 
     //         return result.ToGuid();
     //     }
 
     //         public static bool TryParse([NotNullWhen(true)] string ? input, out Guid result)
     //     {
-    //         if (input == null) {
+    //         if (input == undefined) {
     //             result = default ;
     //             return false;
     //         }
@@ -370,13 +370,13 @@ export class Guid {
     //             'x' => TryParseExactX(input, ref result),
     //             _ => throw new FormatException(SR.Format_InvalidGuidFormatSpecification),
     //         };
-    //             Debug.Assert(success, "GuidParseThrowStyle.AllButOverflow means throw on all failures");
+    //             assert(success, "GuidParseThrowStyle.AllButOverflow means throw on all failures");
     //         return result.ToGuid();
     //     }
 
     //         public static bool TryParseExact([NotNullWhen(true)] string ? input, [NotNullWhen(true), StringSyntax(StringSyntaxAttribute.GuidFormat)] string ? format, out Guid result)
     //     {
-    //         if (input == null) {
+    //         if (input == undefined) {
     //             result = default ;
     //             return false;
     //         }
@@ -749,7 +749,7 @@ export class Guid {
     //         private static byte DecodeByte(char ch1, char ch2, ref int invalidIfNegative)
     //         {
     //             ReadOnlySpan < byte > lookup = HexConverter.CharToHexLookup;
-    //             Debug.Assert(lookup.Length == 256);
+    //             assert(lookup.Length == 256);
 
     //             int upper = (sbyte)lookup[(byte)ch1];
     //             int lower = (sbyte)lookup[(byte)ch2];
@@ -946,7 +946,7 @@ export class Guid {
 
     //         public int CompareTo(object ? value)
     //         {
-    //             if (value == null) {
+    //             if (value == undefined) {
     //                 return 1;
     //             }
     //             if (value is not Guid other)
@@ -1040,11 +1040,11 @@ export class Guid {
     //         }
 
     //         // Returns the guid in "registry" format.
-    //         public override string ToString() => ToString("d", null);
+    //         public override string ToString() => ToString("d", undefined);
 
     //         public string ToString([StringSyntax(StringSyntaxAttribute.GuidFormat)] string ? format)
     //         {
-    //             return ToString(format, null);
+    //             return ToString(format, undefined);
     //         }
 
     //         // IFormattable interface
@@ -1088,7 +1088,7 @@ export class Guid {
     //             string guidString = string.FastAllocateString(guidSize);
 
     //             bool result = TryFormatCore(new Span<char>(ref guidString.GetRawStringData(), guidString.Length), out int bytesWritten, format);
-    //             Debug.Assert(result && bytesWritten == guidString.Length, "Formatting guid should have succeeded.");
+    //             assert(result && bytesWritten == guidString.Length, "Formatting guid should have succeeded.");
 
     //             return guidString;
     //         }
@@ -1112,7 +1112,7 @@ export class Guid {
     //         // - Second byte: opening brace char, or 0 if no braces
     //         // - Third byte: closing brace char, or 0 if no braces
     //         // - Highest bit: 1 if use dashes, else 0
-    //         internal static readonly int TryFormatFlags_UseDashes = unchecked((int)0x80000000);
+    //         internal static readonly int TryFormatFlags_UseDashes = unchecked(0x80000000);
     //         internal static readonly int TryFormatFlags_CurlyBraces = ('}' << 16) | ('{' << 8);
     //         internal static readonly int TryFormatFlags_Parens = (')' << 16) | ('(' << 8);
 
@@ -1266,7 +1266,7 @@ export class Guid {
     //                     * p = TChar.CastFrom((byte)flags);
     //                 }
 
-    //                 Debug.Assert(p == guidChars + charsWritten - ((byte)flags != 0 ? 1 : 0));
+    //                 assert(p == guidChars + charsWritten - ((byte)flags != 0 ? 1 : 0));
     //             }
 
     //             return true;
@@ -1310,7 +1310,7 @@ export class Guid {
     //                 * p++ = TChar.CastFrom('}');
     //                 * p = TChar.CastFrom('}');
 
-    //                 Debug.Assert(p == guidChars + charsWritten - 1);
+    //                 assert(p == guidChars + charsWritten - 1);
     //             }
 
     //             return true;
@@ -1321,7 +1321,7 @@ export class Guid {
     //         [CompExactlyDependsOn(typeof (AdvSimd.Arm64))]
     //         private static(Vector128<byte>, Vector128<byte>, Vector128<byte>) FormatGuidVector128Utf8(Guid value, bool useDashes)
     //         {
-    //             Debug.Assert((Ssse3.IsSupported || AdvSimd.Arm64.IsSupported) && BitConverter.IsLittleEndian);
+    //             assert((Ssse3.IsSupported || AdvSimd.Arm64.IsSupported) && BitConverter.IsLittleEndian);
     //             // Vectorized implementation for D, N, P and B formats:
     //             // [{|(]dddddddd[-]dddd[-]dddd[-]dddd[-]dddddddddddd[}|)]
 

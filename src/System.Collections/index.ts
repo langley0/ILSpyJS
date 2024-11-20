@@ -1,6 +1,6 @@
 export * from "./Internal/Hash";
 
-export function SequenceEqual(from: ArrayLike<number>, to: ArrayLike<number>): boolean {
+export function SequenceEqual<T>(from: ArrayLike<T>, to: ArrayLike<T>): boolean {
     if (from.length !== to.length) {
         return false;
     }

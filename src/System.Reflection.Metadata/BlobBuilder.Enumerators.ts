@@ -71,7 +71,7 @@ export class Blobs {
 
     public get Current(): Blob | undefined {
         const current = this._chunks.Current;
-        if (current != null) {
+        if (current != undefined) {
             return new Blob(current._buffer_chunks, 0, current._length_chunks);
         }
         else {

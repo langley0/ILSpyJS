@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Throw, Guid } from "System";
-import { BlobUtilities } from "System.Reflection";
+import { BlobUtilities } from "System.Reflection.Internal";
 import { SerializedMetadata } from "./SerializedMetadataHeaps";
 import {
     BlobHandle,
@@ -103,7 +103,7 @@ export class MetadataBuilder {
         // builder.WriteUInt32(0);
 
         // // Spec (section 24.2.1 Metadata Root):
-        // // Length ... Number of bytes allocated to hold version string (including null terminator), call this x.
+        // // Length ... Number of bytes allocated to hold version string (including undefined terminator), call this x.
         // //            Call the length of the string (including the terminator) m (we require m <= 255);
         // //            the length x is m rounded up to a multiple of four.
         // builder.WriteInt32(sizes.MetadataVersionPaddedLength);
@@ -150,13 +150,13 @@ export class MetadataBuilder {
         // }
 
         // int endOffset = builder.length;
-        // Debug.Assert(endOffset - startOffset == sizes.MetadataHeaderSize);
+        // assert(endOffset - startOffset == sizes.MetadataHeaderSize);
         throw new Error("Not implemented");
     }
 
     // private static void SerializeStreamHeader(ref int offsetFromStartOfMetadata, int alignedStreamSize, string streamName, BlobBuilder builder)
     // {
-    //     // 4 for the first uint (offset), 4 for the second uint (padded size), length of stream name + 1 for null terminator (then padded)
+    //     // 4 for the first uint (offset), 4 for the second uint (padded size), length of stream name + 1 for undefined terminator (then padded)
     //     int sizeOfStreamHeader = MetadataSizes.GetMetadataStreamHeaderSize(streamName);
     //     builder.WriteInt32(offsetFromStartOfMetadata);
     //     builder.WriteInt32(alignedStreamSize);
@@ -602,7 +602,7 @@ export class MetadataBuilder {
         // writer.Align(4);
 
         // int endPosition = writer.Count;
-        // Debug.Assert(metadataSizes.MetadataTableStreamSize == endPosition - startPosition);
+        // assert(metadataSizes.MetadataTableStreamSize == endPosition - startPosition);
         throw new Error("Not implemented");
     }
 
@@ -665,7 +665,7 @@ export class MetadataBuilder {
 
             // It is important to use ordinal comparison otherwise we'll use the current culture!
             if (prev.endsWith(Key) && !BlobUtilities.IsLowSurrogateChar(Key.charCodeAt(0))) {
-                // Map over the tail of prev string. Watch for null-terminator of prev string.
+                // Map over the tail of prev string. Watch for undefined-terminator of prev string.
                 stringVirtualIndexToHeapOffsetMap[Value.GetWriterVirtualIndex()] = position - (BlobUtilities.GetUTF8ByteCount(Key) + 1);
             }
             else {

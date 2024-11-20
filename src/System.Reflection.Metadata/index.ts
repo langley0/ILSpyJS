@@ -1,11 +1,15 @@
+export * from './TypeSystem/Handles.TypeSystem';
+export * from './TypeSystem/HandleCollections.TypeSystem';
+
 export * from './Machine';
 export * from './Blob';
 export * from './BlobContentId';
 export * from './BlobBuilder';
 export * from './BlobReader';
 export * from './BlobWriter';
-export * from './Internal/COR20Constants';
-export * from './Ecma335/MetadataRootBuilder';
-export * from './Ecma335/MetadataBuilder';
-export * from './Ecma335/MetadataTokens';
-export * from './TypeSystem/Handles.TypeSystem';
+export * from './MetadataReader';
+export * from "./MetadataReaderOptions";
+export * from "./MetadataStringDecoder";
+export * from "./MetadataKind";
+
+export * from './PortablePdb/DebugMetadataHeader';

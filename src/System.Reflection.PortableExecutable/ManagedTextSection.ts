@@ -1,6 +1,6 @@
 import assert from "assert";
 import { sizeof } from "System";
-import { BitArithmetic } from "System.Reflection";
+import { BitArithmetic } from "System.Reflection.Internal";
 import {
     Machine,
     BlobBuilder,
@@ -265,7 +265,7 @@ export class ManagedTextSection {
         //     builder.LinkSuffix(metadataBuilder);
 
         //     // managed resources:
-        //     if (resourceBuilderOpt != null) {
+        //     if (resourceBuilderOpt != undefined) {
         //         builder.LinkSuffix(resourceBuilderOpt);
         //     }
 
@@ -277,7 +277,7 @@ export class ManagedTextSection {
         //     new BlobWriter(strongNameSignature).WriteBytes(0, StrongNameSignatureSize);
 
         //     // debug directory and data:
-        //     if (debugDataBuilderOpt != null) {
+        //     if (debugDataBuilderOpt != undefined) {
         //         builder.LinkSuffix(debugDataBuilderOpt);
         //     }
 
@@ -288,7 +288,7 @@ export class ManagedTextSection {
         //     }
 
         //     // mapped field data:
-        //     if (mappedFieldDataBuilderOpt != null) {
+        //     if (mappedFieldDataBuilderOpt != undefined) {
         //         if (mappedFieldDataBuilderOpt.Count != 0)
         //             builder.Align(MappedFieldDataAlignment);
         //         builder.LinkSuffix(mappedFieldDataBuilderOpt);

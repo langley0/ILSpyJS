@@ -49,7 +49,7 @@ export class BlobDictionary {
     //         }
     //         else
     //         {
-    //             Debug.Assert(immutableKey.AsSpan().SequenceEqual(key));
+    //             assert(immutableKey.AsSpan().SequenceEqual(key));
     //         }
 
     //         entry = new(immutableKey, value);

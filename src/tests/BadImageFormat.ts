@@ -3,13 +3,13 @@ import { MemoryStream } from 'System.IO';
 import { PEHeaders } from 'System.Reflection.PortableExecutable';
 
 export function InvalidSectionCount() {
-    const pe = new MemoryStream([
+    const pe = new MemoryStream(Uint8Array.from([
         0xd0, 0xcf, 0x11, 0xe0, 0xa1,
         0xb1, 0x1a, 0xe1, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00,
         0x00,
-    ]);
+    ]));
 
     try {
         new PEHeaders(pe);

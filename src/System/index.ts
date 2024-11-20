@@ -1,6 +1,7 @@
 export * from './Throw';
 export * from "./Version";
 export * from "./Guid";  
+export * from "./Type";
 
 export function sizeof(type: 'byte' | 'int' | 'uint' | 'long' | 'ulong' | 'float' | 'double' | 'boolean' | 'short' | 'ushort'): number {
     switch (type) {

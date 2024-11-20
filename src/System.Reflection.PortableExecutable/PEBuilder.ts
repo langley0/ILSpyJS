@@ -1,23 +1,24 @@
 import assert from "assert";
 import { Throw, sizeof } from "System";
-import { BitArithmetic } from "System.Reflection";
+import { BitArithmetic } from "System.Reflection.Internal";
 import {
     Blob,
     BlobContentId,
     BlobBuilder,
     Machine,
     BlobWriter,
-    MetadataRootBuilder,
     MethodDefinitionHandle,
 } from 'System.Reflection.Metadata';
 
-import { SectionCharacteristics } from './SectionCharacteristics';
-import { SectionLocation } from './SectionLocation';
-import { PEHeaderBuilder } from './PEHeaderBuilder';
-import { PEMagic } from './PEFileFlags';
-import { PEHeader } from './PEHeader';
-import { PEHeaders } from './PEHeaders';
-import { PEDirectoriesBuilder } from './PEDirectoriesBuilder';
+import { 
+    SectionCharacteristics,
+    SectionLocation,
+    PEHeaderBuilder,
+    PEMagic,
+    PEHeader,
+    PEHeaders,
+    PEDirectoriesBuilder,
+} from 'System.Reflection.PortableExecutable';
 
 export class Section {
     public readonly Name: string;
@@ -466,14 +467,14 @@ export abstract class PEBuilder {
 
     // internal void Sign(BlobBuilder peImage, Blob strongNameSignatureFixup, Func<IEnumerable<Blob>, byte[]> signatureProvider)
     // {
-    //     assert(peImage != null);
-    //     assert(signatureProvider != null);
+    //     assert(peImage != undefined);
+    //     assert(signatureProvider != undefined);
 
     //     int peHeadersSize = Header.ComputeSizeOfPEHeaders(GetSections().Length);
     //     byte[] signature = signatureProvider(GetContentToSign(peImage, peHeadersSize, Header.FileAlignment, strongNameSignatureFixup));
 
     //     // signature may be shorter (the rest of the reserved space is padding):
-    //     if (signature == null || signature.Length > strongNameSignatureFixup.Length)
+    //     if (signature == undefined || signature.Length > strongNameSignatureFixup.Length)
     //     {
     //         throw new InvalidOperationException(SR.SignatureProviderReturnedInvalidSignature);
     //     }

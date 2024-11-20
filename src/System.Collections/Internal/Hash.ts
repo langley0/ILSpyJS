@@ -1,12 +1,12 @@
 export class Hash {
     // public static int Combine(int newKey, int currentKey)
     // {
-    //     return unchecked((currentKey * (int)0xA5555529) + newKey);
+    //     return unchecked((currentKey * 0xA5555529) + newKey);
     // }
 
     // public static int Combine(uint newKey, int currentKey)
     // {
-    //     return unchecked((currentKey * (int)0xA5555529) + (int)newKey);
+    //     return unchecked((currentKey * 0xA5555529) + newKey);
     // }
 
     // public static int Combine(bool newKeyPart, int currentKey)

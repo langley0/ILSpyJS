@@ -7,7 +7,7 @@ import { MemoryStream } from "System.IO";
 
 
 export function ReadNullPaddedUTF8RemovesNullPadding() {
-    const headerBytes: number[] = new Array(SectionHeader.NameSize).fill(0);
+    const headerBytes = new Uint8Array(SectionHeader.NameSize).fill(0);
     headerBytes[0] = 80;
     headerBytes[1] = 80;
     headerBytes[2] = 80;
@@ -23,7 +23,7 @@ export function ReadNullPaddedUTF8RemovesNullPadding() {
 }
 
 export function ReadNullPaddedUTF8WorksWithNoNullPadding() {
-    const headerBytes: number[] = Array.from(Buffer.from(".abcdefg"));
+    const headerBytes = Uint8Array.from(Buffer.from(".abcdefg"));
     var stream = new MemoryStream(headerBytes);
     stream.Position = 0;
 

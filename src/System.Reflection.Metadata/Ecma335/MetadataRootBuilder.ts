@@ -1,5 +1,5 @@
 import { Throw } from "System";
-import { BlobUtilities } from "System.Reflection";
+import { BlobUtilities } from "System.Reflection.Internal";
 import { MetadataTokens } from "./MetadataTokens";
 import { MetadataBuilder } from "./MetadataBuilder";
 import { SerializedMetadata } from "./SerializedMetadataHeaps";
@@ -42,10 +42,10 @@ export class MetadataRootBuilder {
     /// The validation verifies that entries in the tables were added in order required by the ECMA specification.
     /// It does not enforce all specification requirements on metadata tables.
     /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="tablesAndHeaps"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="tablesAndHeaps"/> is undefined.</exception>
     /// <exception cref="ArgumentException"><paramref name="metadataVersion"/> is too long (the number of bytes when UTF-8 encoded must be less than 255).</exception>
     public constructor(tablesAndHeaps: MetadataBuilder, metadataVersion: string | undefined = undefined, suppressValidation = false) {
-        const metadataVersionByteCount = metadataVersion != null ? BlobUtilities.GetUTF8ByteCount(metadataVersion) : MetadataRootBuilder.DefaultMetadataVersionString.length;
+        const metadataVersionByteCount = metadataVersion != undefined ? BlobUtilities.GetUTF8ByteCount(metadataVersion) : MetadataRootBuilder.DefaultMetadataVersionString.length;
 
         if (metadataVersionByteCount > MetadataSizes.MaxMetadataVersionByteCount) {
             Throw.InvalidArgument("MetadataVersionTooLong", "metadataVersion");
@@ -76,7 +76,7 @@ export class MetadataRootBuilder {
     /// The relative virtual address of the start of the field init data stream.
     /// Used to calculate the final value of RVA fields of FieldRVA table.
     /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is undefined.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="methodBodyStreamRva"/> or <paramref name="mappedFieldDataStreamRva"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">
     /// A metadata table is not ordered as required by the specification and <see cref="SuppressValidation"/> is false.

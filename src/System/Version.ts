@@ -60,7 +60,7 @@ export class Version {
 
     // private Version(Version version)
     // {
-    //     Debug.Assert(version != null);
+    //     assert(version != undefined);
 
     //     _Major = version._Major;
     //     _Minor = version._Minor;
@@ -88,7 +88,7 @@ export class Version {
 
     // public int CompareTo(object? version)
     // {
-    //     if (version == null)
+    //     if (version == undefined)
     //     {
     //         return 1;
     //     }
@@ -105,7 +105,7 @@ export class Version {
     // {
     //     return
     //         ReferenceEquals(value, this) ? 0 :
-    //         value is null ? 1 :
+    //         value is undefined ? 1 :
     //         _Major != value._Major ? (_Major > value._Major ? 1 : -1) :
     //         _Minor != value._Minor ? (_Minor > value._Minor ? 1 : -1) :
     //         _Build != value._Build ? (_Build > value._Build ? 1 : -1) :
@@ -121,7 +121,7 @@ export class Version {
     // public bool Equals([NotNullWhen(true)] Version? obj)
     // {
     //     return ReferenceEquals(obj, this) ||
-    //         (obj is not null &&
+    //         (obj is not undefined &&
     //         _Major == obj._Major &&
     //         _Minor == obj._Minor &&
     //         _Build == obj._Build &&
@@ -150,7 +150,7 @@ export class Version {
     // {
     //     Span<char> dest = stackalloc char[(4 * Number.Int32NumberBufferLength) + 3]; // at most 4 Int32s and 3 periods
     //     bool success = TryFormat(dest, fieldCount, out int charsWritten);
-    //     Debug.Assert(success);
+    //     assert(success);
     //     return dest.Slice(0, charsWritten).ToString();
     // }
 
@@ -180,7 +180,7 @@ export class Version {
 
     // private bool TryFormatCore<TChar>(Span<TChar> destination, int fieldCount, out int charsWritten) where TChar : unmanaged, IUtfChar<TChar>
     // {
-    //     Debug.Assert(typeof(TChar) == typeof(char) || typeof(TChar) == typeof(byte));
+    //     assert(typeof(TChar) == typeof(char) || typeof(TChar) == typeof(byte));
 
     //     switch ((uint)fieldCount)
     //     {
@@ -273,7 +273,7 @@ export class Version {
     // {
     //     Version? result = ParseVersion(utf8Text, throwOnFailure: false);
     //     // Required to throw FormatException for invalid input according to contract.
-    //     if (result == null)
+    //     if (result == undefined)
     //     {
     //         ThrowHelper.ThrowFormatInvalidString();
     //     }
@@ -294,20 +294,20 @@ export class Version {
 
     // public static bool TryParse([NotNullWhen(true)] string? input, [NotNullWhen(true)] out Version? result)
     // {
-    //     if (input == null)
+    //     if (input == undefined)
     //     {
-    //         result = null;
+    //         result = undefined;
     //         return false;
     //     }
 
     //     result = ParseVersion(input.AsSpan(), throwOnFailure: false);
-    //     return result is not null;
+    //     return result is not undefined;
     // }
 
     // public static bool TryParse(ReadOnlySpan<char> input, [NotNullWhen(true)] out Version? result)
     // {
     //     result = ParseVersion(input, throwOnFailure: false);
-    //     return result is not null;
+    //     return result is not undefined;
     // }
 
     // /// <summary>
@@ -316,20 +316,20 @@ export class Version {
     // /// <param name="utf8Text">The span of UTF-8 characters to parse.</param>
     // /// <param name="result">
     // ///     When this method returns, contains the Version equivalent of the number that is contained in <paramref name="utf8Text" />, if the conversion succeeded.
-    // ///     If <paramref name="utf8Text" /> is empty, or if the conversion fails, result is null when the method returns.
+    // ///     If <paramref name="utf8Text" /> is empty, or if the conversion fails, result is undefined when the method returns.
     // /// </param>
     // /// <returns>true if the <paramref name="utf8Text" /> parameter was converted successfully; otherwise, false.</returns>
     // public static bool TryParse(ReadOnlySpan<byte> utf8Text, [NotNullWhen(true)] out Version? result)
     // {
     //     result = ParseVersion(utf8Text, throwOnFailure: false);
-    //     return result is not null;
+    //     return result is not undefined;
     // }
 
     // /// <inheritdoc cref="IUtf8SpanParsable{TSelf}.TryParse(ReadOnlySpan{byte}, IFormatProvider?, out TSelf)"/>
     // static bool IUtf8SpanParsable<Version>.TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, [NotNullWhen(true)] out Version? result)
     // {
     //     result = ParseVersion(utf8Text, throwOnFailure: false);
-    //     return result is not null;
+    //     return result is not undefined;
     // }
 
     // private static Version? ParseVersion<TChar>(ReadOnlySpan<TChar> input, bool throwOnFailure)
@@ -340,7 +340,7 @@ export class Version {
     //     if (majorEnd < 0)
     //     {
     //         if (throwOnFailure) throw new ArgumentException(SR.Arg_VersionString, nameof(input));
-    //         return null;
+    //         return undefined;
     //     }
 
     //     // Find the ends of the optional minor and build portions.
@@ -357,7 +357,7 @@ export class Version {
     //             if (input.Slice(buildEnd + 1).Contains(TChar.CastFrom('.')))
     //             {
     //                 if (throwOnFailure) throw new ArgumentException(SR.Arg_VersionString, nameof(input));
-    //                 return null;
+    //                 return undefined;
     //             }
     //         }
     //     }
@@ -367,7 +367,7 @@ export class Version {
     //     // Parse the major version
     //     if (!TryParseComponent(input.Slice(0, majorEnd), nameof(input), throwOnFailure, out int major))
     //     {
-    //         return null;
+    //         return undefined;
     //     }
 
     //     if (minorEnd != -1)
@@ -375,7 +375,7 @@ export class Version {
     //         // If there's more than a major and minor, parse the minor, too.
     //         if (!TryParseComponent(input.Slice(majorEnd + 1, minorEnd - majorEnd - 1), nameof(input), throwOnFailure, out minor))
     //         {
-    //             return null;
+    //             return undefined;
     //         }
 
     //         if (buildEnd != -1)
@@ -385,14 +385,14 @@ export class Version {
     //                 TryParseComponent(input.Slice(minorEnd + 1, buildEnd - minorEnd - 1), nameof(build), throwOnFailure, out build) &&
     //                 TryParseComponent(input.Slice(buildEnd + 1), nameof(revision), throwOnFailure, out revision) ?
     //                     new Version(major, minor, build, revision) :
-    //                     null;
+    //                     undefined;
     //         }
     //         else
     //         {
     //             // major.minor.build
     //             return TryParseComponent(input.Slice(minorEnd + 1), nameof(build), throwOnFailure, out build) ?
     //                 new Version(major, minor, build) :
-    //                 null;
+    //                 undefined;
     //         }
     //     }
     //     else
@@ -400,7 +400,7 @@ export class Version {
     //         // major.minor
     //         return TryParseComponent(input.Slice(majorEnd + 1), nameof(input), throwOnFailure, out minor) ?
     //             new Version(major, minor) :
-    //             null;
+    //             undefined;
     //     }
     // }
 
@@ -421,11 +421,11 @@ export class Version {
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
     // public static bool operator ==(Version? v1, Version? v2)
     // {
-    //     // Test "right" first to allow branch elimination when inlined for null checks (== null)
+    //     // Test "right" first to allow branch elimination when inlined for undefined checks (== undefined)
     //     // so it can become a simple test
-    //     if (v2 is null)
+    //     if (v2 is undefined)
     //     {
-    //         return v1 is null;
+    //         return v1 is undefined;
     //     }
 
     //     // Quick reference equality test prior to calling the virtual Equality
@@ -436,9 +436,9 @@ export class Version {
 
     // public static bool operator <(Version? v1, Version? v2)
     // {
-    //     if (v1 is null)
+    //     if (v1 is undefined)
     //     {
-    //         return v2 is not null;
+    //         return v2 is not undefined;
     //     }
 
     //     return v1.CompareTo(v2) < 0;
@@ -446,7 +446,7 @@ export class Version {
 
     // public static bool operator <=(Version? v1, Version? v2)
     // {
-    //     if (v1 is null)
+    //     if (v1 is undefined)
     //     {
     //         return true;
     //     }

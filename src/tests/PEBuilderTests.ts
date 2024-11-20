@@ -4,10 +4,13 @@ import {
     ArgumentOutOfRangeException,
 } from "System";
 import {
-    MetadataRootBuilder,
     BlobBuilder,
-    MetadataBuilder,
+
 } from "System.Reflection.Metadata";
+import {
+    MetadataRootBuilder,
+    MetadataBuilder,
+} from "System.Reflection.Metadata.Ecma335";
 import {
     ManagedPEBuilder,
 } from "System.Reflection.PortableExecutable";
@@ -41,10 +44,10 @@ export function ManagedPEBuilder_Errors() {
     var ms = new MetadataRootBuilder(new MetadataBuilder());
     var il = new BlobBuilder();
 
-    // AssertArgumentNullException(() => new ManagedPEBuilder(null, ms, il));
+    // AssertArgumentNullException(() => new ManagedPEBuilder(undefined, ms, il));
 
-    // AssertArgumentNullException(() => new ManagedPEBuilder(null, ms, il));
-    // AssertArgumentNullException(() => new ManagedPEBuilder(hdr, null, il));
-    // AssertArgumentNullException(() => new ManagedPEBuilder(hdr, ms, null));
+    // AssertArgumentNullException(() => new ManagedPEBuilder(undefined, ms, il));
+    // AssertArgumentNullException(() => new ManagedPEBuilder(hdr, undefined, il));
+    // AssertArgumentNullException(() => new ManagedPEBuilder(hdr, ms, undefined));
     AssertArgumentOutOfRangeException(() => new ManagedPEBuilder(hdr, ms, il, undefined, undefined, undefined, undefined, -1));
 }

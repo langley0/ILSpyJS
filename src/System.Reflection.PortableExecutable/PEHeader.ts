@@ -18,7 +18,7 @@ export class PEHeader {
     readonly _addressOfEntryPoint: number;
     readonly _baseOfCode: number;
     readonly _baseOfData: number;
-    readonly _imageBase: bigint;
+    readonly _imageBase: number;
     readonly _sectionAlignment: number;
     readonly _fileAlignment: number;
     readonly _majorOperatingSystemVersion: number;
@@ -32,10 +32,10 @@ export class PEHeader {
     readonly _checkSum: number;
     readonly _subsystem: Subsystem;
     readonly _dllCharacteristics: DllCharacteristics;
-    readonly _sizeOfStackReserve: bigint;
-    readonly _sizeOfStackCommit: bigint;
-    readonly _sizeOfHeapReserve: bigint;
-    readonly _sizeOfHeapCommit: bigint;
+    readonly _sizeOfStackReserve: number;
+    readonly _sizeOfStackCommit: number;
+    readonly _sizeOfHeapReserve: number;
+    readonly _sizeOfHeapCommit: number;
     readonly _numberOfRvaAndSizes: number;
     readonly _exportTableDirectory: DirectoryEntry;
     readonly _importTableDirectory: DirectoryEntry;
@@ -124,7 +124,7 @@ export class PEHeader {
     /// The preferred address of the first byte of image when loaded into memory;
     /// must be a multiple of 64K.
     /// </summary>
-    public get ImageBase(): bigint {
+    public get ImageBase(): number {
         return this._imageBase;
     }
 
@@ -225,14 +225,14 @@ export class PEHeader {
     /// The size of the stack to reserve. Only <see cref="SizeOfStackCommit"/> is committed;
     /// the rest is made available one page at a time until the reserve size is reached.
     /// </summary>
-    public get SizeOfStackReserve(): bigint {
+    public get SizeOfStackReserve(): number {
         return this._sizeOfStackReserve;
     }
 
     /// <summary>
     /// The size of the stack to commit.
     /// </summary>
-    public get SizeOfStackCommit(): bigint {
+    public get SizeOfStackCommit(): number {
         return this._sizeOfStackCommit;
     }
 
@@ -240,14 +240,14 @@ export class PEHeader {
     /// The size of the local heap space to reserve. Only <see cref="SizeOfHeapCommit"/> is committed;
     /// the rest is made available one page at a time until the reserve size is reached.
     /// </summary>
-    public get SizeOfHeapReserve(): bigint {
+    public get SizeOfHeapReserve(): number {
         return this._sizeOfHeapReserve;
     }
 
     /// <summary>
     /// The size of the local heap space to commit.
     /// </summary>
-    public get SizeOfHeapCommit(): bigint {
+    public get SizeOfHeapCommit(): number {
         return this._sizeOfHeapCommit;
     }
 
@@ -381,7 +381,7 @@ export class PEHeader {
         sizeof('int') +                                 // SizeOfUninitializedData
         sizeof('int') +                                 // AddressOfEntryPoint
         sizeof('int') +                                 // BaseOfCode
-        sizeof('long') +                                // PE32:  BaseOfData (int), ImageBase (int)
+        sizeof('long') +                                // PE32:  BaseOfData , ImageBase 
         //                                              // PE32+: ImageBase (long)
         sizeof('int') +                                 // SectionAlignment
         sizeof('int') +                                 // FileAlignment
@@ -430,10 +430,10 @@ export class PEHeader {
         }
 
         if (magic == PEMagic.PE32Plus) {
-            this._imageBase = reader.ReadUInt64();
+            this._imageBase = Number(reader.ReadUInt64());
         }
         else {
-            this._imageBase = BigInt(reader.ReadUInt32());
+            this._imageBase = reader.ReadUInt32();
         }
 
         // NT additional fields:
@@ -456,16 +456,16 @@ export class PEHeader {
         this._dllCharacteristics = reader.ReadUInt16();
 
         if (magic == PEMagic.PE32Plus) {
-            this._sizeOfStackReserve = reader.ReadUInt64();
-            this._sizeOfStackCommit = reader.ReadUInt64();
-            this._sizeOfHeapReserve = reader.ReadUInt64();
-            this._sizeOfHeapCommit = reader.ReadUInt64();
+            this._sizeOfStackReserve = Number(reader.ReadUInt64());
+            this._sizeOfStackCommit = Number(reader.ReadUInt64());
+            this._sizeOfHeapReserve = Number(reader.ReadUInt64());
+            this._sizeOfHeapCommit = Number(reader.ReadUInt64());
         }
         else {
-            this._sizeOfStackReserve = BigInt(reader.ReadUInt32());
-            this._sizeOfStackCommit = BigInt(reader.ReadUInt32());
-            this._sizeOfHeapReserve = BigInt(reader.ReadUInt32());
-            this._sizeOfHeapCommit = BigInt(reader.ReadUInt32());
+            this._sizeOfStackReserve = reader.ReadUInt32();
+            this._sizeOfStackCommit = reader.ReadUInt32();
+            this._sizeOfHeapReserve = reader.ReadUInt32();
+            this._sizeOfHeapCommit = reader.ReadUInt32();
         }
 
         // loader flags

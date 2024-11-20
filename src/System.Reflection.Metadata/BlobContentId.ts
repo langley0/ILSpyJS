@@ -28,7 +28,7 @@ export class BlobContentId {
 
     // public BlobContentId(byte[] id)
     // {
-    //     if (id is null)
+    //     if (id is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(id));
     //     }
@@ -65,7 +65,7 @@ export class BlobContentId {
 
     // public static BlobContentId FromHash(byte[] hashCode)
     // {
-    //     if (hashCode is null)
+    //     if (hashCode is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(hashCode));
     //     }
@@ -98,7 +98,7 @@ export class BlobContentId {
     //     // modify the guid data so it decodes to the form of a "random" guid ala rfc4122
     //     c = (ushort)((c & 0x0fff) | (4 << 12));
     //     d = (byte)((d & 0x3f) | (2 << 6));
-    //     Guid guid = new Guid((int)a, (short)b, (short)c, d, e, f, g, h, i, j, k);
+    //     Guid guid = new Guid(a, (short)b, (short)c, d, e, f, g, h, i, j, k);
 
     //     // compute a random-looking stamp from the remaining bits, but with the upper bit set
     //     uint stamp = 0x80000000u | ((uint)hashCode[19] << 24 | (uint)hashCode[18] << 16 | (uint)hashCode[17] << 8 | hashCode[16]);

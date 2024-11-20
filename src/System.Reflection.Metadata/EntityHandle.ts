@@ -53,7 +53,7 @@ export class EntityHandle {
 
     // public int RowId
     // {
-    //     get { return (int)(_vToken & TokenTypeIds.RIDMask); }
+    //     get { return (_vToken & TokenTypeIds.RIDMask); }
     // }
 
     // /// <summary>
@@ -92,7 +92,7 @@ export class EntityHandle {
 
     // public override int GetHashCode()
     // {
-    //     return unchecked((int)_vToken);
+    //     return unchecked(_vToken);
     // }
 
     // public static bool operator ==(EntityHandle left, EntityHandle right)

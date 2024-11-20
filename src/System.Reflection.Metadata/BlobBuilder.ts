@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Throw, sizeof, Guid } from "System";
-import { BitArithmetic, BlobUtilities } from "System.Reflection";
+import { BitArithmetic, BlobUtilities } from "System.Reflection.Internal";
 import { BlobBuilderImpl } from "./BlobWriterImpl";
 import { Blob } from "./Blob";
 import { Chunks, Blobs } from "./BlobBuilder.Enumerators";
@@ -135,7 +135,7 @@ export class BlobBuilder {
     private CheckInvariants() {
         assert(this._buffer);
         assert(this.Length >= 0 && this.Length <= this._buffer.length);
-        assert(this._nextOrPrevious != null);
+        assert(this._nextOrPrevious != undefined);
 
         if (this.IsHead) {
             assert(this._previousLengthOrFrozenSuffixLengthDelta >= 0);
@@ -215,7 +215,7 @@ export class BlobBuilder {
     //         return true;
     //     }
 
-    //     if (other == null)
+    //     if (other == undefined)
     //     {
     //         return false;
     //     }
@@ -345,11 +345,11 @@ export class BlobBuilder {
     //     return false;
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="destination"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
     // public  WriteContentTo(Stream destination)
     // {
-    //     if (destination is null)
+    //     if (destination is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(destination));
     //     }
@@ -375,11 +375,11 @@ export class BlobBuilder {
     //     }
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="destination"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="destination"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Content is not available, the builder has been linked with another one.</exception>
     // public  WriteContentTo(BlobBuilder destination)
     // {
-    //     if (destination is null)
+    //     if (destination is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(destination));
     //     }
@@ -390,11 +390,11 @@ export class BlobBuilder {
     //     }
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="prefix"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="prefix"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  LinkPrefix(BlobBuilder prefix)
     // {
-    //     if (prefix is null)
+    //     if (prefix is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(prefix));
     //     }
@@ -451,7 +451,7 @@ export class BlobBuilder {
     //     CheckInvariants();
     // }
 
-    /// <exception cref="ArgumentNullException"><paramref name="suffix"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="suffix"/> is undefined.</exception>
     /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     public LinkSuffix(suffix?: BlobBuilder) {
         if (!suffix) {
@@ -638,7 +638,7 @@ export class BlobBuilder {
         }
     }
 
-    /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     public WriteBytesArray(buffer: Uint8Array, byteCount: number) {
@@ -668,13 +668,13 @@ export class BlobBuilder {
         }
     }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="source"/> is undefined.</exception>
     // /// <exception cref="ArgumentOutOfRangeException"><paramref name="byteCount"/> is negative.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // /// <returns>Bytes successfully written from the <paramref name="source" />.</returns>
     // public number TryWriteBytes(Stream source, number byteCount)
     // {
-    //     if (source is null)
+    //     if (source is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(source));
     //     }
@@ -716,7 +716,7 @@ export class BlobBuilder {
     //     return bytesRead;
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteBytes(ImmutableArray<byte> buffer)
     // {
@@ -728,7 +728,7 @@ export class BlobBuilder {
     //     WriteBytes(buffer.AsSpan());
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     // /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the <paramref name="buffer"/>.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteBytes(ImmutableArray<byte> buffer, number start, number byteCount)
@@ -743,11 +743,11 @@ export class BlobBuilder {
     //     WriteBytes(buffer.AsSpan(start, byteCount));
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteBytes(byte[] buffer)
     // {
-    //     if (buffer is null)
+    //     if (buffer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(buffer));
     //     }
@@ -755,12 +755,12 @@ export class BlobBuilder {
     //     WriteBytes(buffer.AsSpan());
     // }
 
-    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="buffer"/> is undefined.</exception>
     // /// <exception cref="ArgumentOutOfRangeException">Range specified by <paramref name="start"/> and <paramref name="byteCount"/> falls outside of the bounds of the <paramref name="buffer"/>.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteBytes(byte[] buffer, number start, number byteCount)
     // {
-    //     if (buffer is null)
+    //     if (buffer is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(buffer));
     //     }
@@ -920,11 +920,11 @@ export class BlobBuilder {
     // /// <summary>
     // /// Writes UTF-16 (little-endian) encoded string at the current position.
     // /// </summary>
-    // /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteUTF16(char[] value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -940,11 +940,11 @@ export class BlobBuilder {
     // /// <summary>
     // /// Writes UTF-16 (little-endian) encoded string at the current position.
     // /// </summary>
-    // /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    // /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteUTF16(string value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -987,7 +987,7 @@ export class BlobBuilder {
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteSerializedString(string? value)
     // {
-    //     if (value == null)
+    //     if (value == undefined)
     //     {
     //         WriteByte(0xff);
     //         return;
@@ -1009,7 +1009,7 @@ export class BlobBuilder {
     // /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     // public  WriteUserString(string value)
     // {
-    //     if (value is null)
+    //     if (value is undefined)
     //     {
     //         Throw.ArgumentNull(nameof(value));
     //     }
@@ -1026,7 +1026,7 @@ export class BlobBuilder {
     /// <param name="allowUnpairedSurrogates">
     /// True to encode unpaired surrogates as specified, otherwise replace them with U+FFFD character.
     /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is undefined.</exception>
     /// <exception cref="InvalidOperationException">Builder is not writable, it has been linked with another one.</exception>
     public WriteUTF8(value: string, allowUnpairedSurrogates: boolean = true) {
         this.WriteUTF8Core(value, 0, value.length, allowUnpairedSurrogates, false);

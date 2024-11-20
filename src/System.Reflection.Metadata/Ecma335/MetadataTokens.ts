@@ -61,7 +61,7 @@ export class MetadataTokens {
     // {
     //     if (handle.IsVirtual)
     //     {
-    //         return (int)handle.Type | MapVirtualHandleRowId(reader, handle);
+    //         return handle.Type | MapVirtualHandleRowId(reader, handle);
     //     }
 
     //     return handle.Token;
@@ -85,7 +85,7 @@ export class MetadataTokens {
 
     //     if (handle.IsVirtual)
     //     {
-    //         return (int)handle.EntityHandleType | MapVirtualHandleRowId(reader, handle);
+    //         return handle.EntityHandleType | MapVirtualHandleRowId(reader, handle);
     //     }
 
     //     return handle.Token;
@@ -235,7 +235,7 @@ export class MetadataTokens {
     // {
     //     // We don't have a HandleKind for PropertyMap, EventMap, MethodSemantics, *Ptr, AssemblyOS, etc. tables,
     //     // but one can get ahold of one by creating a handle from a token and getting its Kind.
-    //     if ((int)type < TableCount && ((1UL << (int)type) & (ulong)TableMask.AllTables) != 0)
+    //     if (type < TableCount && ((1UL << type) & (ulong)TableMask.AllTables) != 0)
     //     {
     //         index = (TableIndex)type;
     //         return true;
@@ -328,7 +328,7 @@ export class MetadataTokens {
     // /// <paramref name="tableIndex"/> is not a valid table index.</exception>
     // public static EntityHandle Handle(TableIndex tableIndex, int rowNumber)
     // {
-    //     int token = ((int)tableIndex << TokenTypeIds.RowIdBitCount) | rowNumber;
+    //     int token = (tableIndex << TokenTypeIds.RowIdBitCount) | rowNumber;
 
     //     if (!TokenTypeIds.IsEntityOrUserStringToken(unchecked((uint)token)))
     //     {
@@ -340,7 +340,7 @@ export class MetadataTokens {
 
     // private static int ToRowId(int rowNumber)
     // {
-    //     return rowNumber & (int)TokenTypeIds.RIDMask;
+    //     return rowNumber & TokenTypeIds.RIDMask;
     // }
 
     // public static MethodDefinitionHandle MethodDefinitionHandle(int rowNumber)
@@ -499,7 +499,7 @@ export class MetadataTokens {
 
     // public static UserStringHandle UserStringHandle(int offset)
     // {
-    //     return Metadata.UserStringHandle.FromOffset(offset & (int)TokenTypeIds.RIDMask);
+    //     return Metadata.UserStringHandle.FromOffset(offset & TokenTypeIds.RIDMask);
     // }
 
     // public static StringHandle StringHandle(int offset)

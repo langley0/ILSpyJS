@@ -113,7 +113,7 @@ export class BlobWriterImpl {
 
     // public static void WriteConstant(ref BlobWriter writer, object? value)
     // {
-    //     if (value == null)
+    //     if (value == undefined)
     //     {
     //         // The encoding of Type for the nullref value for FieldInit is ELEMENT_TYPE_CLASS with a Value of a 32-bit.
     //         writer.WriteUInt32(0);
@@ -130,9 +130,9 @@ export class BlobWriterImpl {
     //     {
     //         writer.WriteBoolean((bool)value);
     //     }
-    //     else if (type == typeof(int))
+    //     else if (type == typeof)
     //     {
-    //         writer.WriteInt32((int)value);
+    //         writer.WriteInt32(value);
     //     }
     //     else if (type == typeof(string))
     //     {
@@ -186,7 +186,7 @@ export class BlobWriterImpl {
 
     // public static void WriteConstant(BlobBuilder writer, object? value)
     // {
-    //     if (value == null)
+    //     if (value == undefined)
     //     {
     //         // The encoding of Type for the nullref value for FieldInit is ELEMENT_TYPE_CLASS with a Value of a 32-bit.
     //         writer.WriteUInt32(0);
@@ -203,9 +203,9 @@ export class BlobWriterImpl {
     //     {
     //         writer.WriteBoolean((bool)value);
     //     }
-    //     else if (type == typeof(int))
+    //     else if (type == typeof)
     //     {
-    //         writer.WriteInt32((int)value);
+    //         writer.WriteInt32(value);
     //     }
     //     else if (type == typeof(string))
     //     {

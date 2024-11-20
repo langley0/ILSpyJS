@@ -15,6 +15,10 @@ export class Throw {
         throw new Error("ImageTooSmall: Attempted to read beyond the end of the stream.");
     }
 
+    static FileLoadException(description: string, parameterName?: string): never {
+        throw new Error(`FileLoad Failed: ${description}, ${parameterName}`);
+    }
+
     static InvalidArgument(description: string, parameterName: string): never {
         throw new Error(`InvalidArgument: ${description}, ${parameterName}`);
     }
@@ -25,6 +29,10 @@ export class Throw {
 
     static InvalidOperation_PEImageNotAvailable(): never {
         throw new Error("InvalidOperation: PE image is not available.");
+    }
+
+    static BadImageFormatException(description?: string): never {
+        throw new Error(`BadImageFormat: Invalid metadata. ${description}`);
     }
 
     static PEReaderDisposed(): never {
@@ -55,12 +63,12 @@ export class Throw {
         throw new Error("InvalidOperation: Builder is already linked to another metadata.");
     }
 
-    static InvalidOperationException(description: string, parameterName: string): never {
+    static InvalidOperationException(description: string, parameterName?: string): never {
         throw new Error(`InvalidOperation: ${description}, ${parameterName}`);
     }
 
     static ThrowIfNull(value: any, name?: string) {
-        if (value == null || value == undefined) {
+        if (value == undefined || value == undefined) {
             if (name) {
                 throw new Error(`ArgumentNull: ${name}`);
             } else {

@@ -24,7 +24,7 @@ export class Handle {
     // /// </summary>
     // public static Handle FromVToken(uint vToken)
     // {
-    //     return new Handle((byte)(vToken >> TokenTypeIds.RowIdBitCount), (int)(vToken & TokenTypeIds.RIDMask));
+    //     return new Handle((byte)(vToken >> TokenTypeIds.RowIdBitCount), (vToken & TokenTypeIds.RIDMask));
     // }
 
     public constructor(vType: number, value: number) {

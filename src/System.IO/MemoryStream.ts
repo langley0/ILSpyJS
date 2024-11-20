@@ -5,7 +5,7 @@ import { SeekOrigin } from './SeekOrigin';
 
 
 export class MemoryStream extends Stream {
-    private _buffer: number[];    // Either allocated internally or externally.
+    private _buffer: Uint8Array;    // Either allocated internally or externally.
     private _origin: number;       // For user-provided arrays, start at this origin
     private _position: number;     // read/write head.
     private _length: number;       // Number of bytes within the memory stream
@@ -63,7 +63,7 @@ export class MemoryStream extends Stream {
     // {
     // }
 
-    public constructor(buffer: number[], index: number | undefined = undefined, count: number | undefined = undefined, writable: boolean = false) {
+    public constructor(buffer: Uint8Array, index: number | undefined = undefined, count: number | undefined = undefined, writable: boolean = false) {
         super();
 
         if (index === undefined) {
@@ -163,7 +163,7 @@ export class MemoryStream extends Stream {
     //         _isOpen = false;
     //         _writable = false;
     //         _expandable = false;
-    //         // Don't set buffer to null - allow TryGetBuffer, GetBuffer & ToArray to work.
+    //         // Don't set buffer to undefined - allow TryGetBuffer, GetBuffer & ToArray to work.
     //         _lastReadTask = default;
     //     }
     // }
@@ -283,7 +283,7 @@ export class MemoryStream extends Stream {
     //     if (n < 0)
     //         n = 0;
 
-    //     Debug.Assert(_position + n >= 0);  // len is less than 2^31 -1.
+    //     assert(_position + n >= 0);  // len is less than 2^31 -1.
     //     _position += n;
     //     return n;
     // }
@@ -355,7 +355,7 @@ export class MemoryStream extends Stream {
 
     //         if (value > MemStreamMaxLength - _origin)
     //             throw new ArgumentOutOfRangeException(nameof(value), SR.ArgumentOutOfRange_StreamLength);
-    //         _position = _origin + (int)value;
+    //         _position = _origin + value;
     //     }
     // }
 
@@ -561,12 +561,12 @@ export class MemoryStream extends Stream {
     // {
     //     if (offset > MemStreamMaxLength - loc)
     //         throw new ArgumentOutOfRangeException(nameof(offset), SR.ArgumentOutOfRange_StreamLength);
-    //     int tempPosition = unchecked(loc + (int)offset);
+    //     int tempPosition = unchecked(loc + offset);
     //     if (unchecked(loc + offset) < _origin || tempPosition < _origin)
     //         throw new IOException(SR.IO_SeekBeforeBegin);
     //     _position = tempPosition;
 
-    //     Debug.Assert(_position >= _origin);
+    //     assert(_position >= _origin);
     //     return _position - _origin;
     // }
 
@@ -588,11 +588,11 @@ export class MemoryStream extends Stream {
     //     EnsureWriteable();
 
     //     // Origin wasn't publicly exposed above.
-    //     Debug.Assert(MemStreamMaxLength == int.MaxValue);  // Check parameter validation logic in this method if this fails.
+    //     assert(MemStreamMaxLength == int.MaxValue);  // Check parameter validation logic in this method if this fails.
     //     if (value > (int.MaxValue - _origin))
     //         throw new ArgumentOutOfRangeException(nameof(value), SR.ArgumentOutOfRange_StreamLength);
 
-    //     int newLength = _origin + (int)value;
+    //     int newLength = _origin + value;
     //     bool allocatedNewArray = EnsureCapacity(newLength);
     //     if (!allocatedNewArray && newLength > _length)
     //         Array.Clear(_buffer, _length, newLength - _length);

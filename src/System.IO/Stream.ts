@@ -19,8 +19,9 @@ export abstract class Stream {
         return r == 0 ? -1 : oneByteArray[0];
     }
 
-    public ReadBytes(buffer: Uint8Array): number {
-        const numRead = this.Read(buffer, 0, buffer.length);
+    public ReadBytes(buffer: Uint8Array, size?: number): number {
+        size = size ?? buffer.length;
+        const numRead = this.Read(buffer, 0, size);
         if (numRead > buffer.length) {
             throw new Error("Stream implementation returned more bytes than the buffer could hold.");
         }
@@ -76,5 +77,8 @@ export abstract class Stream {
         Throw.ThrowIfNull(buffer, "buffer");
         Throw.ThrowIfNegative(offset, "offset");
         Throw.ThrowIfFalse(count <= buffer.length - offset, "count > buffer.Length - offset");
+    }
+
+    public Dispose(flag?: boolean): void {
     }
 }

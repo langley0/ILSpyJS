@@ -277,7 +277,12 @@ export class MemoryBlock {
         assert(terminator <= 0x7F);
         this.CheckBounds(offset, 0);
         const numberOfBytesRead = this.GetUtf8NullTerminatedLength(offset, terminator);
-        return Buffer.from(this.Pointer, offset, numberOfBytesRead).toString("utf8");
+        const value = Buffer.from(this.Pointer.subarray(offset, offset + numberOfBytesRead)).toString("utf8");
+        // if last character is terminator, remove it
+        if (value.charCodeAt(value.length - 1) == terminator) {
+            return value.substring(0, value.length - 1);
+        }
+        return value;
     }
 
     /// <summary>

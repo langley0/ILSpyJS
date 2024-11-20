@@ -341,7 +341,6 @@ export class PEReader {
         }
 
         if (!this._lazyMetadataBlock) {
-            console.log(this._peImage?.Size, this.PEHeaders.MetadataStartOffset + this.PEHeaders.MetadataSize, this.PEHeaders.MetadataStartOffset, this.PEHeaders.MetadataSize);
             this._lazyMetadataBlock = this.GetPEImage().GetMemoryBlock(this.PEHeaders.MetadataStartOffset, this.PEHeaders.MetadataSize);
             assert(this._lazyMetadataBlock != undefined);
         }

@@ -94,7 +94,7 @@ export class BlobReader {
             Throw.OutOfBounds();
         }
 
-        this._currentPointer = this._currentPointer + value;
+        this._currentPointer = value;
 
     }
 

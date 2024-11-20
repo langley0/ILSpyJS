@@ -242,12 +242,13 @@ export class MetadataReader {
         memReader.ReadUInt16();
         const streamCount = memReader.ReadInt16();
 
-        const streamHeaders = Array<StreamHeader>(streamCount).fill(new StreamHeader());
+        const streamHeaders = Array<StreamHeader>(streamCount);
         for (let i = 0; i < streamCount; i++) {
             if (memReader.RemainingBytes < COR20Constants.MinimumSizeofStreamHeader) {
                 Throw.BadImageFormatException('StreamHeaderTooSmall');
             }
 
+            streamHeaders[i] = new StreamHeader();
             streamHeaders[i].Offset = memReader.ReadUInt32();
             streamHeaders[i].Size = memReader.ReadInt32();
             streamHeaders[i].Name = memReader.ReadUtf8NullTerminated();
@@ -352,7 +353,7 @@ export class MetadataReader {
         }
 
         assert(metadataTableStream != undefined);
-        assert(standalonePdbStream != undefined);
+        standalonePdbStream ??= new MemoryBlock(Uint8Array.from([]), 0);
         return { metadataStreamKind, metadataTableStream, standalonePdbStream };
     }
 

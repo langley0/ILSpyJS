@@ -7,127 +7,127 @@ export enum MetadataStreamKind {
     Uncompressed,
 }
 
-export class TableMask {
-    public static readonly Module = 1 << TableIndex.Module;
-    public static readonly TypeRef = 1 << TableIndex.TypeRef;
-    public static readonly TypeDef = 1 << TableIndex.TypeDef;
-    public static readonly FieldPtr = 1 << TableIndex.FieldPtr;
-    public static readonly Field = 1 << TableIndex.Field;
-    public static readonly MethodPtr = 1 << TableIndex.MethodPtr;
-    public static readonly MethodDef = 1 << TableIndex.MethodDef;
-    public static readonly ParamPtr = 1 << TableIndex.ParamPtr;
-    public static readonly Param = 1 << TableIndex.Param;
-    public static readonly InterfaceImpl = 1 << TableIndex.InterfaceImpl;
-    public static readonly MemberRef = 1 << TableIndex.MemberRef;
-    public static readonly Constant = 1 << TableIndex.Constant;
-    public static readonly CustomAttribute = 1 << TableIndex.CustomAttribute;
-    public static readonly FieldMarshal = 1 << TableIndex.FieldMarshal;
-    public static readonly DeclSecurity = 1 << TableIndex.DeclSecurity;
-    public static readonly ClassLayout = 1 << TableIndex.ClassLayout;
-    public static readonly FieldLayout = 1 << TableIndex.FieldLayout;
-    public static readonly StandAloneSig = 1 << TableIndex.StandAloneSig;
-    public static readonly EventMap = 1 << TableIndex.EventMap;
-    public static readonly EventPtr = 1 << TableIndex.EventPtr;
-    public static readonly Event = 1 << TableIndex.Event;
-    public static readonly PropertyMap = 1 << TableIndex.PropertyMap;
-    public static readonly PropertyPtr = 1 << TableIndex.PropertyPtr;
-    public static readonly Property = 1 << TableIndex.Property;
-    public static readonly MethodSemantics = 1 << TableIndex.MethodSemantics;
-    public static readonly MethodImpl = 1 << TableIndex.MethodImpl;
-    public static readonly ModuleRef = 1 << TableIndex.ModuleRef;
-    public static readonly TypeSpec = 1 << TableIndex.TypeSpec;
-    public static readonly ImplMap = 1 << TableIndex.ImplMap;
-    public static readonly FieldRva = 1 << TableIndex.FieldRva;
-    public static readonly EnCLog = 1 << TableIndex.EncLog;
-    public static readonly EnCMap = 1 << TableIndex.EncMap;
-    public static readonly Assembly = Number(BitArithmetic.SetBit64(TableIndex.Assembly));
-    // AssemblyProcessor = 1 << TableIndices.AssemblyProcessor;
-    // AssemblyOS = 1 << TableIndices.AssemblyOS;
-    public static readonly AssemblyRef = Number(BitArithmetic.SetBit64(TableIndex.AssemblyRef));
-    // AssemblyRefProcessor = 1 << TableIndices.AssemblyRefProcessor;
-    // AssemblyRefOS = 1 << TableIndices.AssemblyRefOS;
-    public static readonly File = Number(BitArithmetic.SetBit64(TableIndex.File));
-    public static readonly ExportedType = Number(BitArithmetic.SetBit64(TableIndex.ExportedType));
-    public static readonly ManifestResource = Number(BitArithmetic.SetBit64(TableIndex.ManifestResource));
-    public static readonly NestedClass = Number(BitArithmetic.SetBit64(TableIndex.NestedClass));
-    public static readonly GenericParam = Number(BitArithmetic.SetBit64(TableIndex.GenericParam));
-    public static readonly MethodSpec = Number(BitArithmetic.SetBit64(TableIndex.MethodSpec));
-    public static readonly GenericParamConstraint = Number(BitArithmetic.SetBit64(TableIndex.GenericParamConstraint));
-
-    public static readonly Document = Number(BitArithmetic.SetBit64(TableIndex.Document));
-    public static readonly MethodDebugInformation = Number(BitArithmetic.SetBit64(TableIndex.MethodDebugInformation));
-    public static readonly LocalScope = Number(BitArithmetic.SetBit64(TableIndex.LocalScope));
-    public static readonly LocalVariable = Number(BitArithmetic.SetBit64(TableIndex.LocalVariable));
-    public static readonly LocalConstant = Number(BitArithmetic.SetBit64(TableIndex.LocalConstant));
-    public static readonly ImportScope = Number(BitArithmetic.SetBit64(TableIndex.ImportScope));
-    public static readonly StateMachineMethod = Number(BitArithmetic.SetBit64(TableIndex.StateMachineMethod));
-    public static readonly CustomDebugInformation = Number(BitArithmetic.SetBit64(TableIndex.CustomDebugInformation));
-
-    public static readonly PtrTables =
-        TableMask.FieldPtr
-        | TableMask.MethodPtr
-        | TableMask.ParamPtr
-        | TableMask.EventPtr
-        | TableMask.PropertyPtr;
-
-    public static readonly EncTables =
-        TableMask.EnCLog
-        | TableMask.EnCMap;
-
-    public static readonly TypeSystemTables =
-        TableMask.PtrTables
-        | TableMask.EncTables
-        | TableMask.Module
-        | TableMask.TypeRef
-        | TableMask.TypeDef
-        | TableMask.Field
-        | TableMask.MethodDef
-        | TableMask.Param
-        | TableMask.InterfaceImpl
-        | TableMask.MemberRef
-        | TableMask.Constant
-        | TableMask.CustomAttribute
-        | TableMask.FieldMarshal
-        | TableMask.DeclSecurity
-        | TableMask.ClassLayout
-        | TableMask.FieldLayout
-        | TableMask.StandAloneSig
-        | TableMask.EventMap
-        | TableMask.Event
-        | TableMask.PropertyMap
-        | TableMask.Property
-        | TableMask.MethodSemantics
-        | TableMask.MethodImpl
-        | TableMask.ModuleRef
-        | TableMask.TypeSpec
-        | TableMask.ImplMap
-        | TableMask.FieldRva
-        | TableMask.Assembly
-        | TableMask.AssemblyRef
-        | TableMask.File
-        | TableMask.ExportedType
-        | TableMask.ManifestResource
-        | TableMask.NestedClass
-        | TableMask.GenericParam
-        | TableMask.MethodSpec
-        | TableMask.GenericParamConstraint;
-
-    public static readonly DebugTables =
-        TableMask.Document
-        | TableMask.MethodDebugInformation
-        | TableMask.LocalScope
-        | TableMask.LocalVariable
-        | TableMask.LocalConstant
-        | TableMask.ImportScope
-        | TableMask.StateMachineMethod
-        | TableMask.CustomDebugInformation;
-
-    public static readonly AllTables =
-        TableMask.TypeSystemTables |
-        TableMask.DebugTables;
-
-    public static readonly ValidPortablePdbExternalTables =
-        TableMask.TypeSystemTables & ~TableMask.PtrTables & ~TableMask.EncTables;
+export enum TableMask {
+    Module = 1 << TableIndex.Module,
+    TypeRef = 1 << TableIndex.TypeRef,
+    TypeDef = 1 << TableIndex.TypeDef,
+    FieldPtr = 1 << TableIndex.FieldPtr,
+    Field = 1 << TableIndex.Field,
+    MethodPtr = 1 << TableIndex.MethodPtr,
+    MethodDef = 1 << TableIndex.MethodDef,
+    ParamPtr = 1 << TableIndex.ParamPtr,
+    Param = 1 << TableIndex.Param,
+    InterfaceImpl = 1 << TableIndex.InterfaceImpl,
+    MemberRef = 1 << TableIndex.MemberRef,
+    Constant = 1 << TableIndex.Constant,
+    CustomAttribute = 1 << TableIndex.CustomAttribute,
+    FieldMarshal = 1 << TableIndex.FieldMarshal,
+    DeclSecurity = 1 << TableIndex.DeclSecurity,
+    ClassLayout = 1 << TableIndex.ClassLayout,
+    FieldLayout = 1 << TableIndex.FieldLayout,
+    StandAloneSig = 1 << TableIndex.StandAloneSig,
+    EventMap = 1 << TableIndex.EventMap,
+    EventPtr = 1 << TableIndex.EventPtr,
+    Event = 1 << TableIndex.Event,
+    PropertyMap = 1 << TableIndex.PropertyMap,
+    PropertyPtr = 1 << TableIndex.PropertyPtr,
+    Property = 1 << TableIndex.Property,
+    MethodSemantics = 1 << TableIndex.MethodSemantics,
+    MethodImpl = 1 << TableIndex.MethodImpl,
+    ModuleRef = 1 << TableIndex.ModuleRef,
+    TypeSpec = 1 << TableIndex.TypeSpec,
+    ImplMap = 1 << TableIndex.ImplMap,
+    FieldRva = 1 << TableIndex.FieldRva,
+    EnCLog = 1 << TableIndex.EncLog,
+    EnCMap = 1 << TableIndex.EncMap,
+    Assembly = Number(BitArithmetic.SetBit64(TableIndex.Assembly)),
+     // AssemblyProcessor = 1 << TableIndices.AssemblyProcessor,
+     // AssemblyOS = 1 << TableIndices.AssemblyOS,
+    AssemblyRef = Number(BitArithmetic.SetBit64(TableIndex.AssemblyRef)),
+     // AssemblyRefProcessor = 1 << TableIndices.AssemblyRefProcessor,
+     // AssemblyRefOS = 1 << TableIndices.AssemblyRefOS,
+    File = Number(BitArithmetic.SetBit64(TableIndex.File)),
+    ExportedType = Number(BitArithmetic.SetBit64(TableIndex.ExportedType)),
+    ManifestResource = Number(BitArithmetic.SetBit64(TableIndex.ManifestResource)),
+    NestedClass = Number(BitArithmetic.SetBit64(TableIndex.NestedClass)),
+    GenericParam = Number(BitArithmetic.SetBit64(TableIndex.GenericParam)),
+    MethodSpec = Number(BitArithmetic.SetBit64(TableIndex.MethodSpec)),
+    GenericParamConstraint = Number(BitArithmetic.SetBit64(TableIndex.GenericParamConstraint)),
+ 
+    Document = Number(BitArithmetic.SetBit64(TableIndex.Document)),
+    MethodDebugInformation = Number(BitArithmetic.SetBit64(TableIndex.MethodDebugInformation)),
+    LocalScope = Number(BitArithmetic.SetBit64(TableIndex.LocalScope)),
+    LocalVariable = Number(BitArithmetic.SetBit64(TableIndex.LocalVariable)),
+    LocalConstant = Number(BitArithmetic.SetBit64(TableIndex.LocalConstant)),
+    ImportScope = Number(BitArithmetic.SetBit64(TableIndex.ImportScope)),
+    StateMachineMethod = Number(BitArithmetic.SetBit64(TableIndex.StateMachineMethod)),
+    CustomDebugInformation = Number(BitArithmetic.SetBit64(TableIndex.CustomDebugInformation)),
+ 
+    PtrTables =
+         TableMask.FieldPtr
+         | TableMask.MethodPtr
+         | TableMask.ParamPtr
+         | TableMask.EventPtr
+         | TableMask.PropertyPtr,
+ 
+    EncTables =
+         TableMask.EnCLog
+         | TableMask.EnCMap,
+ 
+    TypeSystemTables =
+         TableMask.PtrTables
+         | TableMask.EncTables
+         | TableMask.Module
+         | TableMask.TypeRef
+         | TableMask.TypeDef
+         | TableMask.Field
+         | TableMask.MethodDef
+         | TableMask.Param
+         | TableMask.InterfaceImpl
+         | TableMask.MemberRef
+         | TableMask.Constant
+         | TableMask.CustomAttribute
+         | TableMask.FieldMarshal
+         | TableMask.DeclSecurity
+         | TableMask.ClassLayout
+         | TableMask.FieldLayout
+         | TableMask.StandAloneSig
+         | TableMask.EventMap
+         | TableMask.Event
+         | TableMask.PropertyMap
+         | TableMask.Property
+         | TableMask.MethodSemantics
+         | TableMask.MethodImpl
+         | TableMask.ModuleRef
+         | TableMask.TypeSpec
+         | TableMask.ImplMap
+         | TableMask.FieldRva
+         | TableMask.Assembly
+         | TableMask.AssemblyRef
+         | TableMask.File
+         | TableMask.ExportedType
+         | TableMask.ManifestResource
+         | TableMask.NestedClass
+         | TableMask.GenericParam
+         | TableMask.MethodSpec
+         | TableMask.GenericParamConstraint,
+ 
+    DebugTables =
+         TableMask.Document
+         | TableMask.MethodDebugInformation
+         | TableMask.LocalScope
+         | TableMask.LocalVariable
+         | TableMask.LocalConstant
+         | TableMask.ImportScope
+         | TableMask.StateMachineMethod
+         | TableMask.CustomDebugInformation,
+ 
+    AllTables =
+         TableMask.TypeSystemTables |
+         TableMask.DebugTables,
+ 
+    ValidPortablePdbExternalTables =
+         TableMask.TypeSystemTables & ~TableMask.PtrTables & ~TableMask.EncTables,
 }
 
 export enum HeapSizes {

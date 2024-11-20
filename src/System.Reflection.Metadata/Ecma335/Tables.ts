@@ -2,71 +2,69 @@ import { sizeof } from "System";
 import { MemoryBlock } from "System.Reflection.Internal";
 
 
-// struct struct ModuleTableReader
-// {
-//     public readonly int NumberOfRows;
-//     private readonly bool _IsStringHeapRefSizeSmall;
-//     private readonly bool _IsGUIDHeapRefSizeSmall;
-//     private readonly int _GenerationOffset;
-//     private readonly int _NameOffset;
-//     private readonly int _MVIdOffset;
-//     private readonly int _EnCIdOffset;
-//     private readonly int _EnCBaseIdOffset;
-//     public readonly int RowSize;
-//     public readonly MemoryBlock Block;
+export class ModuleTableReader {
+    public readonly NumberOfRows: number;
+    private readonly _IsStringHeapRefSizeSmall: boolean;
+    private readonly _IsGUIDHeapRefSizeSmall: boolean;
+    private readonly _GenerationOffset: number;
+    private readonly _NameOffset: number;
+    private readonly _MVIdOffset: number;
+    private readonly _EnCIdOffset: number;
+    private readonly _EnCBaseIdOffset: number;
+    public readonly RowSize: number;
+    public readonly Block: MemoryBlock;
 
-//     public ModuleTableReader(
-//         int numberOfRows,
-//         int stringHeapRefSize,
-//         int guidHeapRefSize,
-//         MemoryBlock containingBlock,
-//         int containingBlockOffset
-//     )
-//     {
-//         this.NumberOfRows = numberOfRows;
-//         _IsStringHeapRefSizeSmall = stringHeapRefSize == 2;
-//         _IsGUIDHeapRefSizeSmall = guidHeapRefSize == 2;
-//         _GenerationOffset = 0;
-//         _NameOffset = _GenerationOffset + sizeof(ushort);
-//         _MVIdOffset = _NameOffset + stringHeapRefSize;
-//         _EnCIdOffset = _MVIdOffset + guidHeapRefSize;
-//         _EnCBaseIdOffset = _EnCIdOffset + guidHeapRefSize;
-//         this.RowSize = _EnCBaseIdOffset + guidHeapRefSize;
-//         this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
-//     }
+    public constructor(
+        numberOfRows: number,
+        stringHeapRefSize: number,
+        guidHeapRefSize: number,
+        containingBlock: MemoryBlock,
+        containingBlockOffset: number
+    ) {
+        this.NumberOfRows = numberOfRows;
+        this._IsStringHeapRefSizeSmall = stringHeapRefSize == 2;
+        this._IsGUIDHeapRefSizeSmall = guidHeapRefSize == 2;
+        this._GenerationOffset = 0;
+        this._NameOffset = this._GenerationOffset + sizeof('ushort');
+        this._MVIdOffset = this._NameOffset + stringHeapRefSize;
+        this._EnCIdOffset = this._MVIdOffset + guidHeapRefSize;
+        this._EnCBaseIdOffset = this._EnCIdOffset + guidHeapRefSize;
+        this.RowSize = this._EnCBaseIdOffset + guidHeapRefSize;
+        this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
+    }
 
-//     public ushort GetGeneration()
-//     {
-//         Debug.Assert(NumberOfRows > 0);
-//         return this.Block.PeekUInt16(_GenerationOffset);
-//     }
+    // public ushort GetGeneration()
+    // {
+    //     Debug.Assert(NumberOfRows > 0);
+    //     return this.Block.PeekUInt16(_GenerationOffset);
+    // }
 
-//     public StringHandle GetName()
-//     {
-//         Debug.Assert(NumberOfRows > 0);
-//         return StringHandle.FromOffset(this.Block.PeekHeapReference(_NameOffset, _IsStringHeapRefSizeSmall));
-//     }
+    // public StringHandle GetName()
+    // {
+    //     Debug.Assert(NumberOfRows > 0);
+    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(_NameOffset, _IsStringHeapRefSizeSmall));
+    // }
 
-//     public GuidHandle GetMvid()
-//     {
-//         Debug.Assert(NumberOfRows > 0);
-//         return GuidHandle.FromIndex(this.Block.PeekHeapReference(_MVIdOffset, _IsGUIDHeapRefSizeSmall));
-//     }
+    // public GuidHandle GetMvid()
+    // {
+    //     Debug.Assert(NumberOfRows > 0);
+    //     return GuidHandle.FromIndex(this.Block.PeekHeapReference(_MVIdOffset, _IsGUIDHeapRefSizeSmall));
+    // }
 
-//     public GuidHandle GetEncId()
-//     {
-//         Debug.Assert(NumberOfRows > 0);
-//         return GuidHandle.FromIndex(this.Block.PeekHeapReference(_EnCIdOffset, _IsGUIDHeapRefSizeSmall));
-//     }
+    // public GuidHandle GetEncId()
+    // {
+    //     Debug.Assert(NumberOfRows > 0);
+    //     return GuidHandle.FromIndex(this.Block.PeekHeapReference(_EnCIdOffset, _IsGUIDHeapRefSizeSmall));
+    // }
 
-//     public GuidHandle GetEncBaseId()
-//     {
-//         Debug.Assert(NumberOfRows > 0);
-//         return GuidHandle.FromIndex(this.Block.PeekHeapReference(_EnCBaseIdOffset, _IsGUIDHeapRefSizeSmall));
-//     }
-// }
+    // public GuidHandle GetEncBaseId()
+    // {
+    //     Debug.Assert(NumberOfRows > 0);
+    //     return GuidHandle.FromIndex(this.Block.PeekHeapReference(_EnCBaseIdOffset, _IsGUIDHeapRefSizeSmall));
+    // }
+}
 
-// public readonly struct TypeRefTableReader
+// export class TypeRefTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsResolutionScopeRefSizeSmall;
@@ -279,7 +277,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct FieldPtrTableReader
+// export class FieldPtrTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsFieldTableRowRefSizeSmall;
@@ -313,7 +311,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct FieldTableReader
+// export class FieldTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsStringHeapRefSizeSmall;
@@ -361,7 +359,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct MethodPtrTableReader
+// export class MethodPtrTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsMethodTableRowRefSizeSmall;
@@ -396,7 +394,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct MethodTableReader
+// export class MethodTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsParamRefSizeSmall;
@@ -471,7 +469,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct ParamPtrTableReader
+// export class ParamPtrTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsParamTableRowRefSizeSmall;
@@ -500,7 +498,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct ParamTableReader
+// export class ParamTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsStringHeapRefSizeSmall;
@@ -545,7 +543,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct InterfaceImplTableReader
+// export class InterfaceImplTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeDefTableRowRefSizeSmall;
@@ -670,7 +668,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct ConstantTableReader
+// export class ConstantTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsHasConstantRefSizeSmall;
@@ -742,7 +740,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct CustomAttributeTableReader
+// export class CustomAttributeTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsHasCustomAttributeRefSizeSmall;
@@ -853,7 +851,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct FieldMarshalTableReader
+// export class FieldMarshalTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsHasFieldMarshalRefSizeSmall;
@@ -917,7 +915,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct DeclSecurityTableReader
+// export class DeclSecurityTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsHasDeclSecurityRefSizeSmall;
@@ -1067,7 +1065,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct FieldLayoutTableReader
+// export class FieldLayoutTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsFieldTableRowRefSizeSmall;
@@ -1130,7 +1128,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct StandAloneSigTableReader
+// export class StandAloneSigTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsBlobHeapRefSizeSmall;
@@ -1158,7 +1156,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct EventMapTableReader
+// export class EventMapTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeDefTableRowRefSizeSmall;
@@ -1211,7 +1209,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct EventPtrTableReader
+// export class EventPtrTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsEventTableRowRefSizeSmall;
@@ -1286,7 +1284,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct PropertyMapTableReader
+// export class PropertyMapTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeDefTableRowRefSizeSmall;
@@ -1341,7 +1339,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct PropertyPtrTableReader
+// export class PropertyPtrTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsPropertyTableRowRefSizeSmall;
@@ -1373,7 +1371,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct PropertyTableReader
+// export class PropertyTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsStringHeapRefSizeSmall;
@@ -1420,7 +1418,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct MethodSemanticsTableReader
+// export class MethodSemanticsTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsMethodTableRowRefSizeSmall;
@@ -1516,7 +1514,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct MethodImplTableReader
+// export class MethodImplTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeDefTableRowRefSizeSmall;
@@ -1602,7 +1600,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct ModuleRefTableReader
+// export class ModuleRefTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsStringHeapRefSizeSmall;
@@ -1631,7 +1629,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct TypeSpecTableReader
+// export class TypeSpecTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsBlobHeapRefSizeSmall;
@@ -1660,7 +1658,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct ImplMapTableReader
+// export class ImplMapTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsModuleRefTableRowRefSizeSmall;
@@ -1740,7 +1738,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct FieldRVATableReader
+// export class FieldRVATableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsFieldTableRowRefSizeSmall;
@@ -1793,7 +1791,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct EnCLogTableReader
+// export class EnCLogTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly int _TokenOffset;
@@ -1831,7 +1829,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct EnCMapTableReader
+// export class EnCMapTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly int _TokenOffset;
@@ -1856,7 +1854,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyTableReader
+// export class AssemblyTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsStringHeapRefSizeSmall;
@@ -1941,7 +1939,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyProcessorTableReader
+// export class AssemblyProcessorTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly int _ProcessorOffset;
@@ -1961,7 +1959,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyOSTableReader
+// export class AssemblyOSTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly int _OSPlatformIdOffset;
@@ -1985,7 +1983,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyRefTableReader
+// export class AssemblyRefTableReader
 // {
 //     /// <summary>
 //     /// In CLI metadata equal to the actual number of entries in AssemblyRef table.
@@ -2075,7 +2073,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyRefProcessorTableReader
+// export class AssemblyRefProcessorTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsAssemblyRefTableRowSizeSmall;
@@ -2100,7 +2098,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-// public readonly struct AssemblyRefOSTableReader
+// export class AssemblyRefOSTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsAssemblyRefTableRowRefSizeSmall;
@@ -2128,24 +2126,22 @@ import { MemoryBlock } from "System.Reflection.Internal";
 //     }
 // }
 
-export class FileTableReader
-{
-    public readonly  NumberOfRows: number;
-    private readonly  _IsStringHeapRefSizeSmall: boolean;
-    private readonly  _IsBlobHeapRefSizeSmall: boolean;
-    private readonly  _FlagsOffset: number;
-    private readonly  _NameOffset: number;
-    private readonly  _HashValueOffset: number;
-    public readonly  RowSize: number;
-    public readonly  Block: MemoryBlock;
+export class FileTableReader {
+    public readonly NumberOfRows: number;
+    private readonly _IsStringHeapRefSizeSmall: boolean;
+    private readonly _IsBlobHeapRefSizeSmall: boolean;
+    private readonly _FlagsOffset: number;
+    private readonly _NameOffset: number;
+    private readonly _HashValueOffset: number;
+    public readonly RowSize: number;
+    public readonly Block: MemoryBlock;
 
     public constructor(
-         numberOfRows: number,
-         stringHeapRefSize: number,
-         blobHeapRefSize: number,
-         containingBlock: MemoryBlock,
-         containingBlockOffset: number)
-    {
+        numberOfRows: number,
+        stringHeapRefSize: number,
+        blobHeapRefSize: number,
+        containingBlock: MemoryBlock,
+        containingBlockOffset: number) {
         this.NumberOfRows = numberOfRows;
         this._IsStringHeapRefSizeSmall = stringHeapRefSize == 2;
         this._IsBlobHeapRefSizeSmall = blobHeapRefSize == 2;
@@ -2175,7 +2171,7 @@ export class FileTableReader
     // }
 }
 
-// public readonly struct ExportedTypeTableReader
+// export class ExportedTypeTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsImplementationRefSizeSmall;
@@ -2251,7 +2247,7 @@ export class FileTableReader
 //     }
 // }
 
-// public readonly struct ManifestResourceTableReader
+// export class ManifestResourceTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsImplementationRefSizeSmall;
@@ -2307,7 +2303,7 @@ export class FileTableReader
 //     }
 // }
 
-// public readonly struct NestedClassTableReader
+// export class NestedClassTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeDefTableRowRefSizeSmall;
@@ -2373,7 +2369,7 @@ export class FileTableReader
 //     }
 // }
 
-// public readonly struct GenericParamTableReader
+// export class GenericParamTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsTypeOrMethodDefRefSizeSmall;
@@ -2479,7 +2475,7 @@ export class FileTableReader
 //     }
 // }
 
-// public readonly struct MethodSpecTableReader
+// export class MethodSpecTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsMethodDefOrRefRefSizeSmall;
@@ -2518,7 +2514,7 @@ export class FileTableReader
 //     }
 // }
 
-// public readonly struct GenericParamConstraintTableReader
+// export class GenericParamConstraintTableReader
 // {
 //     public readonly int NumberOfRows;
 //     private readonly bool _IsGenericParamTableRowRefSizeSmall;

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Throw } from "System";
+import { Throw, sizeof } from "System";
 import { MemoryBlock } from "System.Reflection.Internal";
 import {
     AssemblyReferenceHandleCollection,
@@ -31,6 +31,22 @@ import {
     COR20Constants,
     TokenTypeIds,
     TableMask,
+    MetadataStreamConstants,
+    MetadataTokens,
+    TypeDefOrRefTag,
+    TypeOrMethodDefTag,
+    HasConstantTag,
+    HasCustomAttributeTag,
+    HasFieldMarshalTag,
+    HasDeclSecurityTag,
+    MemberRefParentTag,
+    HasSemanticsTag,
+    MemberForwardedTag,
+    ImplementationTag,
+    CustomAttributeTypeTag,
+    ResolutionScopeTag,
+    MethodDefOrRefTag,
+    ModuleTableReader,
 } from "System.Reflection.Metadata.Ecma335";
 
 export class MetadataReader {
@@ -368,7 +384,7 @@ export class MetadataReader {
     /// </summary>
     public TableRowCounts?: number[] = undefined!;
 
-    // public ModuleTableReader ModuleTable;
+    public ModuleTable: ModuleTableReader = undefined!;
     // public TypeRefTableReader TypeRefTable;
     // public TypeDefTableReader TypeDefTable;
     // public FieldPtrTableReader FieldPtrTable;
@@ -425,92 +441,88 @@ export class MetadataReader {
     // public CustomDebugInformationTableReader CustomDebugInformationTable;
 
     private ReadMetadataTableHeader(reader: BlobReader): { heapSizes: HeapSizes, metadataTableRowCounts: Array<number>, sortedTables: TableMask } {
-        throw new Error("Not implemented");
-        // if (reader.RemainingBytes < MetadataStreamConstants.SizeOfMetadataTableHeader)
-        // {
-        //     throw new BadImageFormatException('.MetadataTableHeaderTooSmall);
-        // }
 
-        // // reserved (shall be ignored):
-        // reader.ReadUInt32();
+        if (reader.RemainingBytes < MetadataStreamConstants.SizeOfMetadataTableHeader) {
+            Throw.BadImageFormatException('.MetadataTableHeaderTooSmal');
+        }
 
-        // // major version (shall be ignored):
-        // reader.ReadByte();
+        // reserved (shall be ignored):
+        reader.ReadUInt32();
 
-        // // minor version (shall be ignored):
-        // reader.ReadByte();
+        // major version (shall be ignored):
+        reader.ReadByte();
 
-        // // heap sizes:
-        // heapSizes = (HeapSizes)reader.ReadByte();
+        // minor version (shall be ignored):
+        reader.ReadByte();
 
-        // // reserved (shall be ignored):
-        // reader.ReadByte();
+        // heap sizes:
+        const heapSizes: HeapSizes = reader.ReadByte();
 
-        // ulong presentTables = reader.ReadUInt64();
-        // sortedTables = (TableMask)reader.ReadUInt64();
+        // reserved (shall be ignored):
+        reader.ReadByte();
 
-        // // According to ECMA-335, MajorVersion and MinorVersion have fixed values and,
-        // // based on recommendation in 24.1 Fixed fields: When writing these fields it
-        // // is best that they be set to the value indicated, on reading they should be ignored.
-        // // We will not be checking version values. We will continue checking that the set of
-        // // present tables is within the set we understand.
+        const presentTables = reader.ReadUInt64();
+        const sortedTables: TableMask = reader.ReadUInt64();
 
-        // ulong validTables = (ulong)(TableMask.TypeSystemTables | TableMask.DebugTables);
+        // According to ECMA-335, MajorVersion and MinorVersion have fixed values and,
+        // based on recommendation in 24.1 Fixed fields: When writing these fields it
+        // is best that they be set to the value indicated, on reading they should be ignored.
+        // We will not be checking version values. We will continue checking that the set of
+        // present tables is within the set we understand.
 
-        // if ((presentTables & ~validTables) != 0)
-        // {
-        //     throw new BadImageFormatException('.Format('.UnknownTables, presentTables));
-        // }
+        const validTables = (TableMask.TypeSystemTables | TableMask.DebugTables);
 
-        // if (_metadataStreamKind == MetadataStreamKind.Compressed)
-        // {
-        //     // In general Ptr tables and EnC tables are not allowed in a compressed stream.
-        //     // However when asked for a snapshot of the current metadata after an EnC change has been applied
-        //     // the CLR includes the EnCLog table into the snapshot. We need to be able to read the image,
-        //     // so we'll allow the table here but pretend it's empty later.
-        //     if ((presentTables & (ulong)(TableMask.PtrTables | TableMask.EnCMap)) != 0)
-        //     {
-        //         throw new BadImageFormatException('.IllegalTablesInCompressedMetadataStream);
-        //     }
-        // }
+        if ((presentTables & ~validTables) != 0) {
+            Throw.BadImageFormatException(`UnknownTables, ${presentTables}`);
+        }
 
-        // metadataTableRowCounts = ReadMetadataTableRowCounts(ref reader, presentTables);
+        if (this._metadataStreamKind == MetadataStreamKind.Compressed) {
+            // In general Ptr tables and EnC tables are not allowed in a compressed stream.
+            // However when asked for a snapshot of the current metadata after an EnC change has been applied
+            // the CLR includes the EnCLog table into the snapshot. We need to be able to read the image,
+            // so we'll allow the table here but pretend it's empty later.
+            if ((presentTables & (TableMask.PtrTables | TableMask.EnCMap)) != 0) {
+                Throw.BadImageFormatException('.IllegalTablesInCompressedMetadataStream');
+            }
+        }
 
-        // if ((heapSizes & HeapSizes.ExtraData) == HeapSizes.ExtraData)
-        // {
-        //     // Skip "extra data" used by some obfuscators. Although it is not mentioned in the CLI spec,
-        //     // it is honored by the native metadata reader.
-        //     reader.ReadUInt32();
-        // }
+        const metadataTableRowCounts = MetadataReader.ReadMetadataTableRowCounts(reader, presentTables);
+
+        if ((heapSizes & HeapSizes.ExtraData) == HeapSizes.ExtraData) {
+            // Skip "extra data" used by some obfuscators. Although it is not mentioned in the CLI spec,
+            // it is honored by the native metadata reader.
+            reader.ReadUInt32();
+        }
+
+        return {
+            heapSizes,
+            metadataTableRowCounts,
+            sortedTables
+        }
     }
 
     private static ReadMetadataTableRowCounts(memReader: BlobReader, presentTableMask: number): Array<number> {
-        // ulong currentTableBit = 1;
+        let currentTableBit = 1;
 
-        // const rowCounts = new int[MetadataTokens.TableCount];
-        // for (int i = 0; i < rowCounts.Length; i++)
-        // {
-        //     if ((presentTableMask & currentTableBit) != 0)
-        //     {
-        //         if (memReader.RemainingBytes < sizeof(uint))
-        //         {
-        //             throw new BadImageFormatException('.TableRowCountSpaceTooSmall);
-        //         }
+        const rowCounts = new Array(MetadataTokens.TableCount);
+        for (let i = 0; i < rowCounts.length; i++) {
+            if ((presentTableMask & currentTableBit) != 0) {
+                if (memReader.RemainingBytes < sizeof('uint')) {
+                    Throw.BadImageFormatException('.TableRowCountSpaceTooSmall');
+                }
 
-        //         uint rowCount = memReader.ReadUInt32();
-        //         if (rowCount > TokenTypeIds.RIDMask)
-        //         {
-        //             throw new BadImageFormatException('.Format('.InvalidRowCount, rowCount));
-        //         }
+                const rowCount = memReader.ReadUInt32();
+                if (rowCount > TokenTypeIds.RIDMask) {
+                    Throw.BadImageFormatException(`InvalidRowCount, ${rowCount}`);
+                }
 
-        //         rowCounts[i] = rowCount;
-        //     }
+                rowCounts[i] = rowCount;
+            }
 
-        //     currentTableBit <<= 1;
-        // }
+            currentTableBit <<= 1;
+        }
 
-        // return rowCounts;
-        throw new Error("Not implemented");
+        return rowCounts;
     }
 
     // public for testing
@@ -541,7 +553,7 @@ export class MetadataReader {
             Throw.BadImageFormatException(`UnknownTables ${externalTableMask}`);
         }
 
-        const externalTableRowCounts = this.ReadMetadataTableRowCounts(reader, externalTableMask);
+        const externalTableRowCounts = MetadataReader.ReadMetadataTableRowCounts(reader, externalTableMask);
 
         const debugMetadataHeader = new DebugMetadataHeader(
             pdbId,
@@ -554,39 +566,38 @@ export class MetadataReader {
     private static readonly SmallIndexSize = 2;
     private static readonly LargeIndexSize = 4;
 
-    // private int GetReferenceSize(int[] rowCounts, TableIndex index)
-    // {
-    //     return (rowCounts[index] < MetadataStreamConstants.LargeTableRowCount && !IsMinimalDelta) ? SmallIndexSize : LargeIndexSize;
-    // }
+    private GetReferenceSize(rowCounts: number[], index: TableIndex): number {
+        return (rowCounts[index] < MetadataStreamConstants.LargeTableRowCount && !this.IsMinimalDelta) ? MetadataReader.SmallIndexSize : MetadataReader.LargeIndexSize;
+    }
 
     private InitializeTableReaders(metadataTablesMemoryBlock: MemoryBlock, heapSizes: HeapSizes, rowCounts: number[], externalRowCountsOpt?: number[]) {
-        //     // Size of reference tags in each table.
-        //     this.TableRowCounts = rowCounts;
+        // Size of reference tags in each table.
+        this.TableRowCounts = rowCounts;
 
-        //     // TODO (https://github.com/dotnet/runtime/issues/14721):
-        //     // Shouldn't XxxPtr table be always the same size or smaller than the corresponding Xxx table?
+        // TODO (https://github.com/dotnet/runtime/issues/14721):
+        // Shouldn't XxxPtr table be always the same size or smaller than the corresponding Xxx table?
 
-        //     // Compute ref sizes for tables that can have pointer tables
-        //     int fieldRefSizeSorted = GetReferenceSize(rowCounts, TableIndex.FieldPtr) > SmallIndexSize ? LargeIndexSize : GetReferenceSize(rowCounts, TableIndex.Field);
-        //     int methodRefSizeSorted = GetReferenceSize(rowCounts, TableIndex.MethodPtr) > SmallIndexSize ? LargeIndexSize : GetReferenceSize(rowCounts, TableIndex.MethodDef);
-        //     int paramRefSizeSorted = GetReferenceSize(rowCounts, TableIndex.ParamPtr) > SmallIndexSize ? LargeIndexSize : GetReferenceSize(rowCounts, TableIndex.Param);
-        //     int eventRefSizeSorted = GetReferenceSize(rowCounts, TableIndex.EventPtr) > SmallIndexSize ? LargeIndexSize : GetReferenceSize(rowCounts, TableIndex.Event);
-        //     int propertyRefSizeSorted = GetReferenceSize(rowCounts, TableIndex.PropertyPtr) > SmallIndexSize ? LargeIndexSize : GetReferenceSize(rowCounts, TableIndex.Property);
+        // Compute ref sizes for tables that can have pointer tables
+        const fieldRefSizeSorted = this.GetReferenceSize(rowCounts, TableIndex.FieldPtr) > MetadataReader.SmallIndexSize ? MetadataReader.LargeIndexSize : this.GetReferenceSize(rowCounts, TableIndex.Field);
+        const methodRefSizeSorted = this.GetReferenceSize(rowCounts, TableIndex.MethodPtr) > MetadataReader.SmallIndexSize ? MetadataReader.LargeIndexSize : this.GetReferenceSize(rowCounts, TableIndex.MethodDef);
+        const paramRefSizeSorted = this.GetReferenceSize(rowCounts, TableIndex.ParamPtr) > MetadataReader.SmallIndexSize ? MetadataReader.LargeIndexSize : this.GetReferenceSize(rowCounts, TableIndex.Param);
+        const eventRefSizeSorted = this.GetReferenceSize(rowCounts, TableIndex.EventPtr) > MetadataReader.SmallIndexSize ? MetadataReader.LargeIndexSize : this.GetReferenceSize(rowCounts, TableIndex.Event);
+        const propertyRefSizeSorted = this.GetReferenceSize(rowCounts, TableIndex.PropertyPtr) > MetadataReader.SmallIndexSize ? MetadataReader.LargeIndexSize : this.GetReferenceSize(rowCounts, TableIndex.Property);
 
-        //     // Compute the coded token ref sizes
-        //     int typeDefOrRefRefSize = ComputeCodedTokenSize(TypeDefOrRefTag.LargeRowSize, rowCounts, TypeDefOrRefTag.TablesReferenced);
-        //     int hasConstantRefSize = ComputeCodedTokenSize(HasConstantTag.LargeRowSize, rowCounts, HasConstantTag.TablesReferenced);
-        //     int hasCustomAttributeRefSize = ComputeCodedTokenSize(HasCustomAttributeTag.LargeRowSize, rowCounts, HasCustomAttributeTag.TablesReferenced);
-        //     int hasFieldMarshalRefSize = ComputeCodedTokenSize(HasFieldMarshalTag.LargeRowSize, rowCounts, HasFieldMarshalTag.TablesReferenced);
-        //     int hasDeclSecurityRefSize = ComputeCodedTokenSize(HasDeclSecurityTag.LargeRowSize, rowCounts, HasDeclSecurityTag.TablesReferenced);
-        //     int memberRefParentRefSize = ComputeCodedTokenSize(MemberRefParentTag.LargeRowSize, rowCounts, MemberRefParentTag.TablesReferenced);
-        //     int hasSemanticsRefSize = ComputeCodedTokenSize(HasSemanticsTag.LargeRowSize, rowCounts, HasSemanticsTag.TablesReferenced);
-        //     int methodDefOrRefRefSize = ComputeCodedTokenSize(MethodDefOrRefTag.LargeRowSize, rowCounts, MethodDefOrRefTag.TablesReferenced);
-        //     int memberForwardedRefSize = ComputeCodedTokenSize(MemberForwardedTag.LargeRowSize, rowCounts, MemberForwardedTag.TablesReferenced);
-        //     int implementationRefSize = ComputeCodedTokenSize(ImplementationTag.LargeRowSize, rowCounts, ImplementationTag.TablesReferenced);
-        //     int customAttributeTypeRefSize = ComputeCodedTokenSize(CustomAttributeTypeTag.LargeRowSize, rowCounts, CustomAttributeTypeTag.TablesReferenced);
-        //     int resolutionScopeRefSize = ComputeCodedTokenSize(ResolutionScopeTag.LargeRowSize, rowCounts, ResolutionScopeTag.TablesReferenced);
-        //     int typeOrMethodDefRefSize = ComputeCodedTokenSize(TypeOrMethodDefTag.LargeRowSize, rowCounts, TypeOrMethodDefTag.TablesReferenced);
+        // Compute the coded token ref sizes
+        const typeDefOrRefRefSize = this.ComputeCodedTokenSize(TypeDefOrRefTag.LargeRowSize, rowCounts, TypeDefOrRefTag.TablesReferenced);
+        const hasConstantRefSize = this.ComputeCodedTokenSize(HasConstantTag.LargeRowSize, rowCounts, HasConstantTag.TablesReferenced);
+        const hasCustomAttributeRefSize = this.ComputeCodedTokenSize(HasCustomAttributeTag.LargeRowSize, rowCounts, HasCustomAttributeTag.TablesReferenced);
+        const hasFieldMarshalRefSize = this.ComputeCodedTokenSize(HasFieldMarshalTag.LargeRowSize, rowCounts, HasFieldMarshalTag.TablesReferenced);
+        const hasDeclSecurityRefSize = this.ComputeCodedTokenSize(HasDeclSecurityTag.LargeRowSize, rowCounts, HasDeclSecurityTag.TablesReferenced);
+        const memberRefParentRefSize = this.ComputeCodedTokenSize(MemberRefParentTag.LargeRowSize, rowCounts, MemberRefParentTag.TablesReferenced);
+        const hasSemanticsRefSize = this.ComputeCodedTokenSize(HasSemanticsTag.LargeRowSize, rowCounts, HasSemanticsTag.TablesReferenced);
+        const methodDefOrRefRefSize = this.ComputeCodedTokenSize(MethodDefOrRefTag.LargeRowSize, rowCounts, MethodDefOrRefTag.TablesReferenced);
+        const memberForwardedRefSize = this.ComputeCodedTokenSize(MemberForwardedTag.LargeRowSize, rowCounts, MemberForwardedTag.TablesReferenced);
+        const implementationRefSize = this.ComputeCodedTokenSize(ImplementationTag.LargeRowSize, rowCounts, ImplementationTag.TablesReferenced);
+        const customAttributeTypeRefSize = this.ComputeCodedTokenSize(CustomAttributeTypeTag.LargeRowSize, rowCounts, CustomAttributeTypeTag.TablesReferenced);
+        const resolutionScopeRefSize = this.ComputeCodedTokenSize(ResolutionScopeTag.LargeRowSize, rowCounts, ResolutionScopeTag.TablesReferenced);
+        const typeOrMethodDefRefSize = this.ComputeCodedTokenSize(TypeOrMethodDefTag.LargeRowSize, rowCounts, TypeOrMethodDefTag.TablesReferenced);
 
         //     // Compute HeapRef Sizes
         const stringHeapRefSize = (heapSizes & HeapSizes.StringHeapLarge) == HeapSizes.StringHeapLarge ? MetadataReader.LargeIndexSize : MetadataReader.SmallIndexSize;
@@ -595,8 +606,8 @@ export class MetadataReader {
 
         // Populate the Table blocks
         let totalRequiredSize = 0;
-        //     this.ModuleTable = new ModuleTableReader(rowCounts[TableIndex.Module], stringHeapRefSize, guidHeapRefSize, metadataTablesMemoryBlock, totalRequiredSize);
-        //     totalRequiredSize += this.ModuleTable.Block.Length;
+        this.ModuleTable = new ModuleTableReader(rowCounts[TableIndex.Module], stringHeapRefSize, guidHeapRefSize, metadataTablesMemoryBlock, totalRequiredSize);
+        totalRequiredSize += this.ModuleTable.Block.Length;
 
         //     this.TypeRefTable = new TypeRefTableReader(rowCounts[TableIndex.TypeRef], resolutionScopeRefSize, stringHeapRefSize, metadataTablesMemoryBlock, totalRequiredSize);
         //     totalRequiredSize += this.TypeRefTable.Block.Length;
@@ -793,27 +804,23 @@ export class MetadataReader {
     //     return rowCounts;
     // }
 
-    // private int ComputeCodedTokenSize(int largeRowSize, int[] rowCounts, TableMask tablesReferenced)
-    // {
-    //     if (IsMinimalDelta)
-    //     {
-    //         return LargeIndexSize;
-    //     }
+    private ComputeCodedTokenSize(largeRowSize: number, rowCounts: number[], tablesReferenced: TableMask): number {
+        if (this.IsMinimalDelta) {
+            return MetadataReader.LargeIndexSize;
+        }
 
-    //     bool isAllReferencedTablesSmall = true;
-    //     ulong tablesReferencedMask = (ulong)tablesReferenced;
-    //     for (int tableIndex = 0; tableIndex < MetadataTokens.TableCount; tableIndex++)
-    //     {
-    //         if ((tablesReferencedMask & 1) != 0)
-    //         {
-    //             isAllReferencedTablesSmall = isAllReferencedTablesSmall && (rowCounts[tableIndex] < largeRowSize);
-    //         }
+        let isAllReferencedTablesSmall = true;
+        let tablesReferencedMask: number = tablesReferenced;
+        for (let tableIndex = 0; tableIndex < MetadataTokens.TableCount; tableIndex++) {
+            if ((tablesReferencedMask & 1) != 0) {
+                isAllReferencedTablesSmall = isAllReferencedTablesSmall && (rowCounts[tableIndex] < largeRowSize);
+            }
 
-    //         tablesReferencedMask >>= 1;
-    //     }
+            tablesReferencedMask >>= 1;
+        }
 
-    //     return isAllReferencedTablesSmall ? SmallIndexSize : LargeIndexSize;
-    // }
+        return isAllReferencedTablesSmall ? MetadataReader.SmallIndexSize : MetadataReader.LargeIndexSize;
+    }
 
     // private bool IsDeclaredSorted(TableMask index)
     // {

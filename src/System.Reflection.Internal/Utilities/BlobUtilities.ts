@@ -61,7 +61,7 @@ export class BlobUtilities {
     //         WriteUInt32(buffer, start + 9, high);
     //     }
 
-    //     public const int SizeOfGuid = 16;
+    public static readonly SizeOfGuid = 16;
 
     //     public static void WriteGuid(this byte[] buffer, int start, Guid value)
     //     {

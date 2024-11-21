@@ -4,7 +4,7 @@ export * from "./Guid";
 export * from "./Type";
 export * from "./BitConverter";
 
-export function sizeof(type: 'byte' | 'int' | 'uint' | 'long' | 'ulong' | 'float' | 'double' | 'boolean' | 'short' | 'ushort'): number {
+export function sizeof(type: 'byte' | 'int' | 'uint' | 'long' | 'ulong' | 'float' | 'double' | 'boolean' | 'short' | 'ushort' | 'Guid'): number {
     switch (type) {
         case 'byte':
             return 1;
@@ -23,6 +23,8 @@ export function sizeof(type: 'byte' | 'int' | 'uint' | 'long' | 'ulong' | 'float
             return 8;
         case 'boolean':
             return 1;
+        case 'Guid':
+            return 16;
         default:
             throw new Error(`Invalid type: ${type}`);
     }

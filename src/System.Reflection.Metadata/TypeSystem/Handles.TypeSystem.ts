@@ -472,19 +472,17 @@ export enum StringVirtualIndex {
 
 
 export class GuidHandle {
-    // // The Guid heap is an array of GUIDs, each 16 bytes wide.
-    // // Its first element is numbered 1, its second 2, and so on.
-    // private readonly number _index;
+    // The Guid heap is an array of GUIDs, each 16 bytes wide.
+    // Its first element is numbered 1, its second 2, and so on.
+    private readonly _index: number
 
-    // private GuidHandle(number index)
-    // {
-    //     _index = index;
-    // }
+    private constructor(index: number) {
+        this._index = index;
+    }
 
-    // public static GuidHandle FromIndex(number heapIndex)
-    // {
-    //     return new GuidHandle(heapIndex);
-    // }
+    public static FromIndex(heapIndex: number): GuidHandle {
+        return new GuidHandle(heapIndex);
+    }
 
     // public static implicit operator Handle(GuidHandle handle)
     // {
@@ -501,15 +499,15 @@ export class GuidHandle {
     //     return new GuidHandle(handle.Offset);
     // }
 
-    // public bool IsNil
-    // {
-    //     get { return _index == 0; }
-    // }
+    public get IsNil(): boolean
+    {
+        return this._index == 0; 
+    }
 
-    // public number Index
-    // {
-    //     get { return _index; }
-    // }
+    public get Index(): number
+    {
+      return this._index; 
+    }
 
     // public override bool Equals([NotNullWhen(true)] object? obj)
     // {

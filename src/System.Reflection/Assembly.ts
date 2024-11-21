@@ -1,6 +1,8 @@
 import { Type } from "System";
 import { ICustomAttributeProvider } from './ICustomAttributeProvider';
 import { ISerializable } from 'System.Runtime.Serialization';
+import { Module } from "./Module";
+import { AssemblyName } from "./AssemblyName";
 
 export class Assembly implements ICustomAttributeProvider, ISerializable {
     //     private static readonly Dictionary<string, Assembly> s_loadfile = new Dictionary<string, Assembly>();
@@ -85,8 +87,7 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
 
     //     public bool IsFullyTrusted => true;
 
-    //     public virtual AssemblyName GetName() => GetName(copiedName: false);
-    //     public virtual AssemblyName GetName(bool copiedName) { throw NotImplemented.ByDesign; }
+        public   GetName( copiedName: boolean = false): AssemblyName { throw new Error('Method not implemented by Design'); }
 
     //     [RequiresUnreferencedCode("Types might be removed by trimming. If the type name is a string literal, consider using Type.GetType instead.")]
     //     public virtual Type? GetType(string name) => GetType(name, throwOnError: false, ignoreCase: false);
@@ -124,7 +125,7 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
 
     //     public virtual event ModuleResolveEventHandler? ModuleResolve { add { throw NotImplemented.ByDesign; } remove { throw NotImplemented.ByDesign; } }
 
-    //     public virtual Module ManifestModule => throw NotImplemented.ByDesign;
+        public get ManifestModule() : Module  { throw new Error("NotImplemented.ByDesign"); }
     //     public virtual Module? GetModule(string name) { throw NotImplemented.ByDesign; }
 
     //     public Module[] GetModules() => GetModules(getResourceModules: false);

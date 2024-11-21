@@ -1,5 +1,6 @@
 import assert from "assert";
 import { MetadataReader } from "../MetadataReader";
+import { GuidHandle } from "./Handles.TypeSystem";
 
 export class ModuleDefinition {
     private readonly _reader: MetadataReader;
@@ -25,13 +26,12 @@ export class ModuleDefinition {
     //     }
     // }
 
-    // public GuidHandle Mvid
-    // {
-    //     get
-    //     {
-    //         return _reader.ModuleTable.GetMvid();
-    //     }
-    // }
+    public get Mvid(): GuidHandle
+    {
+      
+            return this._reader.ModuleTable.GetMvid();
+       
+    }
 
     // public GuidHandle GenerationId
     // {

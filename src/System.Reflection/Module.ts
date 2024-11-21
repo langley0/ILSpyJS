@@ -1,3 +1,5 @@
+import { Guid } from "System";
+
 export class Module //: ICustomAttributeProvider, ISerializable
 {
     protected constructor() { }
@@ -11,7 +13,7 @@ export class Module //: ICustomAttributeProvider, ISerializable
     // public virtual string Name => throw NotImplemented.ByDesign;
 
     // public virtual int MDStreamVersion => throw NotImplemented.ByDesign;
-    // public virtual Guid ModuleVersionId => throw NotImplemented.ByDesign;
+    public  get ModuleVersionId(): Guid  { throw new Error("Not implemented by design"); }
     // public virtual string ScopeName => throw NotImplemented.ByDesign;
     // public ModuleHandle ModuleHandle => GetModuleHandleImpl();
     // private protected virtual ModuleHandle GetModuleHandleImpl() => ModuleHandle.EmptyHandle;

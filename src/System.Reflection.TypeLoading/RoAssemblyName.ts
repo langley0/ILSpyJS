@@ -1,27 +1,30 @@
+import assert from "assert";
+import { Version } from "System";
+import { AssemblyNameFlags } from "System.Reflection";
+
 export class RoAssemblyName {
-    // public string Name { get; }
-    // public Version Version { get; }
-    // public string CultureName { get; }
-    // public byte[] PublicKeyToken;
+    public readonly Name: string;
+    public readonly Version: Version;
+    public readonly CultureName: string;
+    public PublicKeyToken: Uint8Array;
 
-    // // We store the flags to support "Retargetable".
-    // // The only flag allowed in an ECMA-335 AssemblyReference is the "PublicKey" bit. Since
-    // // RoAssemblyName always normalizes to the short form public key token, that bit would always be 0.
-    // public AssemblyNameFlags Flags { get; }
+    // We store the flags to support "Retargetable".
+    // The only flag allowed in an ECMA-335 AssemblyReference is the "PublicKey" bit. Since
+    // RoAssemblyName always normalizes to the short form public key token, that bit would always be 0.
+    public readonly Flags: AssemblyNameFlags;
 
-    // private static readonly Version s_Version0000 = new Version(0, 0, 0, 0);
+    private static readonly s_Version0000 = new Version(0, 0, 0, 0);
 
-    // public RoAssemblyName(string? name, Version? version, string? cultureName, byte[]? publicKeyToken, AssemblyNameFlags flags)
-    // {
-    //     // We forcefully normalize the representation so that Equality is dependable and fast.
-    //     assert(name != undefined);
+    public constructor(name: string | undefined, version: Version | undefined, cultureName: string | undefined, publicKeyToken: Uint8Array | undefined, flags: AssemblyNameFlags) {
+        // We forcefully normalize the representation so that Equality is dependable and fast.
+        assert(name != undefined);
 
-    //     Name = name;
-    //     Version = version ?? s_Version0000;
-    //     CultureName = cultureName ?? string.Empty;
-    //     PublicKeyToken = publicKeyToken ?? Array.Empty<byte>();
-    //     Flags = flags;
-    // }
+        this.Name = name;
+        this.Version = version ?? RoAssemblyName.s_Version0000;
+        this.CultureName = cultureName ?? "";
+        this.PublicKeyToken = publicKeyToken ?? new Uint8Array();
+        this.Flags = flags;
+    }
 
     // public string FullName => ToAssemblyName().FullName;
 

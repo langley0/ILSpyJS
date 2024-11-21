@@ -5,7 +5,7 @@ import {
     AssemblyNameFlags,
     PortableExecutableKinds,
 } from "System.Reflection";
-import { RoAssembly } from "System.Reflection.TypeLoading";
+import { RoAssembly,RoModule } from "System.Reflection.TypeLoading";
 import { EcmaModule } from "System.Reflection.TypeLoading.Ecma";
 import {
     AssemblyNameData,
@@ -37,18 +37,18 @@ export class EcmaAssembly extends RoAssembly {
 
     }
 
-    // internal sealed override RoModule GetRoManifestModule() => _manifestModule;
-    // internal EcmaModule GetEcmaManifestModule() => _manifestModule;
+    public override  GetRoManifestModule(): RoModule { return this._manifestModule; }
+    public GetEcmaManifestModule(): EcmaModule { return this._manifestModule; }
 
-    // public sealed override MethodInfo? EntryPoint => GetEcmaManifestModule().ComputeEntryPoint(fileRefEntryPointAllowed: true);
+    // public  override MethodInfo? EntryPoint => GetEcmaManifestModule().ComputeEntryPoint(fileRefEntryPointAllowed: true);
 
-    // public sealed override string ImageRuntimeVersion => Reader.MetadataVersion;
-    // public sealed override bool IsDynamic => false;
-    // public sealed override string Location => _location;
+    // public  override string ImageRuntimeVersion => Reader.MetadataVersion;
+    // public  override bool IsDynamic => false;
+    // public  override string Location => _location;
 
-    // public sealed override IEnumerable<CustomAttributeData> CustomAttributes => AssemblyDefinition.GetCustomAttributes().ToTrueCustomAttributes(GetEcmaManifestModule());
+    // public  override IEnumerable<CustomAttributeData> CustomAttributes => AssemblyDefinition.GetCustomAttributes().ToTrueCustomAttributes(GetEcmaManifestModule());
 
-    // protected sealed override AssemblyNameData[] ComputeAssemblyReferences()
+    // protected  override AssemblyNameData[] ComputeAssemblyReferences()
     // {
     //     MetadataReader reader = Reader;
     //     AssemblyNameData[] assemblyReferences = new AssemblyNameData[reader.AssemblyReferences.Count];
@@ -85,7 +85,7 @@ export class EcmaAssembly extends RoAssembly {
     //     return assemblyReferences;
     // }
 
-    // protected sealed override void IterateTypeForwards(TypeForwardHandler handler)
+    // protected  override void IterateTypeForwards(TypeForwardHandler handler)
     // {
     //     MetadataReader reader = Reader;
     //     foreach (ExportedTypeHandle exportedTypeHandle in reader.ExportedTypes)

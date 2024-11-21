@@ -29,7 +29,7 @@ export class Guid {
     private static readonly Version4Value = 0x4000;
     private static readonly Version7Value = 0x7000;
 
-    public static readonly Empty = new Guid(... new Array<number>(16).fill(0));
+    public static readonly Empty = new Guid();
 
     /// <summary>Gets a <see cref="Guid" /> where all bits are set.</summary>
     /// <remarks>This returns the value: FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</remarks>
@@ -47,8 +47,14 @@ export class Guid {
     private readonly _j: number/*byte*/;  // Do not rename (binary serialization)
     private readonly _k: number/*byte*/;  // Do not rename (binary serialization)
 
+  
+
     // Creates a new guid from an array of bytes.
-    public constructor(...b: number[]) {
+    public constructor(b?: Uint8Array) {
+        if (b == undefined) {
+            b = new Uint8Array(16);
+        }
+
         if (b.length != 16) {
             this.ThrowGuidArrayCtorArgumentException();
         }

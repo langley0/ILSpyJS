@@ -2,6 +2,7 @@ import { Assembly } from "System.Reflection";
 import { AssemblyNameData } from "./AssemblyNameData";
 import { MetadataLoadContext } from "System.Reflection.MetadataLoadContext";
 import { RoModule } from "System.Reflection.TypeLoading";
+import { Module, AssemblyName } from "System.Reflection";
 
 export abstract class RoAssembly extends Assembly {
     private readonly _loadedModules?: RoModule[]; // Any loaded modules indexed by [rid - 1]. Does NOT include the manifest module.
@@ -11,17 +12,17 @@ export abstract class RoAssembly extends Assembly {
 
         this.Loader = loader;
         this.IsSingleModule = (assemblyFileCount == 0);
-        this._loadedModules = (assemblyFileCount == 0) ? new Array<RoModule>() : new Array<RoModule>(assemblyFileCount).map(() => new RoModule(""));
+        this._loadedModules = (assemblyFileCount == 0) ? new Array<RoModule>() : new Array<RoModule>(assemblyFileCount);
     }
 
-    // public sealed override Module ManifestModule => GetRoManifestModule();
-    // public abstract RoModule GetRoManifestModule();
+    public override  get ManifestModule(): Module { return this.GetRoManifestModule(); }
+    public abstract GetRoManifestModule(): RoModule;
     protected readonly IsSingleModule: boolean;
 
     // public sealed override string ToString() => Loader.GetDisposedString() ?? base.ToString();
 
-    //         // Naming
-    //         public sealed override AssemblyName GetName(boolean copiedName) => GetAssemblyNameDataNoCopy().CreateAssemblyName();
+    // Naming
+    public override  GetName(copiedName: boolean): AssemblyName { return this.GetAssemblyNameDataNoCopy().CreateAssemblyName(); }
     public GetAssemblyNameDataNoCopy(): AssemblyNameData {
         this._lazyAssemblyNameData ??= this.ComputeNameData();
         return this._lazyAssemblyNameData;

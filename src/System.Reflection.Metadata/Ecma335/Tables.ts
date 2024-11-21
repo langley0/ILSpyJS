@@ -9,6 +9,7 @@ import {
     EntityHandle,
     BlobHandle,
     StringHandle,
+    GuidHandle,
 } from "System.Reflection.Metadata";
 import {
     TableIndex,
@@ -60,11 +61,11 @@ export class ModuleTableReader {
     //     return StringHandle.FromOffset(this.Block.PeekHeapReference(_NameOffset, _IsStringHeapRefSizeSmall));
     // }
 
-    // public GuidHandle GetMvid()
-    // {
-    //     assert(NumberOfRows > 0);
-    //     return GuidHandle.FromIndex(this.Block.PeekHeapReference(_MVIdOffset, _IsGUIDHeapRefSizeSmall));
-    // }
+    public  GetMvid(): GuidHandle
+    {
+        assert(this.NumberOfRows > 0);
+        return GuidHandle.FromIndex(this.Block.PeekHeapReference(this._MVIdOffset, this._IsGUIDHeapRefSizeSmall));
+    }
 
     // public GuidHandle GetEncId()
     // {

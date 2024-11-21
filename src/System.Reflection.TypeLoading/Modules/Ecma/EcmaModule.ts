@@ -6,6 +6,7 @@ import { EcmaAssembly, GuardedPEReader } from "System.Reflection.TypeLoading.Ecm
 import { MetadataReader } from "System.Reflection.Metadata";
 import { ModuleDefinition } from "System.Reflection.Metadata";
 import { PEReader } from "System.Reflection.PortableExecutable";
+import { Guid } from "System/Guid";
 
 export class EcmaModule extends RoModule {
     private static readonly ModuleTypeToken = 0x02000001;
@@ -30,18 +31,18 @@ export class EcmaModule extends RoModule {
         this._neverAccessThisExceptThroughModuleDefinitionProperty = reader.GetModuleDefinition();
     }
 
-    // internal sealed override RoAssembly GetRoAssembly() => _assembly;
-    // internal EcmaAssembly GetEcmaAssembly() => _assembly;
+    // public  override RoAssembly GetRoAssembly() => _assembly;
+    // public EcmaAssembly GetEcmaAssembly() => _assembly;
 
-    // public sealed override bool IsResource() => false;
-    // public sealed override int MDStreamVersion => throw new NotSupportedException(SR.NotSupported_MDStreamVersion);
-    // public sealed override int MetadataToken => 0x00000001; // The Module Table is exactly 1 record long so the token is always mdtModule | 0x000001
-    // public sealed override Guid ModuleVersionId => ModuleDefinition.Mvid.GetGuid(Reader);
-    // public sealed override string ScopeName => ModuleDefinition.Name.GetString(Reader);
+    // public  override bool IsResource() => false;
+    // public  override int MDStreamVersion => throw new NotSupportedException(SR.NotSupported_MDStreamVersion);
+    // public  override int MetadataToken => 0x00000001; // The Module Table is exactly 1 record long so the token is always mdtModule | 0x000001
+    public  override get ModuleVersionId(): Guid { return this.Reader.GetGuid(this.ModuleDefinition.Mvid); }
+    // public  override string ScopeName => ModuleDefinition.Name.GetString(Reader);
 
-    // public sealed override IEnumerable<CustomAttributeData> CustomAttributes => ModuleDefinition.GetCustomAttributes().ToTrueCustomAttributes(this);
+    // public  override IEnumerable<CustomAttributeData> CustomAttributes => ModuleDefinition.GetCustomAttributes().ToTrueCustomAttributes(this);
 
-    // internal MethodInfo? ComputeEntryPoint(bool fileRefEntryPointAllowed)
+    // public MethodInfo? ComputeEntryPoint(bool fileRefEntryPointAllowed)
     // {
     //     PEHeaders peHeaders = PEReader.PEHeaders;
     //     CorHeader corHeader = peHeaders.CorHeader!;
@@ -79,7 +80,7 @@ export class EcmaModule extends RoModule {
     //     }
     // }
 
-    // public sealed override void GetPEKind(out PortableExecutableKinds peKind, out ImageFileMachine machine)
+    // public  override void GetPEKind(out PortableExecutableKinds peKind, out ImageFileMachine machine)
     // {
     //     PEHeaders peHeaders = PEReader.PEHeaders;
     //     PEMagic peMagic = peHeaders.PEHeader!.Magic;
@@ -104,13 +105,13 @@ export class EcmaModule extends RoModule {
     // //
     // // Search for members on <Module> type.
     // //
-    // public sealed override FieldInfo? GetField(string name, BindingFlags bindingAttr) => GetModuleType().GetField(name, bindingAttr);
-    // public sealed override FieldInfo[] GetFields(BindingFlags bindingFlags) => GetModuleType().GetFields(bindingFlags);
-    // public sealed override MethodInfo[] GetMethods(BindingFlags bindingFlags) => GetModuleType().GetMethods(bindingFlags);
-    // protected sealed override MethodInfo? GetMethodImpl(string name, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers) => GetModuleType().InternalGetMethodImpl(name, bindingAttr, binder, callConvention, types, modifiers);
+    // public  override FieldInfo? GetField(string name, BindingFlags bindingAttr) => GetModuleType().GetField(name, bindingAttr);
+    // public  override FieldInfo[] GetFields(BindingFlags bindingFlags) => GetModuleType().GetFields(bindingFlags);
+    // public  override MethodInfo[] GetMethods(BindingFlags bindingFlags) => GetModuleType().GetMethods(bindingFlags);
+    // protected  override MethodInfo? GetMethodImpl(string name, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers) => GetModuleType().InternalGetMethodImpl(name, bindingAttr, binder, callConvention, types, modifiers);
     // private EcmaDefinitionType GetModuleType() => ModuleTypeToken.ToTypeDefinitionHandle().ResolveTypeDef(this);
 
-    // public sealed override Type[] GetTypes()
+    // public  override Type[] GetTypes()
     // {
     //     // Note: we don't expect this process to generate any loader exceptions so no need to implement the ReflectionTypeLoadException
     //     // logic.
@@ -119,7 +120,7 @@ export class EcmaModule extends RoModule {
     //     return TypeDefTable.ToArray<Type>(skip: 1); // 0x02000001 is the <Module> type which is always skipped by this api.
     // }
 
-    // internal sealed override IEnumerable<RoType>? GetDefinedRoTypes()
+    // public  override IEnumerable<RoType>? GetDefinedRoTypes()
     // {
     //     EnsureTypeDefTableFullyFilled();
     //     return TypeDefTable.EnumerateValues(skip: 1)!; // 0x02000001 is the <Module> type which is always skipped by this api.
@@ -132,7 +133,7 @@ export class EcmaModule extends RoModule {
         return this._guardedPEReader.Reader;
     }
 
-    // private ref readonly ModuleDefinition ModuleDefinition { get { Loader.DisposeCheck(); return ref _neverAccessThisExceptThroughModuleDefinitionProperty; } }
+    private get ModuleDefinition(): ModuleDefinition { return this._neverAccessThisExceptThroughModuleDefinitionProperty; } 
     // [DebuggerBrowsable(DebuggerBrowsableState.Never)]  // Block from debugger watch windows so they don't AV the debugged process.
     private readonly _neverAccessThisExceptThroughModuleDefinitionProperty: ModuleDefinition;
 }

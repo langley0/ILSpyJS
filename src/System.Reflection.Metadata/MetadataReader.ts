@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Throw, sizeof } from "System";
+import { Guid, Throw, sizeof } from "System";
 import { BitArithmetic, MemoryBlock } from "System.Reflection.Internal";
 import {
     AssemblyReferenceHandleCollection,
@@ -14,6 +14,7 @@ import {
     DebugMetadataHeader,
     AssemblyDefinition,
     StringHandle,
+    GuidHandle,
 } from "System.Reflection.Metadata";
 
 import {
@@ -1135,10 +1136,10 @@ export class MetadataReader {
     //     return UserStringHeap.GetString(handle);
     // }
 
-    // public Guid GetGuid(GuidHandle handle)
-    // {
-    //     return GuidHeap.GetGuid(handle);
-    // }
+    public  GetGuid( handle: GuidHandle): Guid
+    {
+        return this.GuidHeap.GetGuid(handle);
+    }
 
     public GetModuleDefinition(): ModuleDefinition {
         if (this._debugMetadataHeader != undefined) {

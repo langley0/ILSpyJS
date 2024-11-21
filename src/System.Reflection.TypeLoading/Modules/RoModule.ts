@@ -1,7 +1,8 @@
 import assert from "assert";
 import { Module } from "System.Reflection";
+import { Guid } from "System/Guid";
 
-export class RoModule extends Module {
+export abstract class RoModule extends Module {
     private readonly _fullyQualifiedName: string;
 
     public static readonly FullyQualifiedNameForModulesLoadedFromByteArrays = "<Unknown>";
@@ -26,7 +27,7 @@ export class RoModule extends Module {
     //         public sealed override string FullyQualifiedName => _fullyQualifiedName;
     //         public abstract override int MDStreamVersion { get; }
     //         public abstract override int MetadataToken { get; }
-    //         public abstract override Guid ModuleVersionId { get; }
+            public abstract override get ModuleVersionId(): Guid;
 
     // #if NET
     //         [RequiresAssemblyFiles(UnknownStringMessageInRAF)]

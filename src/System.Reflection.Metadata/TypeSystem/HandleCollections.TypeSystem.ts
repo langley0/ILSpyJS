@@ -1,5 +1,5 @@
 import assert from "assert"
-import { MetadataReader } from "../MetadataReader";
+import { MetadataReader, EntityHandle } from "System.Reflection.Metadata";
 // /// <summary>
 // /// Represents generic type parameters of a method or type.
 // /// </summary>
@@ -216,232 +216,230 @@ import { MetadataReader } from "../MetadataReader";
 //     }
 // }
 
-// public readonly struct CustomAttributeHandleCollection : IReadOnlyCollection<CustomAttributeHandle>
-// {
-//     private readonly MetadataReader _reader;
+export class CustomAttributeHandleCollection {
+    private readonly _reader: MetadataReader;
 
-//     private readonly int _firstRowId;
-//     private readonly int _lastRowId;
+    private readonly _firstRowId: number;
+    private readonly _lastRowId: number;
 
-//     public CustomAttributeHandleCollection(MetadataReader reader)
-//     {
-//         assert(reader != undefined);
-//         _reader = reader;
-//         _firstRowId = 1;
-//         _lastRowId = reader.CustomAttributeTable.NumberOfRows;
-//     }
+    public constructor(reader: MetadataReader, handle?: EntityHandle) {
+        assert(reader != undefined);
+        this._reader = reader;
+        if (handle == undefined) {
+            this._firstRowId = 1;
+            this._lastRowId = reader.CustomAttributeTable.NumberOfRows;
+        } else {
+            const out = reader.CustomAttributeTable.GetAttributeRange(handle);
+            this._firstRowId = out.firstImplRowId;
+            this._lastRowId = out.lastImplRowId;
+        }
+    }
 
-//     public CustomAttributeHandleCollection(MetadataReader reader, EntityHandle handle)
-//     {
-//         assert(reader != undefined);
+    // public CustomAttributeHandleCollection(MetadataReader reader, )
+    // {
+    //     assert(reader != undefined);
 
-//         _reader = reader;
-//         reader.CustomAttributeTable.GetAttributeRange(handle, out _firstRowId, out _lastRowId);
-//     }
+    //     _reader = reader;
+    //     reader.CustomAttributeTable.GetAttributeRange(handle, out _firstRowId, out _lastRowId);
+    // }
 
-//     public int Count
-//     {
-//         get
-//         {
-//             return _lastRowId - _firstRowId + 1;
-//         }
-//     }
+    // public int Count
+    // {
+    //     get
+    //     {
+    //         return _lastRowId - _firstRowId + 1;
+    //     }
+    // }
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_reader, _firstRowId, _lastRowId);
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_reader, _firstRowId, _lastRowId);
+    // }
 
-//     IEnumerator<CustomAttributeHandle> IEnumerable<CustomAttributeHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator<CustomAttributeHandle> IEnumerable<CustomAttributeHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     public struct Enumerator : IEnumerator<CustomAttributeHandle>, IEnumerator
-//     {
-//         private readonly MetadataReader _reader;
-//         private readonly int _lastRowId; // inclusive
+    // public struct Enumerator : IEnumerator<CustomAttributeHandle>, IEnumerator
+    // {
+    //     private readonly MetadataReader _reader;
+    //     private readonly int _lastRowId; // inclusive
 
-//         // first custom attribute rid - 1: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    //     // first custom attribute rid - 1: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public Enumerator(MetadataReader reader, int firstRowId, int lastRowId)
-//         {
-//             _reader = reader;
-//             _currentRowId = firstRowId - 1;
-//             _lastRowId = lastRowId;
-//         }
+    //     public Enumerator(MetadataReader reader, int firstRowId, int lastRowId)
+    //     {
+    //         _reader = reader;
+    //         _currentRowId = firstRowId - 1;
+    //         _lastRowId = lastRowId;
+    //     }
 
-//         public CustomAttributeHandle Current
-//         {
-//             get
-//             {
-//                 // PERF: keep this code small to enable inlining.
+    //     public CustomAttributeHandle Current
+    //     {
+    //         get
+    //         {
+    //             // PERF: keep this code small to enable inlining.
 
-//                 if (_reader.CustomAttributeTable.PtrTable != undefined)
-//                 {
-//                     return GetCurrentCustomAttributeIndirect();
-//                 }
-//                 else
-//                 {
-//                     return CustomAttributeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//                 }
-//             }
-//         }
+    //             if (_reader.CustomAttributeTable.PtrTable != undefined)
+    //             {
+    //                 return GetCurrentCustomAttributeIndirect();
+    //             }
+    //             else
+    //             {
+    //                 return CustomAttributeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //             }
+    //         }
+    //     }
 
-//         private CustomAttributeHandle GetCurrentCustomAttributeIndirect()
-//         {
-//             return CustomAttributeHandle.FromRowId(
-//                 _reader.CustomAttributeTable.PtrTable![(_currentRowId & TokenTypeIds.RIDMask) - 1]);
-//         }
+    //     private CustomAttributeHandle GetCurrentCustomAttributeIndirect()
+    //     {
+    //         return CustomAttributeHandle.FromRowId(
+    //             _reader.CustomAttributeTable.PtrTable![(_currentRowId & TokenTypeIds.RIDMask) - 1]);
+    //     }
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this code small to enable inlining.
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this code small to enable inlining.
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+}
 
-// public readonly struct DeclarativeSecurityAttributeHandleCollection : IReadOnlyCollection<DeclarativeSecurityAttributeHandle>
-// {
-//     private readonly MetadataReader _reader;
 
-//     private readonly int _firstRowId;
-//     private readonly int _lastRowId;
+export class DeclarativeSecurityAttributeHandleCollection {
+    private readonly _reader: MetadataReader;
 
-//     public DeclarativeSecurityAttributeHandleCollection(MetadataReader reader)
-//     {
-//         assert(reader != undefined);
-//         _reader = reader;
-//         _firstRowId = 1;
-//         _lastRowId = reader.DeclSecurityTable.NumberOfRows;
-//     }
+    private readonly _firstRowId: number;
+    private readonly _lastRowId: number;
 
-//     public DeclarativeSecurityAttributeHandleCollection(MetadataReader reader, EntityHandle handle)
-//     {
-//         assert(reader != undefined);
-//         assert(!handle.IsNil);
+    public constructor(reader: MetadataReader, handle: EntityHandle) {
+        assert(reader != undefined);
+        this._reader = reader;
+        this._firstRowId = 1;
+        this._lastRowId = reader.DeclSecurityTable.NumberOfRows;
+    }
 
-//         _reader = reader;
-//         reader.DeclSecurityTable.GetAttributeRange(handle, out _firstRowId, out _lastRowId);
-//     }
+    // public DeclarativeSecurityAttributeHandleCollection(MetadataReader reader, EntityHandle handle)
+    // {
+    //     assert(reader != undefined);
+    //     assert(!handle.IsNil);
 
-//     public int Count
-//     {
-//         get
-//         {
-//             return _lastRowId - _firstRowId + 1;
-//         }
-//     }
+    //     _reader = reader;
+    //     reader.DeclSecurityTable.GetAttributeRange(handle, out _firstRowId, out _lastRowId);
+    // }
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_reader, _firstRowId, _lastRowId);
-//     }
+    public get Count(): number {
+        return this._lastRowId - this._firstRowId + 1;
+    }
 
-//     IEnumerator<DeclarativeSecurityAttributeHandle> IEnumerable<DeclarativeSecurityAttributeHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_reader, _firstRowId, _lastRowId);
+    // }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator<DeclarativeSecurityAttributeHandle> IEnumerable<DeclarativeSecurityAttributeHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     public struct Enumerator : IEnumerator<DeclarativeSecurityAttributeHandle>, IEnumerator
-//     {
-//         private readonly MetadataReader _reader;
-//         private readonly int _lastRowId; // inclusive
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//         // first custom attribute rid - 1: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    // public struct Enumerator : IEnumerator<DeclarativeSecurityAttributeHandle>, IEnumerator
+    // {
+    //     private readonly MetadataReader _reader;
+    //     private readonly int _lastRowId; // inclusive
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    //     // first custom attribute rid - 1: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         public Enumerator(MetadataReader reader, int firstRowId, int lastRowId)
-//         {
-//             _reader = reader;
-//             _currentRowId = firstRowId - 1;
-//             _lastRowId = lastRowId;
-//         }
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public DeclarativeSecurityAttributeHandle Current
-//         {
-//             get
-//             {
-//                 // PERF: keep this code small to enable inlining.
-//                 return DeclarativeSecurityAttributeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//             }
-//         }
+    //     public Enumerator(MetadataReader reader, int firstRowId, int lastRowId)
+    //     {
+    //         _reader = reader;
+    //         _currentRowId = firstRowId - 1;
+    //         _lastRowId = lastRowId;
+    //     }
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this code small to enable inlining.
+    //     public DeclarativeSecurityAttributeHandle Current
+    //     {
+    //         get
+    //         {
+    //             // PERF: keep this code small to enable inlining.
+    //             return DeclarativeSecurityAttributeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //         }
+    //     }
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this code small to enable inlining.
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
+
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+    // }
+}
 
 // public readonly struct MethodDefinitionHandleCollection : IReadOnlyCollection<MethodDefinitionHandle>
 // {

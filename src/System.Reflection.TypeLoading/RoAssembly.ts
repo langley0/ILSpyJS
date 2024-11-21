@@ -1,22 +1,22 @@
 import { Assembly } from "System.Reflection";
 import { AssemblyNameData } from "./AssemblyNameData";
 import { MetadataLoadContext } from "System.Reflection.MetadataLoadContext";
+import { RoModule } from "System.Reflection.TypeLoading";
 
 export abstract class RoAssembly extends Assembly {
-    // private readonly RoModule?[] _loadedModules; // Any loaded modules indexed by [rid - 1]. Does NOT include the manifest module.
+    private readonly _loadedModules?: RoModule[]; // Any loaded modules indexed by [rid - 1]. Does NOT include the manifest module.
 
     protected constructor(loader: MetadataLoadContext, assemblyFileCount: number) {
         super();
 
-        // this.Loader = loader;
-        // this.IsSingleModule = (assemblyFileCount == 0);
-        // this._loadedModules = (assemblyFileCount == 0) ? Array.Empty<RoModule>() : new RoModule[assemblyFileCount];
-        throw new Error("Not implemented");
+        this.Loader = loader;
+        this.IsSingleModule = (assemblyFileCount == 0);
+        this._loadedModules = (assemblyFileCount == 0) ? new Array<RoModule>() : new Array<RoModule>(assemblyFileCount).map(() => new RoModule(""));
     }
 
     // public sealed override Module ManifestModule => GetRoManifestModule();
     // public abstract RoModule GetRoManifestModule();
-    // protected boolean IsSingleModule { get; }
+    protected readonly IsSingleModule: boolean;
 
     // public sealed override string ToString() => Loader.GetDisposedString() ?? base.ToString();
 
@@ -206,5 +206,5 @@ export abstract class RoAssembly extends Assembly {
     //         // Compat quirk: Why ArgumentException instead of InvalidOperationException?
     //         public sealed override object CreateInstance(string typeName, boolean ignoreCase, BindingFlags bindingAttr, Binder? binder, object?[]? args, CultureInfo? culture, object?[]? activationAttributes) => throw new ArgumentException(SR.Arg_ReflectionOnlyInvoke);
 
-    //         public MetadataLoadContext Loader { get; }
+    public readonly Loader: MetadataLoadContext;
 }

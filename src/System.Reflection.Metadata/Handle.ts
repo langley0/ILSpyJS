@@ -1,9 +1,10 @@
 import assert from 'assert';
+import { HandleKind } from 'System.Reflection.Metadata';
 import {
     HandleType,
     HeapHandleType,
     TokenTypeIds,
-} from './Internal/MetadataFlags';
+} from 'System.Reflection.Metadata.Ecma335';
 
 /// <summary>
 /// Represents any metadata entity (type reference/definition/specification, method definition, custom attribute, etc.) or value (string, blob, guid, user string).
@@ -114,26 +115,19 @@ export class Handle {
         return (this._vType & HandleType.HeapMask) == HandleType.HeapMask;
     }
 
-    // public get  Kind() : HandleKind
-    // {
+    public get Kind(): HandleKind {
+        const type = this.Type;
+        // Do not surface extra non-virtual string type bits in public handle kind
+        if ((type & ~HandleType.NonVirtualStringTypeMask) == HandleType.String) {
+            return HandleKind.String;
+        }
+        return type;
+    }
 
-    //         uint type = Type;
-
-    //         // Do not surface extra non-virtual string type bits in public handle kind
-    //         if ((type & ~HandleType.NonVirtualStringTypeMask) == HandleType.String)
-    //         {
-    //             return HandleKind.String;
-    //         }
-
-    //         return (HandleKind)type;
-
-    // }
-
-    // public bool IsNil
-    // {
-    //     // virtual handles are never nil
-    //     get { return ((uint)_value | (_vType & HandleType.VirtualBit)) == 0; }
-    // }
+    public get IsNil(): boolean {
+        // virtual handles are never nil
+        return (this._value | (this._vType & HandleType.VirtualBit)) == 0;
+    }
 
     public get IsEntityOrUserStringHandle(): boolean {
         return this.Type <= HandleType.UserString;

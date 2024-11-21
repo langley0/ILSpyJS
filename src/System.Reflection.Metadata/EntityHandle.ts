@@ -5,7 +5,6 @@ import {
     TokenTypeIds,
 } from './Internal/MetadataFlags';
 
-
 export class EntityHandle {
     // bits:
     //     31: IsVirtual
@@ -45,16 +44,15 @@ export class EntityHandle {
         return (this._vToken & TokenTypeIds.VirtualBit) != 0;
     }
 
-    // public bool IsNil
-    // {
-    //     // virtual handle is never nil
-    //     get { return (_vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.RIDMask)) == 0; }
-    // }
+    public get IsNil(): boolean {
 
-    // public int RowId
-    // {
-    //     get { return (_vToken & TokenTypeIds.RIDMask); }
-    // }
+        // virtual handle is never nil
+        return (this._vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.RIDMask)) == 0;
+    }
+
+    public get RowId(): number {
+        return (this._vToken & TokenTypeIds.RIDMask);
+    }
 
     // /// <summary>
     // /// Value stored in a specific entity handle (see <see cref="TypeDefinitionHandle"/>, <see cref="MethodDefinitionHandle"/>, etc.).
@@ -113,6 +111,4 @@ export class EntityHandle {
     //     return left._vToken.CompareTo(right._vToken);
     // }
 
-    // public static readonly ModuleDefinitionHandle ModuleDefinition = new ModuleDefinitionHandle(1);
-    // public static readonly AssemblyDefinitionHandle AssemblyDefinition = new AssemblyDefinitionHandle(1);
 }

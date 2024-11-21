@@ -1,22 +1,23 @@
+import { Throw } from "./Throw";
+
 export class Version {
-    // // AssemblyName depends on the order staying the same
-    // private readonly int _Major; // Do not rename (binary serialization)
-    // private readonly int _Minor; // Do not rename (binary serialization)
-    // private readonly int _Build; // Do not rename (binary serialization)
-    // private readonly int _Revision; // Do not rename (binary serialization)
+    // AssemblyName depends on the order staying the same
+    private readonly _Major: number; // Do not rename (binary serialization)
+    private readonly _Minor: number; // Do not rename (binary serialization)
+    private readonly _Build: number; // Do not rename (binary serialization)
+    private readonly _Revision: number; // Do not rename (binary serialization)
 
-    // public Version(int major, int minor, int build, int revision)
-    // {
-    //     ArgumentOutOfRangeException.ThrowIfNegative(major);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(minor);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(build);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(revision);
+    public constructor(major: number, minor: number, build: number = -1, revision: number = -1) {
+        Throw.ThrowIfNegative(major);
+        Throw.ThrowIfNegative(minor);
+        Throw.ThrowIfNegative(build);
+        Throw.ThrowIfNegative(revision);
 
-    //     _Major = major;
-    //     _Minor = minor;
-    //     _Build = build;
-    //     _Revision = revision;
-    // }
+        this._Major = major;
+        this._Minor = minor;
+        this._Build = build;
+        this._Revision = revision;
+    }
 
     // public Version(int major, int minor, int build)
     // {

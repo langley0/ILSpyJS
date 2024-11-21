@@ -255,6 +255,14 @@ export class BlobReader {
         return this.ReadInt64();
     }
 
+
+    public Read64BitFlags(): bigint {
+        const ptr = this.GetCurrentPointerAndAdvance(sizeof('long'));
+        const lo = (ptr[0] + (ptr[1] << 8) + (ptr[2] << 16) + (ptr[3] << 24));
+        const hi = (ptr[4] + (ptr[5] << 8) + (ptr[6] << 16) + (ptr[7] << 24));
+        return BigInt(lo) + (BigInt(hi) * BigInt(0x100000000));
+    }
+
     // public float ReadSingle()
     // {
     //     int val = ReadInt32();

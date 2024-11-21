@@ -2,6 +2,7 @@ import { MemoryBlock } from "System.Reflection.Internal";
 import {
     MetadataKind,
     BlobHandle,
+    BlobReader,
 } from "System.Reflection.Metadata";
 import { VirtualHeap } from "System.Reflection.Metadata.Ecma335";
 
@@ -77,26 +78,23 @@ export class BlobHeap {
         }
     }
 
-    // internal byte[] GetBytes(BlobHandle handle)
-    // {
-    //     if (handle.IsVirtual)
-    //     {
-    //         // consider: if we returned an ImmutableArray we wouldn't need to copy
-    //         return GetVirtualBlobBytes(handle, unique: true);
-    //     }
+    public GetBytes(handle: BlobHandle): Uint8Array {
+        if (handle.IsVirtual) {
+            // consider: if we returned an ImmutableArray we wouldn't need to copy
+            return BlobHeap.GetVirtualBlobBytes(handle, true);
+        }
 
-    //     int offset = handle.GetHeapOffset();
-    //     int bytesRead;
-    //     int numberOfBytes = Block.PeekCompressedInteger(offset, out bytesRead);
-    //     if (numberOfBytes == BlobReader.InvalidCompressedInteger)
-    //     {
-    //         return Array.Empty<byte>();
-    //     }
+        const offset = handle.GetHeapOffset();
+        const { value, numberOfBytesRead } = this.Block.PeekCompressedInteger(offset);
+        if (value == BlobReader.InvalidCompressedInteger) {
+            return new Uint8Array(0);
+        }
+        // value means the length of the blob
+        const blobLength = value;
+        return this.Block.PeekBytes(offset + numberOfBytesRead, blobLength);
+    }
 
-    //     return Block.PeekBytes(offset + bytesRead, numberOfBytes);
-    // }
-
-    // internal MemoryBlock GetMemoryBlock(BlobHandle handle)
+    // public MemoryBlock GetMemoryBlock(BlobHandle handle)
     // {
     //     if (handle.IsVirtual)
     //     {
@@ -123,12 +121,12 @@ export class BlobHeap {
     //     }
     // }
 
-    // internal BlobReader GetBlobReader(BlobHandle handle)
+    // public BlobReader GetBlobReader(BlobHandle handle)
     // {
     //     return new BlobReader(GetMemoryBlock(handle));
     // }
 
-    // internal BlobHandle GetNextHandle(BlobHandle handle)
+    // public BlobHandle GetNextHandle(BlobHandle handle)
     // {
     //     if (handle.IsVirtual)
     //     {
@@ -150,29 +148,26 @@ export class BlobHeap {
     //     return BlobHandle.FromOffset(nextIndex);
     // }
 
-    // internal static byte[] GetVirtualBlobBytes(BlobHandle handle, bool unique)
-    // {
-    //     BlobHandle.VirtualIndex index = handle.GetVirtualIndex();
-    //     byte[] result = s_virtualValues![index];
+    public static GetVirtualBlobBytes(handle: BlobHandle, unique: boolean): Uint8Array {
+        const index = handle.GetVirtualIndex();
+        let result = BlobHeap.s_virtualValues![index];
 
-    //     switch (index)
-    //     {
-    //         case BlobHandle.VirtualIndex.AttributeUsage_AllowMultiple:
-    //         case BlobHandle.VirtualIndex.AttributeUsage_AllowSingle:
-    //             result = (byte[])result.Clone();
-    //             handle.SubstituteTemplateParameters(result);
-    //             break;
+        switch (index) {
+            case BlobHandle.VirtualIndex.AttributeUsage_AllowMultiple:
+            case BlobHandle.VirtualIndex.AttributeUsage_AllowSingle:
+                result = result.slice();
+                handle.SubstituteTemplateParameters(result);
+                break;
 
-    //         default:
-    //             if (unique)
-    //             {
-    //                 result = (byte[])result.Clone();
-    //             }
-    //             break;
-    //     }
+            default:
+                if (unique) {
+                    result = result.slice();
+                }
+                break;
+        }
 
-    //     return result;
-    // }
+        return result;
+    }
 
     // public string GetDocumentName(DocumentNameBlobHandle handle)
     // {
@@ -204,7 +199,7 @@ export class BlobHeap {
     //     return pooledBuilder.ToStringAndFree();
     // }
 
-    // internal bool DocumentNameEquals(DocumentNameBlobHandle handle, string other, bool ignoreCase)
+    // public bool DocumentNameEquals(DocumentNameBlobHandle handle, string other, bool ignoreCase)
     // {
     //     var blobReader = GetBlobReader(handle);
 

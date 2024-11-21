@@ -1,8 +1,7 @@
 import assert from "assert";
 import { MemoryBlock } from "System.Reflection.Internal";
-import { MetadataKind, StringHandle } from "System.Reflection.Metadata";
-import { VirtualHeap } from "System.Reflection.Metadata.Ecma335";
-
+import { MetadataKind, MetadataStringDecoder, StringHandle, MetadataReader } from "System.Reflection.Metadata";
+import { VirtualHeap, StringKind } from "System.Reflection.Metadata.Ecma335";
 
 export class StringHeap {
     private static s_virtualValues?: string[];
@@ -138,32 +137,32 @@ export class StringHeap {
         return block.GetMemoryBlockAt(0, i + 2);
     }
 
-    // internal string GetString(StringHandle handle, MetadataStringDecoder utf8Decoder)
-    // {
-    //     return handle.IsVirtual ? GetVirtualHandleString(handle, utf8Decoder) : GetNonVirtualString(handle, utf8Decoder, prefixOpt: undefined);
-    // }
+    public GetString( handle: StringHandle,  utf8Decoder: MetadataStringDecoder):string
+    {
+        return handle.IsVirtual ? this.GetVirtualHandleString(handle, utf8Decoder) : this.GetNonVirtualString(handle, utf8Decoder);
+    }
 
-    // internal MemoryBlock GetMemoryBlock(StringHandle handle)
+    // public MemoryBlock GetMemoryBlock(StringHandle handle)
     // {
     //     return handle.IsVirtual ? GetVirtualHandleMemoryBlock(handle) : GetNonVirtualStringMemoryBlock(handle);
     // }
 
-    // internal static string GetVirtualString(StringHandle.VirtualIndex index)
-    // {
-    //     return s_virtualValues![index];
-    // }
+    public static GetVirtualString(index: StringHandle.VirtualIndex ): string
+    {
+        return StringHeap.s_virtualValues![index];
+    }
 
-    // private string GetNonVirtualString(StringHandle handle, MetadataStringDecoder utf8Decoder, byte[]? prefixOpt)
-    // {
-    //     Debug.Assert(handle.StringKind != StringKind.Virtual);
+    private  GetNonVirtualString( handle: StringHandle,  utf8Decoder: MetadataStringDecoder, prefixOpt?: Uint8Array): string
+    {
+        assert(handle.StringKind != StringKind.Virtual);
 
-    //     char otherTerminator = handle.StringKind == StringKind.DotTerminated ? '.' : '\0';
-    //     return Block.PeekUtf8NullTerminated(handle.GetHeapOffset(), prefixOpt, utf8Decoder, out _, otherTerminator);
-    // }
+        const otherTerminator = handle.StringKind == StringKind.DotTerminated ? '.' : '\0';
+        return this.Block.PeekUtf8NullTerminated(handle.GetHeapOffset(), prefixOpt, utf8Decoder, otherTerminator.charCodeAt(0));
+    }
 
     // private unsafe MemoryBlock GetNonVirtualStringMemoryBlock(StringHandle handle)
     // {
-    //     Debug.Assert(handle.StringKind != StringKind.Virtual);
+    //     assert(handle.StringKind != StringKind.Virtual);
 
     //     char otherTerminator = handle.StringKind == StringKind.DotTerminated ? '.' : '\0';
     //     int offset = handle.GetHeapOffset();
@@ -174,7 +173,7 @@ export class StringHeap {
 
     // private unsafe byte[] GetNonVirtualStringBytes(StringHandle handle, byte[] prefix)
     // {
-    //     Debug.Assert(handle.StringKind != StringKind.Virtual);
+    //     assert(handle.StringKind != StringKind.Virtual);
 
     //     var block = GetNonVirtualStringMemoryBlock(handle);
     //     var bytes = new byte[prefix.Length + block.Length];
@@ -183,21 +182,24 @@ export class StringHeap {
     //     return bytes;
     // }
 
-    // private string GetVirtualHandleString(StringHandle handle, MetadataStringDecoder utf8Decoder)
-    // {
-    //     Debug.Assert(handle.IsVirtual);
+    private  GetVirtualHandleString(handle: StringHandle ,  utf8Decoder: MetadataStringDecoder): string
+    {
+        assert(handle.IsVirtual);
+        switch(handle.StringKind) {
+            case StringKind.Virtual:
+                return StringHeap.GetVirtualString(handle.GetVirtualIndex());
+            case StringKind.WinRTPrefixed:
+                return this.GetNonVirtualString(handle, utf8Decoder, MetadataReader.WinRTPrefix);
+            default:
+                throw new Error(`Unexpected value: ${handle.StringKind}`);
+        }
 
-    //     return handle.StringKind switch
-    //     {
-    //         StringKind.Virtual => GetVirtualString(handle.GetVirtualIndex()),
-    //         StringKind.WinRTPrefixed => GetNonVirtualString(handle, utf8Decoder, MetadataReader.WinRTPrefix),
-    //         _ => throw ExceptionUtilities.UnexpectedValue(handle.StringKind),
-    //     };
-    // }
+   
+    }
 
     // private MemoryBlock GetVirtualHandleMemoryBlock(StringHandle handle)
     // {
-    //     Debug.Assert(handle.IsVirtual);
+    //     assert(handle.IsVirtual);
     //     var heap = VirtualHeap.GetOrCreateVirtualHeap(ref _lazyVirtualHeap);
 
     //     lock (heap)
@@ -217,12 +219,12 @@ export class StringHeap {
     //     }
     // }
 
-    // internal BlobReader GetBlobReader(StringHandle handle)
+    // public BlobReader GetBlobReader(StringHandle handle)
     // {
     //     return new BlobReader(GetMemoryBlock(handle));
     // }
 
-    // internal StringHandle GetNextHandle(StringHandle handle)
+    // public StringHandle GetNextHandle(StringHandle handle)
     // {
     //     if (handle.IsVirtual)
     //     {
@@ -238,9 +240,9 @@ export class StringHeap {
     //     return StringHandle.FromOffset(terminator + 1);
     // }
 
-    // internal bool Equals(StringHandle handle, string value, MetadataStringDecoder utf8Decoder, bool ignoreCase)
+    // public bool Equals(StringHandle handle, string value, MetadataStringDecoder utf8Decoder, bool ignoreCase)
     // {
-    //     Debug.Assert(value != undefined);
+    //     assert(value != undefined);
 
     //     if (handle.IsVirtual)
     //     {
@@ -257,9 +259,9 @@ export class StringHeap {
     //     return this.Block.Utf8NullTerminatedEquals(handle.GetHeapOffset(), value, utf8Decoder, otherTerminator, ignoreCase);
     // }
 
-    // internal bool StartsWith(StringHandle handle, string value, MetadataStringDecoder utf8Decoder, bool ignoreCase)
+    // public bool StartsWith(StringHandle handle, string value, MetadataStringDecoder utf8Decoder, bool ignoreCase)
     // {
-    //     Debug.Assert(value != undefined);
+    //     assert(value != undefined);
 
     //     if (handle.IsVirtual)
     //     {
@@ -279,39 +281,39 @@ export class StringHeap {
     // /// <summary>
     // /// Returns true if the given raw (non-virtual) handle represents the same string as given ASCII string.
     // /// </summary>
-    // internal bool EqualsRaw(StringHandle rawHandle, string asciiString)
+    // public bool EqualsRaw(StringHandle rawHandle, string asciiString)
     // {
-    //     Debug.Assert(!rawHandle.IsVirtual);
-    //     Debug.Assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
+    //     assert(!rawHandle.IsVirtual);
+    //     assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
     //     return this.Block.CompareUtf8NullTerminatedStringWithAsciiString(rawHandle.GetHeapOffset(), asciiString) == 0;
     // }
 
     // /// <summary>
     // /// Returns the heap index of the given ASCII character or -1 if not found prior undefined terminator or end of heap.
     // /// </summary>
-    // internal int IndexOfRaw(int startIndex, char asciiChar)
+    // public int IndexOfRaw(int startIndex, char asciiChar)
     // {
-    //     Debug.Assert(asciiChar != 0 && asciiChar <= 0x7f);
+    //     assert(asciiChar != 0 && asciiChar <= 0x7f);
     //     return this.Block.Utf8NullTerminatedOffsetOfAsciiChar(startIndex, asciiChar);
     // }
 
     // /// <summary>
     // /// Returns true if the given raw (non-virtual) handle represents a string that starts with given ASCII prefix.
     // /// </summary>
-    // internal bool StartsWithRaw(StringHandle rawHandle, string asciiPrefix)
+    // public bool StartsWithRaw(StringHandle rawHandle, string asciiPrefix)
     // {
-    //     Debug.Assert(!rawHandle.IsVirtual);
-    //     Debug.Assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
+    //     assert(!rawHandle.IsVirtual);
+    //     assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
     //     return this.Block.Utf8NullTerminatedStringStartsWithAsciiPrefix(rawHandle.GetHeapOffset(), asciiPrefix);
     // }
 
     // /// <summary>
     // /// Equivalent to Array.BinarySearch, searches for given raw (non-virtual) handle in given array of ASCII strings.
     // /// </summary>
-    // internal int BinarySearchRaw(string[] asciiKeys, StringHandle rawHandle)
+    // public int BinarySearchRaw(string[] asciiKeys, StringHandle rawHandle)
     // {
-    //     Debug.Assert(!rawHandle.IsVirtual);
-    //     Debug.Assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
+    //     assert(!rawHandle.IsVirtual);
+    //     assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
     //     return this.Block.BinarySearch(asciiKeys, rawHandle.GetHeapOffset());
     // }
 }

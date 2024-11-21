@@ -1,4 +1,6 @@
+import { EntityHandle } from "System.Reflection.Metadata";
 import { TableMask, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+
 
 export class HasCustomAttributeTag {
     public static readonly NumberOfBits = 5;
@@ -106,36 +108,34 @@ export class HasCustomAttributeTag {
     //     return new EntityHandle(tokenType | rowId);
     // }
 
-    // internal static uint ConvertToTag(EntityHandle handle)
-    // {
-    //     uint tokenType = handle.Type;
-    //     uint rowId = (uint)handle.RowId;
-    //     return (tokenType >> TokenTypeIds.RowIdBitCount) switch
-    //     {
-    //         TokenTypeIds.MethodDef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | MethodDef,
-    //         TokenTypeIds.FieldDef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Field,
-    //         TokenTypeIds.TypeRef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | TypeRef,
-    //         TokenTypeIds.TypeDef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | TypeDef,
-    //         TokenTypeIds.ParamDef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Param,
-    //         TokenTypeIds.InterfaceImpl >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | InterfaceImpl,
-    //         TokenTypeIds.MemberRef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | MemberRef,
-    //         TokenTypeIds.Module >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Module,
-    //         TokenTypeIds.DeclSecurity >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | DeclSecurity,
-    //         TokenTypeIds.Property >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Property,
-    //         TokenTypeIds.Event >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Event,
-    //         TokenTypeIds.Signature >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | StandAloneSig,
-    //         TokenTypeIds.ModuleRef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | ModuleRef,
-    //         TokenTypeIds.TypeSpec >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | TypeSpec,
-    //         TokenTypeIds.Assembly >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | Assembly,
-    //         TokenTypeIds.AssemblyRef >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | AssemblyRef,
-    //         TokenTypeIds.File >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | File,
-    //         TokenTypeIds.ExportedType >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | ExportedType,
-    //         TokenTypeIds.ManifestResource >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | ManifestResource,
-    //         TokenTypeIds.GenericParam >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | GenericParam,
-    //         TokenTypeIds.GenericParamConstraint >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | GenericParamConstraint,
-    //         TokenTypeIds.MethodSpec >> TokenTypeIds.RowIdBitCount => rowId << NumberOfBits | MethodSpec,
+    public static ConvertToTag(handle: EntityHandle): number {
+        const tokenType = handle.Type;
+        const rowId = handle.RowId;
+        switch (tokenType >> TokenTypeIds.RowIdBitCount) {
+            case TokenTypeIds.MethodDef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.MethodDef;
+            case TokenTypeIds.FieldDef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Field;
+            case TokenTypeIds.TypeRef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.TypeRef;
+            case TokenTypeIds.TypeDef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.TypeDef;
+            case TokenTypeIds.ParamDef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Param;
+            case TokenTypeIds.InterfaceImpl >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.InterfaceImpl;
+            case TokenTypeIds.MemberRef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.MemberRef;
+            case TokenTypeIds.Module >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Module;
+            case TokenTypeIds.DeclSecurity >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.DeclSecurity;
+            case TokenTypeIds.Property >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Property;
+            case TokenTypeIds.Event >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Event;
+            case TokenTypeIds.Signature >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.StandAloneSig;
+            case TokenTypeIds.ModuleRef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.ModuleRef;
+            case TokenTypeIds.TypeSpec >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.TypeSpec;
+            case TokenTypeIds.Assembly >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.Assembly;
+            case TokenTypeIds.AssemblyRef >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.AssemblyRef;
+            case TokenTypeIds.File >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.File;
+            case TokenTypeIds.ExportedType >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.ExportedType;
+            case TokenTypeIds.ManifestResource >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.ManifestResource;
+            case TokenTypeIds.GenericParam >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.GenericParam;
+            case TokenTypeIds.GenericParamConstraint >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.GenericParamConstraint;
+            case TokenTypeIds.MethodSpec >> TokenTypeIds.RowIdBitCount: return rowId << HasCustomAttributeTag.NumberOfBits | HasCustomAttributeTag.MethodSpec;
 
-    //         _ => 0,
-    //     };
-    // }
+            default: return 0;
+        };
+    }
 }

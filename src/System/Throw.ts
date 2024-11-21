@@ -11,6 +11,18 @@ export class ArgumentNullException extends Error {
 }
 
 export class Throw {
+
+    static ReferenceOverflow(): never {
+        throw new Error("ReferenceOverflow: Attempted to read beyond the end of the stream.");
+    }
+    
+    static CultureNotFoundException(param: string, value: string, description: string): never {
+        throw new Error(`CultureNotFoundException: Culture is not found. ${param}, ${value}, ${description}`);
+    }
+
+    static TableNotSorted(arg: any): never {
+        throw new Error(`TableNotSorted: Table is not sorted, ${arg}`);
+    }
     static ImageTooSmall(): never {
         throw new Error("ImageTooSmall: Attempted to read beyond the end of the stream.");
     }
@@ -47,7 +59,7 @@ export class Throw {
         throw new Error("InvalidOperation: Entity or UserString handle expected.");
     }
 
-    static ArgumentException(description: string, parameterName: string): never {
+    static ArgumentException(description: string, parameterName?: string): never {
         throw new Error(`ArgumentException: ${description}, ${parameterName}`);
     }
 
@@ -69,6 +81,16 @@ export class Throw {
 
     static ThrowIfNull(value: any, name?: string) {
         if (value == undefined || value == undefined) {
+            if (name) {
+                throw new Error(`ArgumentNull: ${name}`);
+            } else {
+                throw new Error("ArgumentNull");
+            }
+        }
+    }
+
+    static ThrowIfNullOrEmpty(value: any, name?: string): asserts value{
+        if (value == undefined || value == null || value.length == 0) {
             if (name) {
                 throw new Error(`ArgumentNull: ${name}`);
             } else {

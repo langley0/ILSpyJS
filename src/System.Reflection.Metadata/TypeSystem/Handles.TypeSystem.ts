@@ -9,6 +9,165 @@ import {
 
 import { Handle } from "../Handle";
 import { EntityHandle } from "../EntityHandle";
+import { MetadataReader } from "System.Reflection.Metadata/MetadataReader";
+
+export class ModuleDefinitionHandle {
+    private static readonly tokenType = TokenTypeIds.Module;
+    private static readonly tokenTypeSmall = HandleType.Module;
+    private readonly _rowId: number;
+
+    public constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
+
+    // internal static ModuleDefinitionHandle FromRowId(int rowId)
+    // {
+    //     return new ModuleDefinitionHandle(rowId);
+    // }
+
+    public ToHandle(): Handle {
+        return new Handle(ModuleDefinitionHandle.tokenTypeSmall, this._rowId);
+    }
+
+    public ToEntityHandle(): EntityHandle {
+        return new EntityHandle(ModuleDefinitionHandle.tokenType | this._rowId);
+    }
+
+    // public static explicit operator ModuleDefinitionHandle(Handle handle)
+    // {
+    //     if (handle.VType != tokenTypeSmall)
+    //     {
+    //         Throw.InvalidCast();
+    //     }
+
+    //     return new ModuleDefinitionHandle(handle.RowId);
+    // }
+
+    // public static explicit operator ModuleDefinitionHandle(EntityHandle handle)
+    // {
+    //     if (handle.VType != tokenType)
+    //     {
+    //         Throw.InvalidCast();
+    //     }
+
+    //     return new ModuleDefinitionHandle(handle.RowId);
+    // }
+
+    // public bool IsNil
+    // {
+    //     get
+    //     {
+    //         return RowId == 0;
+    //     }
+    // }
+
+    // internal int RowId { get { return _rowId; } }
+
+    // public static bool operator ==(ModuleDefinitionHandle left, ModuleDefinitionHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
+
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is ModuleDefinitionHandle moduleDefinition && moduleDefinition._rowId == _rowId;
+    // }
+
+    // public bool Equals(ModuleDefinitionHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
+
+    // public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
+
+    // public static bool operator !=(ModuleDefinitionHandle left, ModuleDefinitionHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
+
+export class AssemblyDefinitionHandle {
+    private static readonly tokenType = TokenTypeIds.Assembly;
+    private static readonly tokenTypeSmall = HandleType.Assembly;
+    private readonly _rowId: number;
+
+    public constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
+
+    // internal static AssemblyDefinitionHandle FromRowId(int rowId)
+    // {
+    //     return new AssemblyDefinitionHandle(rowId);
+    // }
+
+    public ToHandle(): Handle {
+        return new Handle(AssemblyDefinitionHandle.tokenTypeSmall, this._rowId);
+    }
+
+    public ToEntityHandle(): EntityHandle {
+        return new EntityHandle(AssemblyDefinitionHandle.tokenType | this._rowId);
+    }
+
+    // public static explicit operator AssemblyDefinitionHandle(Handle handle)
+    // {
+    //     if (handle.VType != tokenTypeSmall)
+    //     {
+    //         Throw.InvalidCast();
+    //     }
+
+    //     return new AssemblyDefinitionHandle(handle.RowId);
+    // }
+
+    // public static explicit operator AssemblyDefinitionHandle(EntityHandle handle)
+    // {
+    //     if (handle.VType != tokenType)
+    //     {
+    //         Throw.InvalidCast();
+    //     }
+
+    //     return new AssemblyDefinitionHandle(handle.RowId);
+    // }
+
+    // public bool IsNil
+    // {
+    //     get
+    //     {
+    //         return RowId == 0;
+    //     }
+    // }
+
+    // internal int RowId { get { return _rowId; } }
+
+    // public static bool operator ==(AssemblyDefinitionHandle left, AssemblyDefinitionHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
+
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is AssemblyDefinitionHandle && ((AssemblyDefinitionHandle)obj)._rowId == _rowId;
+    // }
+
+    // public bool Equals(AssemblyDefinitionHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
+
+    // public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
+
+    // public static bool operator !=(AssemblyDefinitionHandle left, AssemblyDefinitionHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
 
 export class MethodDefinitionHandle {
     private static readonly tokenType = TokenTypeIds.MethodDef;
@@ -100,37 +259,47 @@ export class MethodDefinitionHandle {
 }
 
 export class BlobHandle {
-    //     // bits:
-    //     //     31: IsVirtual
-    //     // 29..30: 0
-    //     //  0..28: Heap offset or Virtual Value (16 bits) + Virtual Index (8 bits)
-    //     private readonly uint _value;
+    // bits:
+    //     31: IsVirtual
+    // 29..30: 0
+    //  0..28: Heap offset or Virtual Value (16 bits) + Virtual Index (8 bits)
+    private readonly _value: number;
 
 
-    //     private BlobHandle(uint value) {
-    //         _value = value;
-    //     }
+    private constructor(value: number) {
+        this._value = value;
+    }
 
-    //         public static BlobHandle FromOffset(number heapOffset) {
-    //         return new BlobHandle((uint)heapOffset);
-    //     }
+    public static FromOffset(heapOffset: number): BlobHandle {
+        return new BlobHandle(heapOffset);
+    }
+
+    public GetBlobBytes(reader: MetadataReader): Uint8Array {
+        return reader.BlobHeap.GetBytes(this);
+    }
 
     //         public static BlobHandle FromVirtualIndex(VirtualIndex virtualIndex, ushort virtualValue) {
     //         assert(virtualIndex < VirtualIndex.Count);
     //         return new BlobHandle(TokenTypeIds.VirtualBit | (uint)(virtualValue << 8) | (uint)virtualIndex);
     //     }
 
-    //         public const number TemplateParameterOffset_AttributeUsageTarget = 2;
+    public static readonly TemplateParameterOffset_AttributeUsageTarget = 2;
 
-    //         public unsafe void SubstituteTemplateParameters(byte[] blob)
-    // {
-    //     assert(blob.Length >= TemplateParameterOffset_AttributeUsageTarget + 4);
+    public SubstituteTemplateParameters(blob: Uint8Array) {
+        assert(blob.length >= BlobHandle.TemplateParameterOffset_AttributeUsageTarget + 4);
+        // VirtualValue is short type 
+        blob[BlobHandle.TemplateParameterOffset_AttributeUsageTarget] = (this.VirtualValue & 0xff);
+        blob[BlobHandle.TemplateParameterOffset_AttributeUsageTarget + 1] = (this.VirtualValue >> 8);
+        blob[BlobHandle.TemplateParameterOffset_AttributeUsageTarget + 2] = 0;
+        blob[BlobHandle.TemplateParameterOffset_AttributeUsageTarget + 3] = 0;
 
-    //     fixed(byte * ptr = & blob[TemplateParameterOffset_AttributeUsageTarget])
-    //     {
-    //                 * ((uint *)ptr) = VirtualValue;
-    //     }
-    // }
+
+
+        // fixed(byte * ptr = & blob[BlobHandle.TemplateParameterOffset_AttributeUsageTarget])
+        // {
+        //             * ((uint *)ptr) = VirtualValue;
+        // }
+    }
 
     //         public static implicit operator Handle(BlobHandle handle)
     // {
@@ -151,34 +320,32 @@ export class BlobHandle {
     //         (uint)handle.Offset);
     // }
 
-    //         public uint RawValue => _value;
+    public get RawValue(): number {
+        return this._value;
+    }
 
-    //         public bool IsNil
-    // {
-    //             get { return _value == 0; }
-    // }
+    public get IsNil(): boolean {
+        return this._value == 0;
+    }
 
-    //         public number GetHeapOffset()
-    // {
-    //     assert(!IsVirtual);
-    //     return (number)_value;
-    // }
+    public GetHeapOffset(): number {
+        assert(!this.IsVirtual);
+        return this._value;
+    }
 
-    //         public VirtualIndex GetVirtualIndex()
-    // {
-    //     assert(IsVirtual);
-    //     return (VirtualIndex)(_value & 0xff);
-    // }
+    public GetVirtualIndex(): BlobHandle.VirtualIndex {
+        assert(this.IsVirtual);
+        return (this._value & 0xff);
+    }
 
-    //         public bool IsVirtual
-    // {
-    //             get { return (_value & TokenTypeIds.VirtualBit) != 0; }
-    // }
+    public get IsVirtual(): boolean {
+        return (this._value & TokenTypeIds.VirtualBit) != 0;
+    }
 
-    //         private ushort VirtualValue
-    // {
-    //             get { return unchecked((ushort)(_value >> 8)); }
-    // }
+    private get VirtualValue(): number // short
+    {
+        return this._value >> 8;
+    }
 
     //         public override bool Equals([NotNullWhen(true)] object ? obj)
     // {
@@ -437,15 +604,14 @@ export class UserStringHandle {
 }
 
 export class TypeDefinitionHandle {
-    // private const uint tokenType = TokenTypeIds.TypeDef;
-    // private const byte tokenTypeSmall = (byte)HandleType.TypeDef;
-    // private readonly int _rowId;
+    private static readonly tokenType = TokenTypeIds.TypeDef;
+    private static readonly tokenTypeSmall = HandleType.TypeDef;
+    private readonly _rowId: number;
 
-    // private TypeDefinitionHandle(int rowId)
-    // {
-    //     assert(TokenTypeIds.IsValidRowId(rowId));
-    //     _rowId = rowId;
-    // }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
     // public static TypeDefinitionHandle FromRowId(int rowId)
     // {
@@ -518,10 +684,10 @@ export class TypeDefinitionHandle {
     // }
 }
 
-//     public readonly struct ExportedTypeHandle : IEquatable<ExportedTypeHandle>
+//     export class ExportedTypeHandle : IEquatable<ExportedTypeHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.ExportedType;
-//         private const byte tokenTypeSmall = (byte)HandleType.ExportedType;
+//         private static readonly tokenType = TokenTypeIds.ExportedType;
+//         private static readonly tokenTypeSmall = (byte)HandleType.ExportedType;
 //         private readonly int _rowId;
 
 //         private ExportedTypeHandle(int rowId)
@@ -601,10 +767,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct TypeReferenceHandle : IEquatable<TypeReferenceHandle>
+//     export class TypeReferenceHandle : IEquatable<TypeReferenceHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.TypeRef;
-//         private const byte tokenTypeSmall = (byte)HandleType.TypeRef;
+//         private static readonly tokenType = TokenTypeIds.TypeRef;
+//         private static readonly tokenTypeSmall = (byte)HandleType.TypeRef;
 //         private readonly int _rowId;
 
 //         private TypeReferenceHandle(int rowId)
@@ -684,10 +850,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct TypeSpecificationHandle : IEquatable<TypeSpecificationHandle>
+//     export class TypeSpecificationHandle : IEquatable<TypeSpecificationHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.TypeSpec;
-//         private const byte tokenTypeSmall = (byte)HandleType.TypeSpec;
+//         private static readonly tokenType = TokenTypeIds.TypeSpec;
+//         private static readonly tokenTypeSmall = (byte)HandleType.TypeSpec;
 //         private readonly int _rowId;
 
 //         private TypeSpecificationHandle(int rowId)
@@ -767,10 +933,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct MemberReferenceHandle : IEquatable<MemberReferenceHandle>
+//     export class MemberReferenceHandle : IEquatable<MemberReferenceHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.MemberRef;
-//         private const byte tokenTypeSmall = (byte)HandleType.MemberRef;
+//         private static readonly tokenType = TokenTypeIds.MemberRef;
+//         private static readonly tokenTypeSmall = (byte)HandleType.MemberRef;
 //         private readonly int _rowId;
 
 //         private MemberReferenceHandle(int rowId)
@@ -850,10 +1016,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct FieldDefinitionHandle : IEquatable<FieldDefinitionHandle>
+//     export class FieldDefinitionHandle : IEquatable<FieldDefinitionHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.FieldDef;
-//         private const byte tokenTypeSmall = (byte)HandleType.FieldDef;
+//         private static readonly tokenType = TokenTypeIds.FieldDef;
+//         private static readonly tokenTypeSmall = (byte)HandleType.FieldDef;
 //         private readonly int _rowId;
 
 //         private FieldDefinitionHandle(int rowId)
@@ -933,10 +1099,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct EventDefinitionHandle : IEquatable<EventDefinitionHandle>
+//     export class EventDefinitionHandle : IEquatable<EventDefinitionHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.Event;
-//         private const byte tokenTypeSmall = (byte)HandleType.Event;
+//         private static readonly tokenType = TokenTypeIds.Event;
+//         private static readonly tokenTypeSmall = (byte)HandleType.Event;
 //         private readonly int _rowId;
 
 //         private EventDefinitionHandle(int rowId)
@@ -1016,10 +1182,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct PropertyDefinitionHandle : IEquatable<PropertyDefinitionHandle>
+//     export class PropertyDefinitionHandle : IEquatable<PropertyDefinitionHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.Property;
-//         private const byte tokenTypeSmall = (byte)HandleType.Property;
+//         private static readonly tokenType = TokenTypeIds.Property;
+//         private static readonly tokenTypeSmall = (byte)HandleType.Property;
 //         private readonly int _rowId;
 
 //         private PropertyDefinitionHandle(int rowId)
@@ -1099,10 +1265,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct StandaloneSignatureHandle : IEquatable<StandaloneSignatureHandle>
+//     export class StandaloneSignatureHandle : IEquatable<StandaloneSignatureHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.Signature;
-//         private const byte tokenTypeSmall = (byte)HandleType.Signature;
+//         private static readonly tokenType = TokenTypeIds.Signature;
+//         private static readonly tokenTypeSmall = (byte)HandleType.Signature;
 //         private readonly int _rowId;
 
 //         private StandaloneSignatureHandle(int rowId)
@@ -1182,10 +1348,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct ParameterHandle : IEquatable<ParameterHandle>
+//     export class ParameterHandle : IEquatable<ParameterHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.ParamDef;
-//         private const byte tokenTypeSmall = (byte)HandleType.ParamDef;
+//         private static readonly tokenType = TokenTypeIds.ParamDef;
+//         private static readonly tokenTypeSmall = (byte)HandleType.ParamDef;
 //         private readonly int _rowId;
 
 //         private ParameterHandle(int rowId)
@@ -1265,10 +1431,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct GenericParameterHandle : IEquatable<GenericParameterHandle>
+//     export class GenericParameterHandle : IEquatable<GenericParameterHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.GenericParam;
-//         private const byte tokenTypeSmall = (byte)HandleType.GenericParam;
+//         private static readonly tokenType = TokenTypeIds.GenericParam;
+//         private static readonly tokenTypeSmall = (byte)HandleType.GenericParam;
 //         private readonly int _rowId;
 
 //         private GenericParameterHandle(int rowId)
@@ -1348,10 +1514,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct GenericParameterConstraintHandle : IEquatable<GenericParameterConstraintHandle>
+//     export class GenericParameterConstraintHandle : IEquatable<GenericParameterConstraintHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.GenericParamConstraint;
-//         private const byte tokenTypeSmall = (byte)HandleType.GenericParamConstraint;
+//         private static readonly tokenType = TokenTypeIds.GenericParamConstraint;
+//         private static readonly tokenTypeSmall = (byte)HandleType.GenericParamConstraint;
 //         private readonly int _rowId;
 
 //         private GenericParameterConstraintHandle(int rowId)
@@ -1431,10 +1597,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct ModuleReferenceHandle : IEquatable<ModuleReferenceHandle>
+//     export class ModuleReferenceHandle : IEquatable<ModuleReferenceHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.ModuleRef;
-//         private const byte tokenTypeSmall = (byte)HandleType.ModuleRef;
+//         private static readonly tokenType = TokenTypeIds.ModuleRef;
+//         private static readonly tokenTypeSmall = (byte)HandleType.ModuleRef;
 //         private readonly int _rowId;
 
 //         private ModuleReferenceHandle(int rowId)
@@ -1514,128 +1680,120 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct AssemblyReferenceHandle : IEquatable<AssemblyReferenceHandle>
+export class AssemblyReferenceHandle {
+    private static readonly tokenType = TokenTypeIds.AssemblyRef;
+    private static readonly tokenTypeSmall = HandleType.AssemblyRef;
+
+    // bits:
+    //     31: IsVirtual
+    // 24..30: 0
+    //  0..23: Heap offset or Virtual index
+    private readonly _value: number;
+
+
+    private constructor(value: number) {
+        this._value = value;
+    }
+
+    //     public static AssemblyReferenceHandle FromRowId(int rowId) {
+    //         assert(TokenTypeIds.IsValidRowId(rowId));
+    //         return new AssemblyReferenceHandle((uint)rowId);
+    //     }
+
+    //     public static AssemblyReferenceHandle FromVirtualIndex(VirtualIndex virtualIndex) {
+    //         assert(virtualIndex < VirtualIndex.Count);
+    //         return new AssemblyReferenceHandle(TokenTypeIds.VirtualBit | (uint)virtualIndex);
+    //     }
+
+    //     public static implicit operator Handle(AssemblyReferenceHandle handle) {
+    //         return Handle.FromVToken(handle.VToken);
+    //     }
+
+    //     public static implicit operator EntityHandle(AssemblyReferenceHandle handle) {
+    //         return new EntityHandle(handle.VToken);
+    //     }
+
+    //     public static explicit operator AssemblyReferenceHandle(Handle handle) {
+    //         if (handle.Type != tokenTypeSmall) {
+    //             Throw.InvalidCast();
+    //         }
+
+    //         return new AssemblyReferenceHandle(handle.SpecificEntityHandleValue);
+    //     }
+
+    //     public static explicit operator AssemblyReferenceHandle(EntityHandle handle) {
+    //         if (handle.Type != tokenType) {
+    //             Throw.InvalidCast();
+    //         }
+
+    //         return new AssemblyReferenceHandle(handle.SpecificHandleValue);
+    //     }
+
+    //     public uint Value
+    //         {
+    //             get { return _value; }
+    // }
+
+    //         private uint VToken
+    // {
+    //             get { return _value | tokenType; }
+    // }
+
+    //         public bool IsNil
+    // {
+    //             get { return _value == 0; }
+    // }
+
+    //         public bool IsVirtual
+    // {
+    //             get { return (_value & TokenTypeIds.VirtualBit) != 0; }
+    // }
+
+    //         public int RowId { get { return (_value & TokenTypeIds.RIDMask); } }
+
+    //         public static bool operator == (AssemblyReferenceHandle left, AssemblyReferenceHandle right)
+    // {
+    //     return left._value == right._value;
+    // }
+
+    //         public override bool Equals(object ? obj)
+    // {
+    //     return obj is AssemblyReferenceHandle && ((AssemblyReferenceHandle)obj)._value == _value;
+    // }
+
+    //         public bool Equals(AssemblyReferenceHandle other)
+    // {
+    //     return _value == other._value;
+    // }
+
+    //         public override int GetHashCode()
+    // {
+    //     return _value.GetHashCode();
+    // }
+
+    //         public static bool operator != (AssemblyReferenceHandle left, AssemblyReferenceHandle right)
+    // {
+    //     return left._value != right._value;
+    // }
+}
+export namespace AssemblyReferenceHandle {
+    export enum VirtualIndex {
+        System_Runtime,
+        System_Runtime_InteropServices_WindowsRuntime,
+        System_ObjectModel,
+        System_Runtime_WindowsRuntime,
+        System_Runtime_WindowsRuntime_UI_Xaml,
+        System_Numerics_Vectors,
+
+        Count
+    }
+}
+
+
+//     export class CustomAttributeHandle : IEquatable<CustomAttributeHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.AssemblyRef;
-//         private const byte tokenTypeSmall = (byte)HandleType.AssemblyRef;
-
-//         // bits:
-//         //     31: IsVirtual
-//         // 24..30: 0
-//         //  0..23: Heap offset or Virtual index
-//         private readonly uint _value;
-
-//         public enum VirtualIndex
-//         {
-//             System_Runtime,
-//             System_Runtime_InteropServices_WindowsRuntime,
-//             System_ObjectModel,
-//             System_Runtime_WindowsRuntime,
-//             System_Runtime_WindowsRuntime_UI_Xaml,
-//             System_Numerics_Vectors,
-
-//             Count
-//         }
-
-//         private AssemblyReferenceHandle(uint value)
-//         {
-//             _value = value;
-//         }
-
-//         public static AssemblyReferenceHandle FromRowId(int rowId)
-//         {
-//             assert(TokenTypeIds.IsValidRowId(rowId));
-//             return new AssemblyReferenceHandle((uint)rowId);
-//         }
-
-//         public static AssemblyReferenceHandle FromVirtualIndex(VirtualIndex virtualIndex)
-//         {
-//             assert(virtualIndex < VirtualIndex.Count);
-//             return new AssemblyReferenceHandle(TokenTypeIds.VirtualBit | (uint)virtualIndex);
-//         }
-
-//         public static implicit operator Handle(AssemblyReferenceHandle handle)
-//         {
-//             return Handle.FromVToken(handle.VToken);
-//         }
-
-//         public static implicit operator EntityHandle(AssemblyReferenceHandle handle)
-//         {
-//             return new EntityHandle(handle.VToken);
-//         }
-
-//         public static explicit operator AssemblyReferenceHandle(Handle handle)
-//         {
-//             if (handle.Type != tokenTypeSmall)
-//             {
-//                 Throw.InvalidCast();
-//             }
-
-//             return new AssemblyReferenceHandle(handle.SpecificEntityHandleValue);
-//         }
-
-//         public static explicit operator AssemblyReferenceHandle(EntityHandle handle)
-//         {
-//             if (handle.Type != tokenType)
-//             {
-//                 Throw.InvalidCast();
-//             }
-
-//             return new AssemblyReferenceHandle(handle.SpecificHandleValue);
-//         }
-
-//         public uint Value
-//         {
-//             get { return _value; }
-//         }
-
-//         private uint VToken
-//         {
-//             get { return _value | tokenType; }
-//         }
-
-//         public bool IsNil
-//         {
-//             get { return _value == 0; }
-//         }
-
-//         public bool IsVirtual
-//         {
-//             get { return (_value & TokenTypeIds.VirtualBit) != 0; }
-//         }
-
-//         public int RowId { get { return (_value & TokenTypeIds.RIDMask); } }
-
-//         public static bool operator ==(AssemblyReferenceHandle left, AssemblyReferenceHandle right)
-//         {
-//             return left._value == right._value;
-//         }
-
-//         public override bool Equals(object? obj)
-//         {
-//             return obj is AssemblyReferenceHandle && ((AssemblyReferenceHandle)obj)._value == _value;
-//         }
-
-//         public bool Equals(AssemblyReferenceHandle other)
-//         {
-//             return _value == other._value;
-//         }
-
-//         public override int GetHashCode()
-//         {
-//             return _value.GetHashCode();
-//         }
-
-//         public static bool operator !=(AssemblyReferenceHandle left, AssemblyReferenceHandle right)
-//         {
-//             return left._value != right._value;
-//         }
-//     }
-
-//     public readonly struct CustomAttributeHandle : IEquatable<CustomAttributeHandle>
-//     {
-//         private const uint tokenType = TokenTypeIds.CustomAttribute;
-//         private const byte tokenTypeSmall = (byte)HandleType.CustomAttribute;
+//         private static readonly tokenType = TokenTypeIds.CustomAttribute;
+//         private static readonly tokenTypeSmall = (byte)HandleType.CustomAttribute;
 //         private readonly int _rowId;
 
 //         private CustomAttributeHandle(int rowId)
@@ -1715,10 +1873,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct DeclarativeSecurityAttributeHandle : IEquatable<DeclarativeSecurityAttributeHandle>
+//     export class DeclarativeSecurityAttributeHandle : IEquatable<DeclarativeSecurityAttributeHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.DeclSecurity;
-//         private const byte tokenTypeSmall = (byte)HandleType.DeclSecurity;
+//         private static readonly tokenType = TokenTypeIds.DeclSecurity;
+//         private static readonly tokenTypeSmall = (byte)HandleType.DeclSecurity;
 //         private readonly int _rowId;
 
 //         private DeclarativeSecurityAttributeHandle(int rowId)
@@ -1798,10 +1956,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct ConstantHandle : IEquatable<ConstantHandle>
+//     export class ConstantHandle : IEquatable<ConstantHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.Constant;
-//         private const byte tokenTypeSmall = (byte)HandleType.Constant;
+//         private static readonly tokenType = TokenTypeIds.Constant;
+//         private static readonly tokenTypeSmall = (byte)HandleType.Constant;
 //         private readonly int _rowId;
 
 //         private ConstantHandle(int rowId)
@@ -1881,10 +2039,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct ManifestResourceHandle : IEquatable<ManifestResourceHandle>
+//     export class ManifestResourceHandle : IEquatable<ManifestResourceHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.ManifestResource;
-//         private const byte tokenTypeSmall = (byte)HandleType.ManifestResource;
+//         private static readonly tokenType = TokenTypeIds.ManifestResource;
+//         private static readonly tokenTypeSmall = (byte)HandleType.ManifestResource;
 //         private readonly int _rowId;
 
 //         private ManifestResourceHandle(int rowId)
@@ -1964,10 +2122,10 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     public readonly struct AssemblyFileHandle : IEquatable<AssemblyFileHandle>
+//     export class AssemblyFileHandle : IEquatable<AssemblyFileHandle>
 //     {
-//         private const uint tokenType = TokenTypeIds.File;
-//         private const byte tokenTypeSmall = (byte)HandleType.File;
+//         private static readonly tokenType = TokenTypeIds.File;
+//         private static readonly tokenTypeSmall = (byte)HandleType.File;
 //         private readonly int _rowId;
 
 //         private AssemblyFileHandle(int rowId)
@@ -2053,7 +2211,7 @@ export class TypeDefinitionHandle {
 //     /// <remarks>
 //     /// The handle is 32-bit wide.
 //     /// </remarks>
-//     public readonly struct UserStringHandle : IEquatable<UserStringHandle>
+//     export class UserStringHandle : IEquatable<UserStringHandle>
 //     {
 //         // bits:
 //         //     31: 0
@@ -2143,10 +2301,20 @@ export class StringHandle {
         this._value = value;
     }
 
-    // public static StringHandle FromOffset(int heapOffset)
-    // {
-    //     return new StringHandle(StringHandleType.String | (uint)heapOffset);
-    // }
+    public static FromOffset(heapOffset: number): StringHandle {
+        return new StringHandle(StringHandleType.String | heapOffset);
+    }
+
+    GetString(reader: MetadataReader): string {
+        return reader.StringHeap.GetString(this, reader.UTF8Decoder);
+    }
+
+    GetStringOrNull(reader: MetadataReader): string | undefined {
+        if (this.IsNil) {
+            return undefined;
+        }
+        return reader.StringHeap.GetString(this, reader.UTF8Decoder);
+    }
 
     // public static StringHandle FromVirtualIndex(VirtualIndex virtualIndex)
     // {
@@ -2213,18 +2381,16 @@ export class StringHandle {
         return (this._value & (HeapHandleType.VirtualBit | HeapHandleType.OffsetMask)) == 0;
     }
 
-    // public int GetHeapOffset()
-    // {
-    //     // WinRT prefixed strings are virtual, the value is a heap offset
-    //     assert(!IsVirtual || StringKind == StringKind.WinRTPrefixed);
-    //     return (_value & HeapHandleType.OffsetMask);
-    // }
+    public GetHeapOffset(): number {
+        // WinRT prefixed strings are virtual, the value is a heap offset
+        assert(!this.IsVirtual || this.StringKind == StringKind.WinRTPrefixed);
+        return (this._value & HeapHandleType.OffsetMask);
+    }
 
-    // public VirtualIndex GetVirtualIndex()
-    // {
-    //     assert(IsVirtual && StringKind != StringKind.WinRTPrefixed);
-    //     return (VirtualIndex)(_value & HeapHandleType.OffsetMask);
-    // }
+    public GetVirtualIndex(): StringHandle.VirtualIndex {
+        assert(this.IsVirtual && this.StringKind != StringKind.WinRTPrefixed);
+        return (this._value & HeapHandleType.OffsetMask);
+    }
 
     public GetWriterVirtualIndex(): number {
         assert(this.IsNil || this.IsVirtual && this.StringKind == StringKind.Virtual);
@@ -2344,7 +2510,7 @@ export namespace StringHandle {
 //     /// <summary>
 //     /// A handle that represents a namespace definition.
 //     /// </summary>
-//     public readonly struct NamespaceDefinitionHandle : IEquatable<NamespaceDefinitionHandle>
+//     export class NamespaceDefinitionHandle : IEquatable<NamespaceDefinitionHandle>
 //     {
 //         // Non-virtual (namespace having at least one type or forwarder of its own)
 //         // heap offset is to the null-terminated full name of the namespace in the
@@ -2459,139 +2625,9 @@ export namespace StringHandle {
 //         }
 //     }
 
-//     // #Blob heap handle
-//     public readonly struct BlobHandle : IEquatable<BlobHandle>
-//     {
-//         // bits:
-//         //     31: IsVirtual
-//         // 29..30: 0
-//         //  0..28: Heap offset or Virtual Value (16 bits) + Virtual Index (8 bits)
-//         private readonly uint _value;
-
-//         public enum VirtualIndex : byte
-//         {
-//             Nil,
-
-//             // B0 3F 5F 7F 11 D5 0A 3A
-//             ContractPublicKeyToken,
-
-//             // 00, 24, 00, 00, 04, ...
-//             ContractPublicKey,
-
-//             // Template for projected AttributeUsage attribute blob
-//             AttributeUsage_AllowSingle,
-
-//             // Template for projected AttributeUsage attribute blob with AllowMultiple=true
-//             AttributeUsage_AllowMultiple,
-
-//             Count
-//         }
-
-//         private BlobHandle(uint value)
-//         {
-//             _value = value;
-//         }
-
-//         public static BlobHandle FromOffset(int heapOffset)
-//         {
-//             return new BlobHandle((uint)heapOffset);
-//         }
-
-//         public static BlobHandle FromVirtualIndex(VirtualIndex virtualIndex, ushort virtualValue)
-//         {
-//             assert(virtualIndex < VirtualIndex.Count);
-//             return new BlobHandle(TokenTypeIds.VirtualBit | (uint)(virtualValue << 8) | (uint)virtualIndex);
-//         }
-
-//         public const int TemplateParameterOffset_AttributeUsageTarget = 2;
-
-//         public unsafe void SubstituteTemplateParameters(byte[] blob)
-//         {
-//             assert(blob.Length >= TemplateParameterOffset_AttributeUsageTarget + 4);
-
-//             fixed (byte* ptr = &blob[TemplateParameterOffset_AttributeUsageTarget])
-//             {
-//                 *((uint*)ptr) = VirtualValue;
-//             }
-//         }
-
-//         public static implicit operator Handle(BlobHandle handle)
-//         {
-//             // V... -> V111 0001
-//             return new Handle(
-//                 (byte)((handle._value & HeapHandleType.VirtualBit) >> 24 | HandleType.Blob),
-//                 (handle._value & HeapHandleType.OffsetMask));
-//         }
-
-//         public static explicit operator BlobHandle(Handle handle)
-//         {
-//             if ((handle.VType & HandleType.TypeMask) != HandleType.Blob)
-//             {
-//                 Throw.InvalidCast();
-//             }
-
-//             return new BlobHandle(
-//                 (handle.VType & HandleType.VirtualBit) << TokenTypeIds.RowIdBitCount |
-//                 (uint)handle.Offset);
-//         }
-
-//         public uint RawValue => _value;
-
-//         public bool IsNil
-//         {
-//             get { return _value == 0; }
-//         }
-
-//         public int GetHeapOffset()
-//         {
-//             assert(!IsVirtual);
-//             return _value;
-//         }
-
-//         public VirtualIndex GetVirtualIndex()
-//         {
-//             assert(IsVirtual);
-//             return (VirtualIndex)(_value & 0xff);
-//         }
-
-//         public bool IsVirtual
-//         {
-//             get { return (_value & TokenTypeIds.VirtualBit) != 0; }
-//         }
-
-//         private ushort VirtualValue
-//         {
-//             get { return unchecked((ushort)(_value >> 8)); }
-//         }
-
-//         public override bool Equals([NotNullWhen(true)] object? obj)
-//         {
-//             return obj is BlobHandle bh && Equals(bh);
-//         }
-
-//         public bool Equals(BlobHandle other)
-//         {
-//             return _value == other._value;
-//         }
-
-//         public override int GetHashCode()
-//         {
-//             return unchecked(_value);
-//         }
-
-//         public static bool operator ==(BlobHandle left, BlobHandle right)
-//         {
-//             return left.Equals(right);
-//         }
-
-//         public static bool operator !=(BlobHandle left, BlobHandle right)
-//         {
-//             return !left.Equals(right);
-//         }
-//     }
 
 //     // #Guid heap handle
-//     public readonly struct GuidHandle : IEquatable<GuidHandle>
+//     export class GuidHandle : IEquatable<GuidHandle>
 //     {
 //         // The Guid heap is an array of GUIDs, each 16 bytes wide.
 //         // Its first element is numbered 1, its second 2, and so on.

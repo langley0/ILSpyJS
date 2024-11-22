@@ -15,6 +15,7 @@ export * from "./Module";
 export * from "./ProcessorArchitecture";
 export * from "./AssemblyNameParser";
 export * from "./ModuleResolveEventHandler";
+export * from "./AssemblyNameHelpers";
 
 export * from 'System.Reflection.MetadataLoadContext/MetadataAssemblyResolver';
 export * from 'System.Reflection.MetadataLoadContext/MetadataLoadContext';

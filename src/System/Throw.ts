@@ -12,6 +12,10 @@ export class ArgumentNullException extends Error {
 
 export class Throw {
 
+    static SecurityException(description: string): never {
+        throw new Error(`SecurityException: ${description}`);
+    }
+
     static RoExceptionAssembly(description: string): never {
         throw new Error("RoExceptionAssembly: Exception assembly not found." + description);
     }

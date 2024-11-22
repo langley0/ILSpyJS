@@ -56,7 +56,7 @@ export class RoAssemblyName {
 
     public  ToAssemblyName(): AssemblyName
     {
-        const an = new AssemblyName()
+        const an = new AssemblyName(this.Name);
         
         an.Name = this.Name;
         an.Version = this.Version;

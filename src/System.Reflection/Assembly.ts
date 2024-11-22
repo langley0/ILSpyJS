@@ -1,14 +1,15 @@
-import { Type } from "System";
+import * as path from 'path';
+import { Throw, Type } from "System";
 import { ICustomAttributeProvider } from './ICustomAttributeProvider';
 import { ISerializable } from 'System.Runtime.Serialization';
 import { Module } from "./Module";
 import { AssemblyName } from "./AssemblyName";
-import { ModuleResolveEventHandler } from "./ModuleResolveEventHandler";
+import { ModuleResolveEventHandler, ResolveEventArgs } from "./ModuleResolveEventHandler";
 
 export class Assembly implements ICustomAttributeProvider, ISerializable {
-    //     private static readonly Dictionary<string, Assembly> s_loadfile = new Dictionary<string, Assembly>();
-    //     private static readonly List<string> s_loadFromAssemblyList = new List<string>();
-    //     private static bool s_loadFromHandlerSet;
+    private static readonly s_loadfile = new Map<string, Assembly>();
+    private static readonly s_loadFromAssemblyList = new Array<string>();
+    private static s_loadFromHandlerSet: boolean = false;
     //     private static int s_cachedSerializationSwitch;
 
     //     protected Assembly() { }
@@ -88,7 +89,7 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
 
     //     public bool IsFullyTrusted => true;
 
-        public   GetName( copiedName: boolean = false): AssemblyName { throw new Error('Method not implemented by Design'); }
+    public GetName(copiedName: boolean = false): AssemblyName { throw new Error('Method not implemented by Design'); }
 
     //     [RequiresUnreferencedCode("Types might be removed by trimming. If the type name is a string literal, consider using Type.GetType instead.")]
     //     public virtual Type? GetType(string name) => GetType(name, throwOnError: false, ignoreCase: false);
@@ -124,11 +125,11 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     //         return Activator.CreateInstance(t, bindingAttr, binder, args, culture, activationAttributes);
     //     }
 
-        public get ModuleResolve(): ModuleResolveEventHandler | undefined { 
-            throw new Error("NotImplemented.ByDesign");
-         }
+    public get ModuleResolve(): ModuleResolveEventHandler | undefined {
+        throw new Error("NotImplemented.ByDesign");
+    }
 
-        public get ManifestModule() : Module  { throw new Error("NotImplemented.ByDesign"); }
+    public get ManifestModule(): Module { throw new Error("NotImplemented.ByDesign"); }
     //     public virtual Module? GetModule(string name) { throw NotImplemented.ByDesign; }
 
     //     public Module[] GetModules() => GetModules(getResourceModules: false);
@@ -292,41 +293,31 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     //     [RequiresUnreferencedCode("Types and members the loaded assembly depends on might be removed")]
     //     [UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file",
     //         Justification = "The assembly is loaded by specifying a path outside of the single-file bundle, the location of the path will not be empty if the path exist, otherwise it will be handled as undefined")]
-    //     private static Assembly? LoadFromResolveHandler(object? sender, ResolveEventArgs args)
-    //     {
-    //         Assembly? requestingAssembly = args.RequestingAssembly;
-    //         if (requestingAssembly == undefined)
-    //         {
-    //             return undefined;
-    //         }
+    private static LoadFromResolveHandler(sender: object | undefined, args: ResolveEventArgs): Assembly | undefined {
+        const requestingAssembly = args.RequestingAssembly;
+        if (requestingAssembly == undefined) {
+            return undefined;
+        }
 
-    //         // Requesting assembly for LoadFrom is always loaded in defaultContext - proceed only if that
-    //         // is the case.
-    //         if (AssemblyLoadContext.Default != AssemblyLoadContext.GetLoadContext(requestingAssembly))
-    //             return undefined;
+        // // Requesting assembly for LoadFrom is always loaded in defaultContext - proceed only if that
+        // // is the case.
+        // if (AssemblyLoadContext.Default != AssemblyLoadContext.GetLoadContext(requestingAssembly))
+        //     return undefined;
 
-    //         // Get the path where requesting assembly lives and check if it is in the list
-    //         // of assemblies for which LoadFrom was invoked.
-    //         string requestorPath = requestingAssembly.Location;
-    //         if (string.IsNullOrEmpty(requestorPath))
-    //             return undefined;
+        //     // Get the path where requesting assembly lives and check if it is in the list
+        //     // of assemblies for which LoadFrom was invoked.
+        //     string requestorPath = requestingAssembly.Location;
+        // if (string.IsNullOrEmpty(requestorPath))
+        //     return undefined;
 
-    //         requestorPath = Path.GetFullPath(requestorPath);
+        // requestorPath = Path.GetFullPath(requestorPath);
 
-    //         lock (s_loadFromAssemblyList)
-    //         {
-    //             // If the requestor assembly was not loaded using LoadFrom, exit.
-    //             if (!s_loadFromAssemblyList.Contains(requestorPath))
-    //             {
-    // #if CORECLR
-    //                 if (AssemblyLoadContext.IsTracingEnabled())
-    //                 {
-    //                     AssemblyLoadContext.TraceAssemblyLoadFromResolveHandlerInvoked(args.Name, false, requestorPath, undefined);
-    //                 }
-    // #endif // CORECLR
-    //                 return undefined;
-    //             }
-    //         }
+        // // If the requestor assembly was not loaded using LoadFrom, exit.
+        // if (!s_loadFromAssemblyList.Contains(requestorPath)) {
+        //     return undefined;
+        // }
+        throw new Error('NotImplemented.ByDesign');
+    }
 
     //         // Requestor assembly was loaded using loadFrom, so look for its dependencies
     //         // in the same folder as it.
@@ -362,36 +353,25 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     //     }
 
     //     [RequiresUnreferencedCode("Types and members the loaded assembly depends on might be removed")]
-    //     public static Assembly LoadFrom(string assemblyFile)
-    //     {
-    //         ArgumentNullException.ThrowIfNull(assemblyFile);
+    public static LoadFrom(assemblyFile: string): Assembly {
+        Throw.ThrowIfNull(assemblyFile);
 
-    //         string fullPath = Path.GetFullPath(assemblyFile);
+        // const fullPath = Path.GetFullPath(assemblyFile);
 
-    //         if (!s_loadFromHandlerSet)
-    //         {
-    //             lock (s_loadFromAssemblyList)
-    //             {
-    //                 if (!s_loadFromHandlerSet)
-    //                 {
-    //                     AssemblyLoadContext.AssemblyResolve += LoadFromResolveHandler!;
-    //                     s_loadFromHandlerSet = true;
-    //                 }
-    //             }
-    //         }
+        // if (!Assembly.s_loadFromHandlerSet) {
+        //     AssemblyLoadContext.AssemblyResolve += this.LoadFromResolveHandler!;
+        //     Assembly.s_loadFromHandlerSet = true;
+        // }
 
-    //         // Add the path to the LoadFrom path list which we will consult
-    //         // before handling the resolves in our handler.
-    //         lock (s_loadFromAssemblyList)
-    //         {
-    //             if (!s_loadFromAssemblyList.Contains(fullPath))
-    //             {
-    //                 s_loadFromAssemblyList.Add(fullPath);
-    //             }
-    //         }
+        // // Add the path to the LoadFrom path list which we will consult
+        // // before handling the resolves in our handler.
+        // if (!Assembly.s_loadFromAssemblyList.includes(fullPath)) {
+        //     Assembly.s_loadFromAssemblyList.push(fullPath);
+        // }
 
-    //         return AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
-    //     }
+        // return AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
+        throw new Error('NotImplemented');
+    }
 
     //     [RequiresUnreferencedCode("Types and members the loaded assembly depends on might be removed")]
     //     [Obsolete(Obsoletions.LoadFromHashAlgorithmMessage, DiagnosticId = Obsoletions.LoadFromHashAlgorithmDiagId, UrlFormat = Obsoletions.SharedUrlFormat)]

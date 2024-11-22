@@ -3,6 +3,7 @@ import { Throw } from 'System';
 import { MemoryStream, Stream } from 'System.IO';
 import {
     MetadataAssemblyResolver,
+    Assembly,
     AssemblyName,
 } from "System.Reflection";
 import {
@@ -295,11 +296,9 @@ export class MetadataLoadContext {
     // undefined entries do *not* appear here.
     private readonly _loadedAssemblies = new Map<RoAssemblyName, RoAssembly>();
 
-    public static FromBuffer(buffer: Uint8Array): RoAssembly {
-        // const stream = new MemoryStream(buffer);
-        // const context = new MetadataLoadContext();
-        // return context.LoadFromStreamCore(stream);
-        throw new Error("Not implemented");
+    public LoadFromByteArray(buffer: Uint8Array): Assembly {
+        const stream = new MemoryStream(buffer);
+        return this.LoadFromStreamCore(stream);
     }
 
     private LoadFromStreamCore(peStream: Stream): RoAssembly {
@@ -317,6 +316,10 @@ export class MetadataLoadContext {
         }
         const defName = new RoAssemblyName(defNameData.Name, defNameData.Version, defNameData.CultureName, pkt, defNameData.Flags);
         const winner = this._loadedAssemblies.get(defName);
+        if (winner == undefined) {
+            this._loadedAssemblies.set(defName, candidate);
+            return candidate; 
+        }
 
         if (winner == candidate) {
             // We won the race.

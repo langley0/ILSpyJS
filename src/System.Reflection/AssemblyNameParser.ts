@@ -417,7 +417,7 @@ export class AssemblyNameParser {
             }
 
             c = this.TryGetNextChar();
-            if (c) {
+            if (c == undefined) {
                 return undefined;
             }
         }

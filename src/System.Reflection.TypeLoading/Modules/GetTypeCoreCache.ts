@@ -14,15 +14,14 @@ class Entry {
 
 class Container {
     public constructor(owner: GetTypeCoreCache) {
-        // // Note: This could be done by calling Resize()'s logic but we cannot safely do that as this code path is reached
-        // // during class construction time and Resize() pulls in enough stuff that we get cyclic cctor warnings from the build.
-        // _buckets = new int[_initialCapacity];
-        // for (int i = 0; i < _initialCapacity; i++)
-        //     _buckets[i] = -1;
-        // _entries = new Entry[_initialCapacity];
-        // _nextFreeEntry = 0;
-        // _owner = owner;
-        throw new Error("not implemented");
+        // Note: This could be done by calling Resize()'s logic but we cannot safely do that as this code path is reached
+        // during class construction time and Resize() pulls in enough stuff that we get cyclic cctor warnings from the build.
+        this._buckets = new Array<number>(Container._initialCapacity);
+        for (let i = 0; i < Container._initialCapacity; i++)
+            this._buckets[i] = -1;
+        this._entries = new Array<Entry>(Container._initialCapacity);
+        this._nextFreeEntry = 0;
+        this._owner = owner;
     }
 
     //             private Container(GetTypeCoreCache owner, int[] buckets, Entry[] entries, int nextFreeEntry)

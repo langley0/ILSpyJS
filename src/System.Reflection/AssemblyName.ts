@@ -13,6 +13,7 @@ import {
     AssemblyNameFlags,
     ProcessorArchitecture,
     AssemblyContentType,
+    AssemblyNameHelpers,
 } from "System.Reflection";
 
 export class AssemblyName {
@@ -199,8 +200,8 @@ export class AssemblyName {
     // The compressed version of the public key formed from a truncated hash.
     // Will throw a SecurityException if _publicKey is invalid
     public GetPublicKeyToken(): Uint8Array | undefined {
-        // this._publicKeyToken= this._publicKeyToken ?? AssemblyNameHelpers.ComputePublicKeyToken(_publicKey);
-        throw new Error("Not implemented");
+        this._publicKeyToken = this._publicKeyToken ?? AssemblyNameHelpers.ComputePublicKeyToken(this._publicKey);
+        return this._publicKeyToken;
     }
 
     public SetPublicKeyToken(publicKeyToken: Uint8Array | undefined) {

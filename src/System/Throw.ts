@@ -12,10 +12,21 @@ export class ArgumentNullException extends Error {
 
 export class Throw {
 
+    static RoExceptionAssembly(description: string): never {
+        throw new Error("RoExceptionAssembly: Exception assembly not found." + description);
+    }
+    static FileNotFoundException(description: string, parameterName?: string): never {
+        throw new Error(`FileNotFoundException: ${description}, ${parameterName}`);
+    }
+
+    static TypeLoadException(description?: string): never {
+        throw new Error(`TypeLoadException: ${description}`);
+    }
+
     static ReferenceOverflow(): never {
         throw new Error("ReferenceOverflow: Attempted to read beyond the end of the stream.");
     }
-    
+
     static CultureNotFoundException(param: string, value: string, description: string): never {
         throw new Error(`CultureNotFoundException: Culture is not found. ${param}, ${value}, ${description}`);
     }
@@ -51,7 +62,7 @@ export class Throw {
         throw new Error("PEReaderDisposed: The PE reader has been disposed.");
     }
 
-    static OutOfBounds() : never {
+    static OutOfBounds(): never {
         throw new Error("OutOfBounds: Attempted to read beyond the end of the stream.");
     }
 
@@ -89,7 +100,7 @@ export class Throw {
         }
     }
 
-    static ThrowIfNullOrEmpty(value: any, name?: string): asserts value{
+    static ThrowIfNullOrEmpty(value: any, name?: string): asserts value {
         if (value == undefined || value == null || value.length == 0) {
             if (name) {
                 throw new Error(`ArgumentNull: ${name}`);

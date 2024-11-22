@@ -1,6 +1,8 @@
+import { Throw } from "System";
 import assert from "assert";
-import { Module } from "System.Reflection";
-import { Guid } from "System/Guid";
+import { Module, MetadataLoadContext } from "System.Reflection";
+import { RoDefinitionType, RoAssembly, GetTypeCoreCache } from "System.Reflection.TypeLoading";
+import { Guid } from "System";
 
 export abstract class RoModule extends Module {
     private readonly _fullyQualifiedName: string;
@@ -17,7 +19,7 @@ export abstract class RoModule extends Module {
     //         public sealed override string ToString() => Loader.GetDisposedString() ?? base.ToString();
 
     //         public sealed override Assembly Assembly => GetRoAssembly();
-    //         public abstract RoAssembly GetRoAssembly();
+    public abstract GetRoAssembly(): RoAssembly;
 
     //         public const string UnknownStringMessageInRAF = "Returns <Unknown> for modules with no file path";
 
@@ -27,7 +29,7 @@ export abstract class RoModule extends Module {
     //         public sealed override string FullyQualifiedName => _fullyQualifiedName;
     //         public abstract override int MDStreamVersion { get; }
     //         public abstract override int MetadataToken { get; }
-            public abstract override get ModuleVersionId(): Guid;
+    public abstract override get ModuleVersionId(): Guid;
 
     // #if NET
     //         [RequiresAssemblyFiles(UnknownStringMessageInRAF)]
@@ -94,37 +96,37 @@ export abstract class RoModule extends Module {
     //             return type;
     //         }
 
-    //         /// <summary>
-    //         /// Helper routine for the more general Module.GetType() family of apis. Also used in typeRef resolution.
-    //         ///
-    //         /// Resolves top-level named types only. No nested types. No constructed types. The input name must not be escaped.
-    //         ///
-    //         /// If a type is not contained or forwarded from the module, this method returns undefined (does not throw.)
-    //         /// This supports the "throwOnError: false" behavior of Module.GetType(string, bool).
-    //         /// </summary>
-    //         public RoDefinitionType? GetTypeCore(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name, bool ignoreCase, out Exception? e)
-    //         {
-    //             if (ignoreCase)
-    //                 throw new NotSupportedException(SR.NotSupported_CaseInsensitive);
+    /// <summary>
+    /// Helper routine for the more general Module.GetType() family of apis. Also used in typeRef resolution.
+    ///
+    /// Resolves top-level named types only. No nested types. No constructed types. The input name must not be escaped.
+    ///
+    /// If a type is not contained or forwarded from the module, this method returns undefined (does not throw.)
+    /// This supports the "throwOnError: false" behavior of Module.GetType(string, bool).
+    /// </summary>
+    public GetTypeCore(ns: Uint8Array, name: Uint8Array, ignoreCase: boolean): RoDefinitionType | undefined {
+        if (ignoreCase) {
+            throw new Error("NotSupported_CaseInsensitive");
+        }
 
-    //             int hashCode = GetTypeCoreCache.ComputeHashCode(name);
-    //             if (!_getTypeCoreCache.TryGet(ns, name, hashCode, out RoDefinitionType? type))
-    //             {
-    //                 type = GetTypeCoreNoCache(ns, name, out e) ?? new RoExceptionType(ns, name, e);
-    //                 _getTypeCoreCache.GetOrAdd(ns, name, hashCode, type); // Type objects are unified independently of this cache so no need to check if we won the race to cache this Type
-    //             }
+        const hashCode = GetTypeCoreCache.ComputeHashCode(name);
+        let type = this._getTypeCoreCache.TryGet(ns, name, hashCode);
+        if (type != undefined) {
+            type = this.GetTypeCoreNoCache(ns, name);
+            if (type == undefined) {
+                throw new Error(`Type not found: ${ns} ${name}`);
+            }
+            this._getTypeCoreCache.GetOrAdd(ns, name, hashCode, type); // Type objects are unified independently of this cache so no need to check if we won the race to cache this Type
+        }
 
-    //             if (type is RoExceptionType exceptionType)
-    //             {
-    //                 e = exceptionType.Exception;
-    //                 return undefined;
-    //             }
+        if (type == undefined) {
+            return undefined;
+        }
 
-    //             e = undefined;
-    //             return type;
-    //         }
-    //         protected abstract RoDefinitionType? GetTypeCoreNoCache(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name, out Exception? e);
-    //         public readonly GetTypeCoreCache _getTypeCoreCache = new GetTypeCoreCache();
+        return type;
+    }
+    protected abstract GetTypeCoreNoCache(ns: Uint8Array, name: Uint8Array): RoDefinitionType | undefined;
+    public readonly _getTypeCoreCache: GetTypeCoreCache = new GetTypeCoreCache();
 
-    //         public MetadataLoadContext Loader => GetRoAssembly().Loader;
+    public get Loader(): MetadataLoadContext { return this.GetRoAssembly().Loader; }
 }

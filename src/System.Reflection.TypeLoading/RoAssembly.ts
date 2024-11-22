@@ -1,11 +1,17 @@
+import { Stream } from "System.IO";
 import { Assembly } from "System.Reflection";
 import { AssemblyNameData } from "./AssemblyNameData";
-import { MetadataLoadContext } from "System.Reflection.MetadataLoadContext";
-import { RoModule } from "System.Reflection.TypeLoading";
-import { Module, AssemblyName } from "System.Reflection";
+import { MetadataLoadContext } from "System.Reflection";
+import { RoModule, RoDefinitionType, AssemblyFileInfo } from "System.Reflection.TypeLoading";
+import { 
+    Module, 
+    AssemblyName,
+    ModuleResolveEventHandler,
+    
+} from "System.Reflection";
 
 export abstract class RoAssembly extends Assembly {
-    private readonly _loadedModules?: RoModule[]; // Any loaded modules indexed by [rid - 1]. Does NOT include the manifest module.
+    private readonly _loadedModules: RoModule[]; // Any loaded modules indexed by [rid - 1]. Does NOT include the manifest module.
 
     protected constructor(loader: MetadataLoadContext, assemblyFileCount: number) {
         super();
@@ -113,23 +119,23 @@ export abstract class RoAssembly extends Assembly {
     //         /// This supports the "throwOnError: false" behavior of Assembly.GetType(string, boolean).
     //         /// </summary>
     //         public RoDefinitionType? GetTypeCore(string ns, string name, boolean ignoreCase, out Exception? e) => GetTypeCore(ns.ToUtf8(), name.ToUtf8(), ignoreCase, out e);
-    //         public RoDefinitionType? GetTypeCore(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name, boolean ignoreCase, out Exception? e)
-    //         {
-    //             RoDefinitionType? result = GetRoManifestModule().GetTypeCore(ns, name, ignoreCase, out e);
-    //             if (IsSingleModule || result != undefined)
-    //                 return result;
+    public GetTypeCore(ns: Uint8Array, name: Uint8Array, ignoreCase: boolean): RoDefinitionType | undefined {
+        const result: RoDefinitionType | undefined = this.GetRoManifestModule().GetTypeCore(ns, name, ignoreCase);
+        if (this.IsSingleModule || result != undefined)
+            return result;
 
-    //             foreach (RoModule module in ComputeRoModules(getResourceModules: false))
-    //             {
-    //                 if (module == ManifestModule)
-    //                     continue;
+        for (const module of this.ComputeRoModules(false)) {
+            if (module == this.ManifestModule) {
+                continue;
+            }
 
-    //                 result = module.GetTypeCore(ns, name, ignoreCase, out e);
-    //                 if (result != undefined)
-    //                     return result;
-    //             }
-    //             return undefined;
-    //         }
+            const result = module.GetTypeCore(ns, name, ignoreCase);
+            if (result != undefined) {
+                return result;
+            }
+        }
+        return undefined;
+    }
 
     //         // Assembly dependencies
     //         public sealed override AssemblyName[] GetReferencedAssemblies()
@@ -208,4 +214,106 @@ export abstract class RoAssembly extends Assembly {
     //         public sealed override object CreateInstance(string typeName, boolean ignoreCase, BindingFlags bindingAttr, Binder? binder, object?[]? args, CultureInfo? culture, object?[]? activationAttributes) => throw new ArgumentException(SR.Arg_ReflectionOnlyInvoke);
 
     public readonly Loader: MetadataLoadContext;
+
+
+
+    //     public sealed override FileStream[] GetFiles(bool getResourceModules)
+    //     {
+    //         Module[] m = GetModules(getResourceModules);
+    //         FileStream[] fs = new FileStream[m.Length];
+    //         for (int i = 0; i < fs.Length; i++)
+    //         {
+    //             fs[i] = new FileStream(m[i].FullyQualifiedName, FileMode.Open, FileAccess.Read, FileShare.Read);
+    //         }
+    //         return fs;
+    //     }
+
+    //     public sealed override Module[] GetLoadedModules(bool getResourceModules)
+    //     {
+    //         List<Module> modules = new List<Module>(_loadedModules.Length + 1)
+    //         {
+    //             GetRoManifestModule()
+    //         };
+    //         for (int i = 0; i < _loadedModules.Length; i++)
+    //         {
+    //             RoModule? module = Volatile.Read(ref _loadedModules[i]);
+    //             if (module != undefined && (getResourceModules || !module.IsResource()))
+    //                 modules.Add(module);
+    //         }
+    //         return modules.ToArray();
+    //     }
+
+        public abstract override get ModuleResolve(): ModuleResolveEventHandler | undefined;
+
+    public GetRoModuleByName(name: string): RoModule | undefined {
+        const afi: AssemblyFileInfo | undefined = this.TryGetAssemblyFileInfo(name, true);
+        if (afi == undefined) {
+            return undefined;
+        }
+
+
+        return this.GetRoModule(afi);
+    }
+
+    private GetRoModule(afi: AssemblyFileInfo): RoModule {
+        if (afi.RowIndex == 0)
+            return this.GetRoManifestModule();
+
+        const loadedModulesIndex = afi.RowIndex - 1;
+        const moduleName = afi.Name;
+        const prior = this._loadedModules[loadedModulesIndex];
+        if (prior != undefined)
+            return prior;
+
+        const newModule = this.LoadModule(moduleName, afi.ContainsMetadata);
+        this._loadedModules[loadedModulesIndex] = newModule;
+        return newModule;
+    }
+
+    public ComputeRoModules(getResourceModules: boolean): RoModule[] {
+        const modules = new Array<RoModule>();
+        for (const afi of this.GetAssemblyFileInfosFromManifest(true, getResourceModules)) {
+            const module = this.GetRoModule(afi);
+            modules.push(module);
+        }
+        return modules;
+    }
+
+    // #pragma warning disable CS8995 // Nullable type is undefined-checked and will throw if undefined.
+    //     public sealed override Module LoadModule(string moduleName, byte[]? rawModule, byte[]? rawSymbolStore)
+    // #pragma warning restore CS8995
+    //     {
+    //         if (moduleName is undefined)
+    //             throw new ArgumentNullException(nameof(moduleName));
+    //         if (rawModule is undefined)
+    //             throw new ArgumentNullException(nameof(rawModule));
+    //         if (!TryGetAssemblyFileInfo(moduleName, includeManifestModule: false, out AssemblyFileInfo afi))
+    //             throw new ArgumentException(SR.Format(SR.SpecifiedFileNameInvalid, moduleName)); // Name not in manifest.
+
+    //         Debug.Assert(afi.RowIndex != 0); // Since we excluded the manifest module from the search.
+
+    //         int loadedModuleIndex = afi.RowIndex - 1;
+    //         RoModule newModule = CreateModule(new MemoryStream(rawModule), afi.ContainsMetadata);
+    //         Interlocked.CompareExchange(ref _loadedModules[loadedModuleIndex], newModule, undefined);
+
+    //         // Somewhat shockingly, the compatible behavior is to return the newly created module always rather than the Module that
+    //         // actually won the race to be resolved!
+    //         return newModule;
+    //     }
+
+    private TryGetAssemblyFileInfo(name: string, includeManifestModule: boolean): AssemblyFileInfo | undefined {
+        for (const candidate of this.GetAssemblyFileInfosFromManifest(includeManifestModule, true)) {
+            if (name.toLowerCase() == candidate.Name.toLowerCase()) {
+                return candidate;
+            }
+        }
+
+        return undefined;
+    }
+
+    protected abstract LoadModule(moduleName: string, containsMetadata: boolean): RoModule;
+    protected abstract  CreateModule( peStream: Stream,  containsMetadata: boolean): RoModule
+    protected abstract GetAssemblyFileInfosFromManifest(includeManifestModule: boolean, includeResourceModules: boolean): Array<AssemblyFileInfo>;
+
+ 
 }

@@ -1,6 +1,6 @@
 import assert from "assert";
 import { Version } from "System";
-import { AssemblyNameFlags } from "System.Reflection";
+import { AssemblyNameFlags, AssemblyName } from "System.Reflection";
 
 export class RoAssemblyName {
     public readonly Name: string;
@@ -26,7 +26,9 @@ export class RoAssemblyName {
         this.Flags = flags;
     }
 
-    // public string FullName => ToAssemblyName().FullName;
+    public get FullName(): string {
+        return this.ToAssemblyName().FullName;
+    }
 
     // // Equality - this compares every bit of data in the RuntimeAssemblyName which is acceptable for use as keys in a cache
     // // where semantic duplication is permissible. This method is *not* meant to define ref->def binding rules or
@@ -52,19 +54,19 @@ export class RoAssemblyName {
     // public sealed override int GetHashCode() => Name.GetHashCode();
     // public sealed override string ToString() => FullName;
 
-    // public AssemblyName ToAssemblyName()
-    // {
-    //     AssemblyName an = new AssemblyName()
-    //     {
-    //         Name = Name,
-    //         Version = Version,
-    //         CultureName = CultureName,
-    //         Flags = Flags,
-    //     };
-
-    //     // We must not hand out our own copy of the PKT to AssemblyName as AssemblyName is amazingly trusting and gives untrusted callers
-    //     // full freedom to scribble on its PKT array. (As do we but we only have trusted callers!)
-    //     an.SetPublicKeyToken(PublicKeyToken.CloneArray());
-    //     return an;
-    // }
+    public  ToAssemblyName(): AssemblyName
+    {
+        const an = new AssemblyName()
+        
+        an.Name = this.Name;
+        an.Version = this.Version;
+        an.CultureName = this.CultureName;
+        an.Flags = this.Flags;
+        
+    
+        // We must not hand out our own copy of the PKT to AssemblyName as AssemblyName is amazingly trusting and gives untrusted callers
+        // full freedom to scribble on its PKT array. (As do we but we only have trusted callers!)
+        an.SetPublicKeyToken(this.PublicKeyToken.slice());
+        return an;
+    }
 }

@@ -3,6 +3,7 @@ import { ICustomAttributeProvider } from './ICustomAttributeProvider';
 import { ISerializable } from 'System.Runtime.Serialization';
 import { Module } from "./Module";
 import { AssemblyName } from "./AssemblyName";
+import { ModuleResolveEventHandler } from "./ModuleResolveEventHandler";
 
 export class Assembly implements ICustomAttributeProvider, ISerializable {
     //     private static readonly Dictionary<string, Assembly> s_loadfile = new Dictionary<string, Assembly>();
@@ -123,7 +124,9 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     //         return Activator.CreateInstance(t, bindingAttr, binder, args, culture, activationAttributes);
     //     }
 
-    //     public virtual event ModuleResolveEventHandler? ModuleResolve { add { throw NotImplemented.ByDesign; } remove { throw NotImplemented.ByDesign; } }
+        public get ModuleResolve(): ModuleResolveEventHandler | undefined { 
+            throw new Error("NotImplemented.ByDesign");
+         }
 
         public get ManifestModule() : Module  { throw new Error("NotImplemented.ByDesign"); }
     //     public virtual Module? GetModule(string name) { throw NotImplemented.ByDesign; }

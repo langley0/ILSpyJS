@@ -1,6 +1,6 @@
 import assert from "assert";
 import { MetadataReader } from "System.Reflection.Metadata";
-import { MetadataLoadContext } from "System.Reflection.MetadataLoadContext";
+import { MetadataLoadContext } from "System.Reflection";
 import { PEReader } from "System.Reflection.PortableExecutable";
 
 export class GuardedPEReader {

@@ -1,4 +1,5 @@
-import { IReflect, MemberInfo } from "System.Reflection";
+import {  MemberInfo } from "System.Reflection/MemberInfo";
+import { IReflect } from "System.Reflection/IReflect";
 
 export abstract class Type extends MemberInfo implements IReflect {
     //     [Intrinsic]

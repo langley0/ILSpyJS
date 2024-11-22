@@ -1,11 +1,16 @@
 import assert from "assert";
+import { Throw } from "System/Throw";
+import { Stream } from "System.IO";
 import {
     ProcessorArchitecture,
     ImageFileMachine,
     AssemblyNameFlags,
     PortableExecutableKinds,
+    MetadataLoadContext,
+    ModuleResolveEventHandler,
+    ResolveEventArgs,
 } from "System.Reflection";
-import { RoAssembly,RoModule } from "System.Reflection.TypeLoading";
+import { AssemblyFileInfo, RoAssembly, RoModule } from "System.Reflection.TypeLoading";
 import { EcmaModule } from "System.Reflection.TypeLoading.Ecma";
 import {
     AssemblyNameData,
@@ -13,10 +18,10 @@ import {
     ConvertAssemblyFlagsToAssemblyNameFlags,
     ExtractAssemblyNameFlags,
     ExtractAssemblyContentType,
+    RoDefinitionType,
 } from "System.Reflection.TypeLoading";
 import { PEReader } from "System.Reflection.PortableExecutable";
 import { MetadataReader, AssemblyDefinition } from "System.Reflection.Metadata";
-import { MetadataLoadContext } from "System.Reflection.MetadataLoadContext";
 
 export class EcmaAssembly extends RoAssembly {
     private readonly _location: string;
@@ -181,5 +186,79 @@ export class EcmaAssembly extends RoAssembly {
                 break;
         }
         return data;
+    }
+
+    //=========================================================================================================
+    // Modules
+    public override get ModuleResolve(): ModuleResolveEventHandler | undefined {
+        //return this._moduleResolve;
+        throw new Error("Not implemented");
+    }
+
+    protected override  LoadModule(moduleName: string, containsMetadata: boolean): RoModule {
+        const peStream = this.FindModuleNextToAssembly(moduleName);
+        if (peStream != undefined)
+            return this.CreateModule(peStream, containsMetadata);
+
+        const moduleFromEvent = this.ModuleResolve?.(this, new ResolveEventArgs(moduleName));
+        if (moduleFromEvent != undefined) {
+            const roModuleFromEvent = moduleFromEvent as RoModule;
+            if (!(roModuleFromEvent !== undefined && roModuleFromEvent.Loader == this.Loader)) {
+                Throw.FileLoadException(`ModuleResolveEventReturnedExternalModule`);
+            }
+            return roModuleFromEvent;
+        }
+
+        Throw.FileNotFoundException(`.FileNotFoundModule, ${moduleName}`);
+    }
+
+    // [UnconditionalSuppressMessage("SingleFile", "IL3000: Avoid accessing Assembly file path when publishing as a single file",
+    //     Justification = "The code has a fallback using a ModuleResolveEventHandler")]
+    private FindModuleNextToAssembly(moduleName: string): Stream | undefined {
+        // Assembly containingAssembly = this;
+        // string location = containingAssembly.Location;
+        // if (string.IsNullOrEmpty(location))
+        //     return undefined;
+        // string? directoryPath = Path.GetDirectoryName(location);
+        // string modulePath = Path.Combine(directoryPath!, moduleName);
+        // if (File.Exists(modulePath))
+        //     return File.OpenRead(modulePath);
+
+        // return undefined;
+        throw new Error("Not implemented");
+    }
+
+    protected override CreateModule(peStream: Stream, containsMetadata: boolean): RoModule {
+        // string location = RoModule.FullyQualifiedNameForModulesLoadedFromByteArrays;
+        // if (peStream is FileStream fs)
+        // {
+        //     location = fs.Name;
+        // }
+
+        // if (!containsMetadata)
+        // {
+        //     peStream.Close();
+        //     return new RoResourceModule(this, location);
+        // }
+
+        // PEReader peReader = new PEReader(peStream);
+        // Loader.RegisterForDisposal(peReader);
+        // return new EcmaModule(this, location, peReader, peReader.GetMetadataReader());
+        throw new Error("Not implemented");
+    }
+
+    protected override  GetAssemblyFileInfosFromManifest(includeManifestModule: boolean, includeResourceModules: boolean): Array<AssemblyFileInfo> {
+        // const reader = this.Reader;
+        // if (includeManifestModule) {
+        //     yield return new AssemblyFileInfo(reader.GetModuleDefinition().Name.GetString(reader), true, 0);
+        // }
+
+        // for (const h of reader.AssemblyFiles) {
+        //     const af = h.GetAssemblyFile(reader);
+        //     if (includeResourceModules || af.ContainsMetadata) {
+        //         yield return new AssemblyFileInfo(af.Name.GetString(reader), af.ContainsMetadata, h.GetToken().GetTokenRowNumber());
+        //     }
+        // }
+        throw new Error("Not implemented");
     }
 }

@@ -92,11 +92,11 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     public GetName(copiedName: boolean = false): AssemblyName { throw new Error('Method not implemented by Design'); }
 
     //     [RequiresUnreferencedCode("Types might be removed by trimming. If the type name is a string literal, consider using Type.GetType instead.")]
-    //     public virtual Type? GetType(string name) => GetType(name, throwOnError: false, ignoreCase: false);
+    // public virtual Type? GetType(string name) => GetType(name, throwOnError: false, ignoreCase: false);
     //     [RequiresUnreferencedCode("Types might be removed by trimming. If the type name is a string literal, consider using Type.GetType instead.")]
     //     public virtual Type? GetType(string name, bool throwOnError) => GetType(name, throwOnError: throwOnError, ignoreCase: false);
     //     [RequiresUnreferencedCode("Types might be removed by trimming. If the type name is a string literal, consider using Type.GetType instead.")]
-    //     public virtual Type? GetType(string name, bool throwOnError, bool ignoreCase) { throw NotImplemented.ByDesign; }
+    public GetType(name: string, throwOnErro?: boolean, ignoreCase?: boolean): Type | undefined { throw new Error("not implmented by design"); }
 
     public IsDefined(attributeType: Type, inherit: boolean): boolean { throw new Error('Method not implemented by Design'); }
 

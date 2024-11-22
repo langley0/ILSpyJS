@@ -240,8 +240,8 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     // internal abstract IEnumerable<PropertyInfo> SpecializeProperties(NameFilter? filter, Type reflectedType, RoInstantiationProviderType declaringType);
 
     // // Helpers for the typeref-resolution/name lookup logic.
-    // internal abstract bool IsTypeNameEqual(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name);
-    // internal abstract RoDefinitionType? GetNestedTypeCore(ReadOnlySpan<byte> utf8Name);
+    public abstract IsTypeNameEqual(ns: Uint8Array, name: Uint8Array): boolean;
+    public abstract GetNestedTypeCore(utf8Name: Uint8Array): RoDefinitionType | undefined;
 
     public override get Instantiation(): RoType[] {
         return this.GetGenericTypeParametersNoCopy();

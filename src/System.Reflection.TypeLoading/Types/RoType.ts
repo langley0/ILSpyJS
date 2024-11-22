@@ -1,5 +1,5 @@
 import { Throw, Type } from "System";
-import { LeveledTypeInfo } from "System.Reflection.TypeLoading";
+import { LeveledTypeInfo, Sentinels, CoreType } from "System.Reflection.TypeLoading";
 
 export class RoType extends LeveledTypeInfo {
     //         private const TypeAttributes TypeAttributesSentinel = (TypeAttributes)(-1);
@@ -112,8 +112,8 @@ export class RoType extends LeveledTypeInfo {
     //         private string? ComputeAssemblyQualifiedName()
     //         {
     //             string? fullName = FullName;
-    //             if (fullName == null)   // Open types return null for FullName by design.
-    //                 return null;
+    //             if (fullName == undefined)   // Open types return undefined for FullName by design.
+    //                 return undefined;
     //             string? assemblyName = Assembly.FullName;
     //             return fullName + ", " + assemblyName;
     //         }
@@ -145,22 +145,26 @@ export class RoType extends LeveledTypeInfo {
     //         internal abstract CustomAttributeData? TryFindCustomAttribute(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name);
 
     //         // Inheritance
-    //         public sealed override Type? BaseType => GetRoBaseType();
-    //         internal RoType? GetRoBaseType() => object.ReferenceEquals(_lazyBaseType, Sentinels.RoType) ? (_lazyBaseType = ComputeBaseType()) : _lazyBaseType;
-    //         private RoType? ComputeBaseType()
-    //         {
-    //             RoType? baseType = ComputeBaseTypeWithoutDesktopQuirk();
-    //             if (baseType != null && baseType.IsGenericParameter)
-    //             {
-    //                 // .NET Framework quirk: a generic parameter whose constraint is another generic parameter reports its BaseType as System.Object
-    //                 // unless that other generic parameter has a "class" constraint.
-    //                 GenericParameterAttributes genericParameterAttributes = baseType.GenericParameterAttributes;
-    //                 if (0 == (genericParameterAttributes & GenericParameterAttributes.ReferenceTypeConstraint))
-    //                     baseType = Loader.GetCoreType(CoreType.Object);
-    //             }
-    //             return baseType;
-    //         }
-    //         private volatile RoType? _lazyBaseType = Sentinels.RoType;
+            public  override get BaseType(): Type | undefined {
+                return   this.GetRoBaseType();
+            }
+            public GetRoBaseType(): RoType | undefined {
+                return this._lazyBaseType ==  Sentinels.RoType ? (this._lazyBaseType = this.ComputeBaseType()) : this._lazyBaseType;
+            }
+            private ComputeBaseType() : RoType | undefined
+            {
+                let baseType = this.ComputeBaseTypeWithoutDesktopQuirk();
+                if (baseType != undefined && baseType.IsGenericParameter)
+                {
+                    // .NET Framework quirk: a generic parameter whose constraint is another generic parameter reports its BaseType as System.Object
+                    // unless that other generic parameter has a "class" constraint.
+                    const genericParameterAttributes = baseType.GenericParameterAttributes;
+                    if (0 == (genericParameterAttributes & GenericParameterAttributes.ReferenceTypeConstraint))
+                        baseType = this.Loader.GetCoreType(CoreType.Object);
+                }
+                return baseType;
+            }
+            private  _lazyBaseType: RoType | undefined = Sentinels.RoType;
 
     //         //
     //         // This internal method implements BaseType without the following .NET Framework quirk:
@@ -202,7 +206,7 @@ export class RoType extends LeveledTypeInfo {
     //             HashSet<RoType> ifcs = new HashSet<RoType>();
 
     //             RoType? baseType = ComputeBaseTypeWithoutDesktopQuirk();
-    //             if (baseType != null)
+    //             if (baseType != undefined)
     //             {
     //                 foreach (RoType ifc in baseType.GetInterfacesNoCopy())
     //                 {
@@ -240,7 +244,7 @@ export class RoType extends LeveledTypeInfo {
     //         public sealed override bool IsAssignableFrom(TypeInfo? typeInfo) => IsAssignableFrom((Type?)typeInfo);
     //         public sealed override bool IsAssignableFrom(Type? c)
     //         {
-    //             if (c == null)
+    //             if (c == undefined)
     //                 return false;
 
     //             if (object.ReferenceEquals(c, this))
@@ -281,22 +285,22 @@ export class RoType extends LeveledTypeInfo {
     //         public sealed override MemberInfo[] GetDefaultMembers()
     //         {
     //             string? defaultMemberName = GetDefaultMemberName();
-    //             return defaultMemberName != null ? GetMember(defaultMemberName) : Array.Empty<MemberInfo>();
+    //             return defaultMemberName != undefined ? GetMember(defaultMemberName) : Array.Empty<MemberInfo>();
     //         }
 
     //         private string? GetDefaultMemberName()
     //         {
-    //             for (RoType? type = this; type != null; type = type.GetRoBaseType())
+    //             for (RoType? type = this; type != undefined; type = type.GetRoBaseType())
     //             {
     //                 CustomAttributeData? attribute = type.TryFindCustomAttribute(Utf8Constants.SystemReflection, Utf8Constants.DefaultMemberAttribute);
-    //                 if (attribute != null)
+    //                 if (attribute != undefined)
     //                 {
     //                     IList<CustomAttributeTypedArgument> fixedArguments = attribute.ConstructorArguments;
     //                     if (fixedArguments.Count == 1 && fixedArguments[0].Value is string memberName)
     //                         return memberName;
     //                 }
     //             }
-    //             return null;
+    //             return undefined;
     //         }
 
     //         // Type Factories

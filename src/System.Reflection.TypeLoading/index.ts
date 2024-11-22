@@ -3,6 +3,7 @@ export * from "./General/CoreTypes";
 export * from "./General/TypeExtension";
 export * from "./General/Utf8Constants";
 export * from "./General/Helpers";
+export * from "./General/Sentinels";
 
 export * from "./Modules/GetTypeCoreCache";
 

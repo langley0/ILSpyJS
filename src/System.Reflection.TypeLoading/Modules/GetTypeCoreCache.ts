@@ -24,36 +24,22 @@ class Container {
         this._owner = owner;
     }
 
-    //             private Container(GetTypeCoreCache owner, int[] buckets, Entry[] entries, int nextFreeEntry)
-    //             {
-    //                 _buckets = buckets;
-    //                 _entries = entries;
-    //                 _nextFreeEntry = nextFreeEntry;
-    //                 _owner = owner;
-    //             }
-
     public TryGetValue(ns: Uint8Array, name: Uint8Array, hashCode: number): RoDefinitionType | undefined {
-        // // Lock acquistion NOT required.
+        // Lock acquistion NOT required.
 
-        // int bucket = ComputeBucket(hashCode, _buckets.Length);
-        // int i = Volatile.Read(ref _buckets[bucket]);
-        // while (i != -1)
-        // {
-        //     if (hashCode == _entries[i]._hashCode)
-        //     {
-        //         RoDefinitionType actualValue = _entries[i]._value;
-        //         if (actualValue.IsTypeNameEqual(ns, name))
-        //         {
-        //             value = actualValue;
-        //             return true;
-        //         }
-        //     }
-        //     i = _entries[i]._next;
-        // }
+        const bucket = Container.ComputeBucket(hashCode, this._buckets.length);
+        let i = this._buckets[bucket];
+        while (i != -1) {
+            if (hashCode == this._entries[i]._hashCode) {
+                const actualValue = this._entries[i]._value;
+                if (actualValue.IsTypeNameEqual(ns, name)) {
+                    return actualValue;
+                }
+            }
+            i = this._entries[i]._next;
+        }
 
-        // value = default;
-        // return false;
-        throw new Error("not implemented");
+        return undefined;
     }
 
     public Add(hashCode: number, value: RoDefinitionType) {
@@ -119,11 +105,10 @@ class Container {
         throw new Error("not implemented");
     }
 
-    //             private static int ComputeBucket(int hashCode, int numBuckets)
-    //             {
-    //                 int bucket = (hashCode & 0x7fffffff) % numBuckets;
-    //                 return bucket;
-    //             }
+    private static ComputeBucket(hashCode: number, numBuckets: number): number {
+        const bucket = (hashCode & 0x7fffffff) % numBuckets;
+        return bucket;
+    }
 
     //             [Conditional("DEBUG")]
     //             public void VerifyUnifierConsistency()

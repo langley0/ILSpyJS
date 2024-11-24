@@ -2,8 +2,8 @@
 
 import assert from "assert";
 import { RoModule, RoDefinitionType, RoAssembly } from "System.Reflection.TypeLoading";
-import { EcmaAssembly, GuardedPEReader } from "System.Reflection.TypeLoading.Ecma";
-import { MetadataReader } from "System.Reflection.Metadata";
+import { EcmaAssembly, GuardedPEReader, ResolveTypeDef } from "System.Reflection.TypeLoading.Ecma";
+import { AssemblyReferenceHandle, HandleKind, MetadataReader } from "System.Reflection.Metadata";
 import { ModuleDefinition } from "System.Reflection.Metadata";
 import { PEReader } from "System.Reflection.PortableExecutable";
 import { Guid } from "System/Guid";
@@ -142,43 +142,42 @@ export class EcmaModule extends RoModule {
       //=========================================================================================================
     // EcmaModule.GetTypeCore
     protected override GetTypeCoreNoCache(ns: Uint8Array, name: Uint8Array): RoDefinitionType | undefined {
-        // const reader = this.Reader;
+        const reader = this.Reader;
 
-        // // Look through types declared in the manifest module.
-        // for (const h of reader.TypeDefinitions) {
-        //     const td = h.GetTypeDefinition(reader);
-        //     if (td.IsNested)
-        //         continue;  // GetTypeCore() is never asked to look for nested types.
-        //     if (!(td.Name.Equals(name, reader)))
-        //         continue;
-        //     if (!(td.Namespace.Equals(ns, reader)))
-        //         continue;
+        // Look through types declared in the manifest module.
+        for (const h of reader.TypeDefinitions.ToArray()) {
+            const td = reader.GetTypeDefinition(h);;
+            if (td.IsNested)
+                continue;  // GetTypeCore() is never asked to look for nested types.
+            if (td.Name.GetString(reader) != Buffer.from(name).toString("utf-8"))
+                continue;
+            if (td.Namespace.GetString(reader) != Buffer.from(ns).toString("utf-8"))
+                continue;
 
-        //     return h.ResolveTypeDef(this);
-        // }
+            return ResolveTypeDef(h, this);
+        }
 
-        // // Look for forwarded types.
-        // for (const h in reader.ExportedTypes) {
-        //     const et = h.GetExportedType(reader);
-        //     if (!et.IsForwarder)
-        //         continue;
+        // Look for forwarded types.
+        for (const h of reader.ExportedTypes.ToArray()) {
+            const et = h.GetExportedType(reader);
+            if (!et.IsForwarder)
+                continue;
 
-        //     const implementation = et.Implementation;
-        //     if (implementation.Kind != HandleKind.AssemblyReference) // This check also weeds out nested types. This is intentional.
-        //         continue;
+            const implementation = et.Implementation;
+            if (implementation.Kind != HandleKind.AssemblyReference) // This check also weeds out nested types. This is intentional.
+                continue;
 
-        //     if (!(et.Name.Equals(name, reader)))
-        //         continue;
+            if (!(et.Name.Equals(name, reader)))
+                continue;
 
-        //     if (!(et.Namespace.Equals(ns, reader)))
-        //         continue;
+            if (!(et.Namespace.Equals(ns, reader)))
+                continue;
 
-        //     const assembly = ((AssemblyReferenceHandle)implementation).TryResolveAssembly(this);
-        //     return assembly?.GetTypeCore(ns, name, false);
-        // }
+            const assembly = ((AssemblyReferenceHandle)implementation).TryResolveAssembly(this);
+            return assembly?.GetTypeCore(ns, name, false);
+        }
 
-        // //e = new TypeLoadException(SR.Format(SR.TypeNotFound, ns.ToUtf16().AppendTypeName(name.ToUtf16()), FullyQualifiedName));
-        // return undefined;
-        throw new Error("Not implemented");
+        //e = new TypeLoadException(SR.Format(SR.TypeNotFound, ns.ToUtf16().AppendTypeName(name.ToUtf16()), FullyQualifiedName));
+        return undefined;
     }
 }

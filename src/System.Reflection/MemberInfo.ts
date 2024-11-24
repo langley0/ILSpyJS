@@ -1,40 +1,12 @@
-import { Type } from 'System';
-import { ICustomAttributeProvider } from './ICustomAttributeProvider';
+// import { Type } from 'System';
+// import { ICustomAttributeProvider } from './ICustomAttributeProvider';
+import { MemberTypes } from './MemberTypes';
+// import { Module } from './Module';
+// import { CustomAttributeData } from './CustomAttributeData';
 
-export abstract class MemberInfo implements ICustomAttributeProvider {
-    // protected MemberInfo() { }
-
-    // public abstract MemberTypes MemberType { get; }
-    // public abstract string Name { get; }
-    // public abstract Type? DeclaringType { get; }
-    // public abstract Type? ReflectedType { get; }
-
-    // public virtual Module Module
-    // {
-    //     get
-    //     {
-    //         // This check is necessary because for some reason, Type adds a new "Module" property that hides the inherited one instead
-    //         // of overriding.
-
-    //         if (this is Type type)
-    //             return type.Module;
-
-    //         throw NotImplemented.ByDesign;
-    //     }
-    // }
-
-    // public virtual boolean HasSameMetadataDefinitionAs(MemberInfo other) { throw NotImplemented.ByDesign; }
-
-    public abstract IsDefined(attributeType: Type, inherit: boolean): boolean;
-    public abstract GetCustomAttributes(attributeTypeOrInherit: Type | boolean, inherit?: boolean): object[];
-
-    // public virtual IEnumerable<CustomAttributeData> CustomAttributes => GetCustomAttributesData();
-    // public virtual IList<CustomAttributeData> GetCustomAttributesData() { throw NotImplemented.ByDesign; }
-    // public virtual boolean IsCollectible => true;
-    // public virtual int MetadataToken => throw new InvalidOperationException();
-
-    // public override boolean Equals(object? obj) => base.Equals(obj);
-    // public override int GetHashCode() => base.GetHashCode();
+export interface MemberInfo {
+    get Name(): string;
+    get MemberType(): MemberTypes;
 
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
     // public static boolean operator ==(MemberInfo? left, MemberInfo? right)

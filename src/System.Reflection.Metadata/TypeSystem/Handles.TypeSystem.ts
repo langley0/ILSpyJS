@@ -38,7 +38,7 @@ export class ModuleDefinitionHandle {
     // {
     //     if (handle.VType != tokenTypeSmall)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new ModuleDefinitionHandle(handle.RowId);
@@ -48,7 +48,7 @@ export class ModuleDefinitionHandle {
     // {
     //     if (handle.VType != tokenType)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new ModuleDefinitionHandle(handle.RowId);
@@ -117,7 +117,7 @@ export class AssemblyDefinitionHandle {
     // {
     //     if (handle.VType != tokenTypeSmall)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new AssemblyDefinitionHandle(handle.RowId);
@@ -127,7 +127,7 @@ export class AssemblyDefinitionHandle {
     // {
     //     if (handle.VType != tokenType)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new AssemblyDefinitionHandle(handle.RowId);
@@ -191,25 +191,21 @@ export class MethodDefinitionHandle {
         return new EntityHandle(MethodDefinitionHandle.tokenType | this._rowId);
     }
 
-    // public static explicit operator MethodDefinitionHandle(Handle handle)
-    // {
-    //     if (handle.VType != tokenTypeSmall)
-    //     {
-    //         Throw.InvalidCast();
-    //     }
+    public static FromHandle(handle: Handle) {
+        if (handle.VType != MethodDefinitionHandle.tokenTypeSmall) {
+            throw new Error("Invalid cast");
+        }
 
-    //     return new MethodDefinitionHandle(handle.RowId);
-    // }
+        return new MethodDefinitionHandle(handle.RowId);
+    }
 
-    // public static explicit operator MethodDefinitionHandle(EntityHandle handle)
-    // {
-    //     if (handle.VType != tokenType)
-    //     {
-    //         Throw.InvalidCast();
-    //     }
+    public static FromEntityHandle(handle: EntityHandle) {
+        if (handle.VType != MethodDefinitionHandle.tokenType) {
+            throw new Error("Invalid cast");
+        }
 
-    //     return new MethodDefinitionHandle(handle.RowId);
-    // }
+        return new MethodDefinitionHandle(handle.RowId);
+    }
 
     public get IsNil(): boolean {
         return this.RowId == 0;
@@ -312,7 +308,7 @@ export class BlobHandle {
     //         public static explicit operator BlobHandle(Handle handle)
     // {
     //     if ((handle.VType & HandleType.TypeMask) != HandleType.Blob) {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new BlobHandle(
@@ -493,20 +489,18 @@ export class GuidHandle {
     // {
     //     if (handle.VType != HandleType.Guid)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new GuidHandle(handle.Offset);
     // }
 
-    public get IsNil(): boolean
-    {
-        return this._index == 0; 
+    public get IsNil(): boolean {
+        return this._index == 0;
     }
 
-    public get Index(): number
-    {
-      return this._index; 
+    public get Index(): number {
+        return this._index;
     }
 
     // public override bool Equals([NotNullWhen(true)] object? obj)
@@ -561,7 +555,7 @@ export class UserStringHandle {
     // {
     //     if (handle.VType != HandleType.UserString)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     return new UserStringHandle(handle.Offset);
@@ -606,55 +600,47 @@ export class TypeDefinitionHandle {
     private static readonly tokenTypeSmall = HandleType.TypeDef;
     private readonly _rowId: number;
 
+    public static Default: TypeDefinitionHandle = new TypeDefinitionHandle(0);
+
     private constructor(rowId: number) {
         assert(TokenTypeIds.IsValidRowId(rowId));
         this._rowId = rowId;
     }
 
-    // public static TypeDefinitionHandle FromRowId(int rowId)
-    // {
-    //     return new TypeDefinitionHandle(rowId);
-    // }
+    public static FromRowId(rowId: number): TypeDefinitionHandle {
+        return new TypeDefinitionHandle(rowId);
+    }
 
-    // public static implicit operator Handle(TypeDefinitionHandle handle)
-    // {
-    //     return new Handle(tokenTypeSmall, handle._rowId);
-    // }
+    public ToHandle(): Handle {
+        return new Handle(TypeDefinitionHandle.tokenTypeSmall, this._rowId);
+    }
 
-    // public static implicit operator EntityHandle(TypeDefinitionHandle handle)
-    // {
-    //     return new EntityHandle((uint)(tokenType | handle._rowId));
-    // }
+    public ToEntityHandle(): EntityHandle {
+        return new EntityHandle(TypeDefinitionHandle.tokenType | this._rowId);
+    }
 
-    // public static explicit operator TypeDefinitionHandle(Handle handle)
-    // {
-    //     if (handle.VType != tokenTypeSmall)
-    //     {
-    //         Throw.InvalidCast();
-    //     }
+    public static FromHandle(handle: Handle): TypeDefinitionHandle {
 
-    //     return new TypeDefinitionHandle(handle.RowId);
-    // }
+        if (handle.VType != TypeDefinitionHandle.tokenTypeSmall) {
+            throw new Error("Invalid cast");
+        }
 
-    // public static explicit operator TypeDefinitionHandle(EntityHandle handle)
-    // {
-    //     if (handle.VType != tokenType)
-    //     {
-    //         Throw.InvalidCast();
-    //     }
+        return new TypeDefinitionHandle(handle.RowId);
+    }
 
-    //     return new TypeDefinitionHandle(handle.RowId);
-    // }
+    public static FromEntityHandle(handle: EntityHandle): TypeDefinitionHandle {
+        if (handle.VType != TypeDefinitionHandle.tokenType) {
+            throw new Error("Invalid cast");
+        }
 
-    // public bool IsNil
-    // {
-    //     get
-    //     {
-    //         return RowId == 0;
-    //     }
-    // }
+        return new TypeDefinitionHandle(handle.RowId);
+    }
 
-    // public int RowId { get { return _rowId; } }
+    public get IsNil(): boolean {
+        return this.RowId == 0;
+    }
+
+    public get RowId(): number { return this._rowId; }
 
     // public static bool operator ==(TypeDefinitionHandle left, TypeDefinitionHandle right)
     // {
@@ -682,171 +668,158 @@ export class TypeDefinitionHandle {
     // }
 }
 
-//     export class ExportedTypeHandle : IEquatable<ExportedTypeHandle>
-//     {
-//         private static readonly tokenType = TokenTypeIds.ExportedType;
-//         private static readonly tokenTypeSmall = (byte)HandleType.ExportedType;
-//         private readonly int _rowId;
+export class ExportedTypeHandle {
+    private static readonly tokenType = TokenTypeIds.ExportedType;
+    private static readonly tokenTypeSmall = HandleType.ExportedType;
+    private readonly _rowId: number;
 
-//         private ExportedTypeHandle(int rowId)
-//         {
-//             assert(TokenTypeIds.IsValidRowId(rowId));
-//             _rowId = rowId;
-//         }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
-//         public static ExportedTypeHandle FromRowId(int rowId)
-//         {
-//             return new ExportedTypeHandle(rowId);
-//         }
+    public static FromRowId(rowId: number): ExportedTypeHandle {
+        return new ExportedTypeHandle(rowId);
+    }
 
-//         public static implicit operator Handle(ExportedTypeHandle handle)
-//         {
-//             return new Handle(tokenTypeSmall, handle._rowId);
-//         }
+    // public static implicit operator Handle(ExportedTypeHandle handle)
+    // {
+    //     return new Handle(tokenTypeSmall, handle._rowId);
+    // }
 
-//         public static implicit operator EntityHandle(ExportedTypeHandle handle)
-//         {
-//             return new EntityHandle((uint)(tokenType | handle._rowId));
-//         }
+    // public static implicit operator EntityHandle(ExportedTypeHandle handle)
+    // {
+    //     return new EntityHandle((uint)(tokenType | handle._rowId));
+    // }
 
-//         public static explicit operator ExportedTypeHandle(Handle handle)
-//         {
-//             if (handle.VType != tokenTypeSmall)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static explicit operator ExportedTypeHandle(Handle handle)
+    // {
+    //     if (handle.VType != tokenTypeSmall)
+    //     {
+    //         throw new Error("Invalid cast");
+    //     }
 
-//             return new ExportedTypeHandle(handle.RowId);
-//         }
+    //     return new ExportedTypeHandle(handle.RowId);
+    // }
 
-//         public static explicit operator ExportedTypeHandle(EntityHandle handle)
-//         {
-//             if (handle.VType != tokenType)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static explicit operator ExportedTypeHandle(EntityHandle handle)
+    // {
+    //     if (handle.VType != tokenType)
+    //     {
+    //         throw new Error("Invalid cast");
+    //     }
 
-//             return new ExportedTypeHandle(handle.RowId);
-//         }
+    //     return new ExportedTypeHandle(handle.RowId);
+    // }
 
-//         public bool IsNil
-//         {
-//             get
-//             {
-//                 return RowId == 0;
-//             }
-//         }
+    public get IsNil(): boolean {
 
-//         public int RowId { get { return _rowId; } }
+        return this.RowId == 0;
 
-//         public static bool operator ==(ExportedTypeHandle left, ExportedTypeHandle right)
-//         {
-//             return left._rowId == right._rowId;
-//         }
+    }
 
-//         public override bool Equals(object? obj)
-//         {
-//             return obj is ExportedTypeHandle && ((ExportedTypeHandle)obj)._rowId == _rowId;
-//         }
+    public get RowId(): number { return this._rowId; }
 
-//         public bool Equals(ExportedTypeHandle other)
-//         {
-//             return _rowId == other._rowId;
-//         }
+    // public static bool operator ==(ExportedTypeHandle left, ExportedTypeHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
 
-//         public override int GetHashCode()
-//         {
-//             return _rowId.GetHashCode();
-//         }
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is ExportedTypeHandle && ((ExportedTypeHandle)obj)._rowId == _rowId;
+    // }
 
-//         public static bool operator !=(ExportedTypeHandle left, ExportedTypeHandle right)
-//         {
-//             return left._rowId != right._rowId;
-//         }
-//     }
+    // public bool Equals(ExportedTypeHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
 
-//     export class TypeReferenceHandle : IEquatable<TypeReferenceHandle>
-//     {
-//         private static readonly tokenType = TokenTypeIds.TypeRef;
-//         private static readonly tokenTypeSmall = (byte)HandleType.TypeRef;
-//         private readonly int _rowId;
+    // public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
 
-//         private TypeReferenceHandle(int rowId)
-//         {
-//             assert(TokenTypeIds.IsValidRowId(rowId));
-//             _rowId = rowId;
-//         }
+    // public static bool operator !=(ExportedTypeHandle left, ExportedTypeHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
 
-//         public static TypeReferenceHandle FromRowId(int rowId)
-//         {
-//             return new TypeReferenceHandle(rowId);
-//         }
+export class TypeReferenceHandle {
+    private static readonly tokenType = TokenTypeIds.TypeRef;
+    private static readonly tokenTypeSmall = HandleType.TypeRef;
+    private readonly _rowId: number
 
-//         public static implicit operator Handle(TypeReferenceHandle handle)
-//         {
-//             return new Handle(tokenTypeSmall, handle._rowId);
-//         }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
-//         public static implicit operator EntityHandle(TypeReferenceHandle handle)
-//         {
-//             return new EntityHandle((uint)(tokenType | handle._rowId));
-//         }
+    public static FromRowId(rowId: number): TypeReferenceHandle {
+        return new TypeReferenceHandle(rowId);
+    }
 
-//         public static explicit operator TypeReferenceHandle(Handle handle)
-//         {
-//             if (handle.VType != tokenTypeSmall)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static implicit operator Handle(TypeReferenceHandle handle)
+    // {
+    //     return new Handle(tokenTypeSmall, handle._rowId);
+    // }
 
-//             return new TypeReferenceHandle(handle.RowId);
-//         }
+    // public static implicit operator EntityHandle(TypeReferenceHandle handle)
+    // {
+    //     return new EntityHandle((uint)(tokenType | handle._rowId));
+    // }
 
-//         public static explicit operator TypeReferenceHandle(EntityHandle handle)
-//         {
-//             if (handle.VType != tokenType)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static explicit operator TypeReferenceHandle(Handle handle)
+    // {
+    //     if (handle.VType != tokenTypeSmall)
+    //     {
+    //         throw new Error("Invalid cast");
+    //     }
 
-//             return new TypeReferenceHandle(handle.RowId);
-//         }
+    //     return new TypeReferenceHandle(handle.RowId);
+    // }
 
-//         public bool IsNil
-//         {
-//             get
-//             {
-//                 return RowId == 0;
-//             }
-//         }
+    public static FromEntityHandle(handle: EntityHandle): TypeReferenceHandle {
+        if (handle.VType != TypeReferenceHandle.tokenType) {
+            throw new Error("Invalid cast");
+        }
 
-//         public int RowId { get { return _rowId; } }
+        return new TypeReferenceHandle(handle.RowId);
+    }
 
-//         public static bool operator ==(TypeReferenceHandle left, TypeReferenceHandle right)
-//         {
-//             return left._rowId == right._rowId;
-//         }
+    public get IsNil(): boolean {
 
-//         public override bool Equals(object? obj)
-//         {
-//             return obj is TypeReferenceHandle && ((TypeReferenceHandle)obj)._rowId == _rowId;
-//         }
+        return this.RowId == 0;
+    }
 
-//         public bool Equals(TypeReferenceHandle other)
-//         {
-//             return _rowId == other._rowId;
-//         }
+    public get RowId(): number { return this._rowId; }
 
-//         public override int GetHashCode()
-//         {
-//             return _rowId.GetHashCode();
-//         }
+    // public static bool operator ==(TypeReferenceHandle left, TypeReferenceHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
 
-//         public static bool operator !=(TypeReferenceHandle left, TypeReferenceHandle right)
-//         {
-//             return left._rowId != right._rowId;
-//         }
-//     }
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is TypeReferenceHandle && ((TypeReferenceHandle)obj)._rowId == _rowId;
+    // }
+
+    // public bool Equals(TypeReferenceHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
+
+    // public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
+
+    // public static bool operator !=(TypeReferenceHandle left, TypeReferenceHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
 
 //     export class TypeSpecificationHandle : IEquatable<TypeSpecificationHandle>
 //     {
@@ -879,7 +852,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new TypeSpecificationHandle(handle.RowId);
@@ -889,7 +862,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new TypeSpecificationHandle(handle.RowId);
@@ -931,88 +904,75 @@ export class TypeDefinitionHandle {
 //         }
 //     }
 
-//     export class MemberReferenceHandle : IEquatable<MemberReferenceHandle>
-//     {
-//         private static readonly tokenType = TokenTypeIds.MemberRef;
-//         private static readonly tokenTypeSmall = (byte)HandleType.MemberRef;
-//         private readonly int _rowId;
+export class MemberReferenceHandle {
+    private static readonly tokenType = TokenTypeIds.MemberRef;
+    private static readonly tokenTypeSmall = HandleType.MemberRef;
+    private readonly _rowId: number;
 
-//         private MemberReferenceHandle(int rowId)
-//         {
-//             assert(TokenTypeIds.IsValidRowId(rowId));
-//             _rowId = rowId;
-//         }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
-//         public static MemberReferenceHandle FromRowId(int rowId)
-//         {
-//             return new MemberReferenceHandle(rowId);
-//         }
+    public static FromRowId(rowId: number): MemberReferenceHandle {
+        return new MemberReferenceHandle(rowId);
+    }
 
-//         public static implicit operator Handle(MemberReferenceHandle handle)
-//         {
-//             return new Handle(tokenTypeSmall, handle._rowId);
-//         }
+    public ToHandle(): Handle {
+        return new Handle(MemberReferenceHandle.tokenTypeSmall, this._rowId);
+    }
 
-//         public static implicit operator EntityHandle(MemberReferenceHandle handle)
-//         {
-//             return new EntityHandle((uint)(tokenType | handle._rowId));
-//         }
+    public ToEntityHandle(): EntityHandle {
+        return new EntityHandle(MemberReferenceHandle.tokenType | this._rowId);
+    }
 
-//         public static explicit operator MemberReferenceHandle(Handle handle)
-//         {
-//             if (handle.VType != tokenTypeSmall)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    public static FromHandle(handle: Handle): MemberReferenceHandle {
+        if (handle.VType != MemberReferenceHandle.tokenTypeSmall) {
+            throw new Error("Invalid cast");
+        }
 
-//             return new MemberReferenceHandle(handle.RowId);
-//         }
+        return new MemberReferenceHandle(handle.RowId);
+    }
 
-//         public static explicit operator MemberReferenceHandle(EntityHandle handle)
-//         {
-//             if (handle.VType != tokenType)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    public static FromEntityHandle(handle: EntityHandle): MemberReferenceHandle {
+        if (handle.VType != MemberReferenceHandle.tokenType) {
+            throw new Error("Invalid cast");
+        }
 
-//             return new MemberReferenceHandle(handle.RowId);
-//         }
+        return new MemberReferenceHandle(handle.RowId);
+    }
 
-//         public bool IsNil
-//         {
-//             get
-//             {
-//                 return RowId == 0;
-//             }
-//         }
+    public get IsNil(): boolean {
+        return this.RowId == 0;
+    }
 
-//         public int RowId { get { return _rowId; } }
+    public get RowId(): number { return this._rowId; }
 
-//         public static bool operator ==(MemberReferenceHandle left, MemberReferenceHandle right)
-//         {
-//             return left._rowId == right._rowId;
-//         }
+    // public static bool operator ==(MemberReferenceHandle left, MemberReferenceHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
 
-//         public override bool Equals(object? obj)
-//         {
-//             return obj is MemberReferenceHandle && ((MemberReferenceHandle)obj)._rowId == _rowId;
-//         }
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is MemberReferenceHandle && ((MemberReferenceHandle)obj)._rowId == _rowId;
+    // }
 
-//         public bool Equals(MemberReferenceHandle other)
-//         {
-//             return _rowId == other._rowId;
-//         }
+    // public bool Equals(MemberReferenceHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
 
-//         public override int GetHashCode()
-//         {
-//             return _rowId.GetHashCode();
-//         }
+    // public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
 
-//         public static bool operator !=(MemberReferenceHandle left, MemberReferenceHandle right)
-//         {
-//             return left._rowId != right._rowId;
-//         }
-//     }
+    // public static bool operator !=(MemberReferenceHandle left, MemberReferenceHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
 
 //     export class FieldDefinitionHandle : IEquatable<FieldDefinitionHandle>
 //     {
@@ -1045,7 +1005,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new FieldDefinitionHandle(handle.RowId);
@@ -1055,7 +1015,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new FieldDefinitionHandle(handle.RowId);
@@ -1128,7 +1088,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new EventDefinitionHandle(handle.RowId);
@@ -1138,7 +1098,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new EventDefinitionHandle(handle.RowId);
@@ -1211,7 +1171,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new PropertyDefinitionHandle(handle.RowId);
@@ -1221,7 +1181,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new PropertyDefinitionHandle(handle.RowId);
@@ -1294,7 +1254,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new StandaloneSignatureHandle(handle.RowId);
@@ -1304,7 +1264,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new StandaloneSignatureHandle(handle.RowId);
@@ -1377,7 +1337,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ParameterHandle(handle.RowId);
@@ -1387,7 +1347,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ParameterHandle(handle.RowId);
@@ -1460,7 +1420,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new GenericParameterHandle(handle.RowId);
@@ -1470,7 +1430,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new GenericParameterHandle(handle.RowId);
@@ -1543,7 +1503,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new GenericParameterConstraintHandle(handle.RowId);
@@ -1553,7 +1513,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new GenericParameterConstraintHandle(handle.RowId);
@@ -1626,7 +1586,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ModuleReferenceHandle(handle.RowId);
@@ -1636,7 +1596,7 @@ export class TypeDefinitionHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ModuleReferenceHandle(handle.RowId);
@@ -1713,7 +1673,7 @@ export class AssemblyReferenceHandle {
 
     //     public static explicit operator AssemblyReferenceHandle(Handle handle) {
     //         if (handle.Type != tokenTypeSmall) {
-    //             Throw.InvalidCast();
+    //             throw new Error("Invalid cast");
     //         }
 
     //         return new AssemblyReferenceHandle(handle.SpecificEntityHandleValue);
@@ -1721,7 +1681,7 @@ export class AssemblyReferenceHandle {
 
     //     public static explicit operator AssemblyReferenceHandle(EntityHandle handle) {
     //         if (handle.Type != tokenType) {
-    //             Throw.InvalidCast();
+    //             throw new Error("Invalid cast");
     //         }
 
     //         return new AssemblyReferenceHandle(handle.SpecificHandleValue);
@@ -1788,88 +1748,76 @@ export namespace AssemblyReferenceHandle {
 }
 
 
-//     export class CustomAttributeHandle : IEquatable<CustomAttributeHandle>
-//     {
-//         private static readonly tokenType = TokenTypeIds.CustomAttribute;
-//         private static readonly tokenTypeSmall = (byte)HandleType.CustomAttribute;
-//         private readonly int _rowId;
+export class CustomAttributeHandle {
+    private static readonly tokenType = TokenTypeIds.CustomAttribute;
+    private static readonly tokenTypeSmall = HandleType.CustomAttribute;
+    private readonly _rowId: number;
 
-//         private CustomAttributeHandle(int rowId)
-//         {
-//             assert(TokenTypeIds.IsValidRowId(rowId));
-//             _rowId = rowId;
-//         }
+    private constructor(rowId: number) {
+        assert(TokenTypeIds.IsValidRowId(rowId));
+        this._rowId = rowId;
+    }
 
-//         public static CustomAttributeHandle FromRowId(int rowId)
-//         {
-//             return new CustomAttributeHandle(rowId);
-//         }
+    public static FromRowId(rowId: number): CustomAttributeHandle {
+        return new CustomAttributeHandle(rowId);
+    }
 
-//         public static implicit operator Handle(CustomAttributeHandle handle)
-//         {
-//             return new Handle(tokenTypeSmall, handle._rowId);
-//         }
+    // public static implicit operator Handle(CustomAttributeHandle handle) {
+    //     return new Handle(tokenTypeSmall, handle._rowId);
+    // }
 
-//         public static implicit operator EntityHandle(CustomAttributeHandle handle)
-//         {
-//             return new EntityHandle((uint)(tokenType | handle._rowId));
-//         }
+    // public static implicit operator EntityHandle(CustomAttributeHandle handle) {
+    //     return new EntityHandle((uint)(tokenType | handle._rowId));
+    // }
 
-//         public static explicit operator CustomAttributeHandle(Handle handle)
-//         {
-//             if (handle.VType != tokenTypeSmall)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static explicit operator CustomAttributeHandle(Handle handle) {
+    //     if (handle.VType != tokenTypeSmall) {
+    //         throw new Error("Invalid cast");
+    //     }
 
-//             return new CustomAttributeHandle(handle.RowId);
-//         }
+    //     return new CustomAttributeHandle(handle.RowId);
+    // }
 
-//         public static explicit operator CustomAttributeHandle(EntityHandle handle)
-//         {
-//             if (handle.VType != tokenType)
-//             {
-//                 Throw.InvalidCast();
-//             }
+    // public static explicit operator CustomAttributeHandle(EntityHandle handle) {
+    //     if (handle.VType != tokenType) {
+    //         throw new Error("Invalid cast");
+    //     }
 
-//             return new CustomAttributeHandle(handle.RowId);
-//         }
+    //     return new CustomAttributeHandle(handle.RowId);
+    // }
 
-//         public bool IsNil
-//         {
-//             get
-//             {
-//                 return _rowId == 0;
-//             }
-//         }
+    public get IsNil(): boolean {
 
-//         public int RowId { get { return _rowId; } }
+        return this._rowId == 0;
+    }
 
-//         public static bool operator ==(CustomAttributeHandle left, CustomAttributeHandle right)
-//         {
-//             return left._rowId == right._rowId;
-//         }
+    public get RowId(): number { return this._rowId; }
 
-//         public override bool Equals(object? obj)
-//         {
-//             return obj is CustomAttributeHandle && ((CustomAttributeHandle)obj)._rowId == _rowId;
-//         }
+    //         public static bool operator == (CustomAttributeHandle left, CustomAttributeHandle right)
+    // {
+    //     return left._rowId == right._rowId;
+    // }
 
-//         public bool Equals(CustomAttributeHandle other)
-//         {
-//             return _rowId == other._rowId;
-//         }
+    //         public override bool Equals(object ? obj)
+    // {
+    //     return obj is CustomAttributeHandle && ((CustomAttributeHandle)obj)._rowId == _rowId;
+    // }
 
-//         public override int GetHashCode()
-//         {
-//             return _rowId.GetHashCode();
-//         }
+    //         public bool Equals(CustomAttributeHandle other)
+    // {
+    //     return _rowId == other._rowId;
+    // }
 
-//         public static bool operator !=(CustomAttributeHandle left, CustomAttributeHandle right)
-//         {
-//             return left._rowId != right._rowId;
-//         }
-//     }
+    //         public override int GetHashCode()
+    // {
+    //     return _rowId.GetHashCode();
+    // }
+
+    //         public static bool operator != (CustomAttributeHandle left, CustomAttributeHandle right)
+    // {
+    //     return left._rowId != right._rowId;
+    // }
+}
 
 //     export class DeclarativeSecurityAttributeHandle : IEquatable<DeclarativeSecurityAttributeHandle>
 //     {
@@ -1902,7 +1850,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new DeclarativeSecurityAttributeHandle(handle.RowId);
@@ -1912,7 +1860,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new DeclarativeSecurityAttributeHandle(handle.RowId);
@@ -1985,7 +1933,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ConstantHandle(handle.RowId);
@@ -1995,7 +1943,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ConstantHandle(handle.RowId);
@@ -2068,7 +2016,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ManifestResourceHandle(handle.RowId);
@@ -2078,7 +2026,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new ManifestResourceHandle(handle.RowId);
@@ -2151,7 +2099,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenTypeSmall)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new AssemblyFileHandle(handle.RowId);
@@ -2161,7 +2109,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != tokenType)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new AssemblyFileHandle(handle.RowId);
@@ -2238,7 +2186,7 @@ export namespace AssemblyReferenceHandle {
 //         {
 //             if (handle.VType != HandleType.UserString)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new UserStringHandle(handle.Offset);
@@ -2314,35 +2262,30 @@ export class StringHandle {
         return reader.StringHeap.GetString(this, reader.UTF8Decoder);
     }
 
-    // public static StringHandle FromVirtualIndex(VirtualIndex virtualIndex)
-    // {
-    //     assert(virtualIndex < VirtualIndex.Count);
-    //     return new StringHandle(StringHandleType.VirtualString | (uint)virtualIndex);
-    // }
+    public static FromVirtualIndex(virtualIndex: StringHandle.VirtualIndex): StringHandle {
+        assert(virtualIndex < StringHandle.VirtualIndex.Count);
+        return new StringHandle(StringHandleType.VirtualString | virtualIndex);
+    }
 
-    // public static StringHandle FromWriterVirtualIndex(int virtualIndex)
-    // {
-    //     return new StringHandle(StringHandleType.VirtualString | (uint)virtualIndex);
-    // }
+    public static FromWriterVirtualIndex(virtualIndex: number): StringHandle {
+        return new StringHandle(StringHandleType.VirtualString | virtualIndex);
+    }
 
-    // public StringHandle WithWinRTPrefix()
-    // {
-    //     assert(StringKind == StringKind.Plain);
-    //     return new StringHandle(StringHandleType.WinRTPrefixedString | _value);
-    // }
+    public WithWinRTPrefix(): StringHandle {
+        assert(this.StringKind == StringKind.Plain);
+        return new StringHandle(StringHandleType.WinRTPrefixedString | this._value);
+    }
 
-    // public StringHandle WithDotTermination()
-    // {
-    //     assert(StringKind == StringKind.Plain);
-    //     return new StringHandle(StringHandleType.DotTerminatedString | _value);
-    // }
+    public WithDotTermination(): StringHandle {
+        assert(this.StringKind == StringKind.Plain);
+        return new StringHandle(StringHandleType.DotTerminatedString | this._value);
+    }
 
-    // public StringHandle SuffixRaw(int prefixByteLength)
-    // {
-    //     assert(StringKind == StringKind.Plain);
-    //     assert(prefixByteLength >= 0);
-    //     return new StringHandle(StringHandleType.String | (_value + (uint)prefixByteLength));
-    // }
+    public SuffixRaw(prefixByteLength: number): StringHandle {
+        assert(this.StringKind == StringKind.Plain);
+        assert(prefixByteLength >= 0);
+        return new StringHandle(StringHandleType.String | (this._value + prefixByteLength));
+    }
 
     // public static implicit operator Handle(StringHandle handle)
     // {
@@ -2356,7 +2299,7 @@ export class StringHandle {
     // {
     //     if ((handle.VType & ~(HandleType.VirtualBit | HandleType.NonVirtualStringTypeMask)) != HandleType.String)
     //     {
-    //         Throw.InvalidCast();
+    //         throw new Error("Invalid cast");
     //     }
 
     //     // V111 10TT -> VTTx xxxx xxxx xxxx  xxxx xxxx xxxx xxxx
@@ -2559,7 +2502,7 @@ export namespace StringHandle {
 //         {
 //             if ((handle.VType & HandleType.TypeMask) != HandleType.Namespace)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new NamespaceDefinitionHandle(
@@ -2650,7 +2593,7 @@ export namespace StringHandle {
 //         {
 //             if (handle.VType != HandleType.Guid)
 //             {
-//                 Throw.InvalidCast();
+//                 throw new Error("Invalid cast");
 //             }
 
 //             return new GuidHandle(handle.Offset);

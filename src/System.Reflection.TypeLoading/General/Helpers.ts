@@ -8,13 +8,23 @@
 
 import { Throw } from "System";
 import { AssemblyName } from "System.Reflection";
-import { RoAssemblyName } from "System.Reflection.TypeLoading";
+import { RoAssemblyName, RoAssembly, RoType } from "System.Reflection.TypeLoading";
 
 // #if NET8_0_OR_GREATER
-//         private static readonly SearchValues<char> s_charsToEscape = SearchValues.Create("\\[]+*&,");
+//   const  s_charsToEscape = SearchValues.Create("\\[]+*&,");
 // #else
-//         private static ReadOnlySpan<char> s_charsToEscape => "\\[]+*&,".AsSpan();
+const s_charsToEscape = Array.from(Buffer.from("\\[]+*&,")).map((x) => String.fromCharCode(x));
 // #endif
+
+
+export function TypeNameContainsTypeParserMetacharacters(identifier: string): boolean {
+    for (const c of s_charsToEscape) {
+        if (identifier.indexOf(c) >= 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 //         [return: NotNullIfNotNull(nameof(original))]
 //         public static T[]? CloneArray<T>(this T[]? original)
@@ -116,10 +126,6 @@ import { RoAssemblyName } from "System.Reflection.TypeLoading";
 //             return identifier;
 //         }
 
-//         public static bool TypeNameContainsTypeParserMetacharacters(this string identifier)
-//         {
-//             return identifier.AsSpan().IndexOfAny(s_charsToEscape) >= 0;
-//         }
 
 //         public static bool NeedsEscapingInTypeName(this char c)
 //         {
@@ -197,27 +203,26 @@ import { RoAssemblyName } from "System.Reflection.TypeLoading";
 //             return assemblyNameFlags;
 //         }
 
-//         //
-//         // Note that for a top level type, the resulting ns is string.Empty, *not* undefined.
-//         // This is a concession to the fact that MetadataReader's fast String equal methods
-//         // don't accept undefined.
-//         //
-//         public static void SplitTypeName(this string fullName, out string ns, out string name)
-//         {
-//             Debug.Assert(fullName != undefined);
+//
+// Note that for a top level type, the resulting ns is string.Empty, *not* undefined.
+// This is a concession to the fact that MetadataReader's fast String equal methods
+// don't accept undefined.
+//
+function SplitTypeName(fullName: string): { ns: string, name: string } {
+    let ns: string;
+    let name: string;
+    const indexOfLastDot = fullName.lastIndexOf('.');
+    if (indexOfLastDot == -1) {
+        ns = "";
+        name = fullName;
+    }
+    else {
+        ns = fullName.substring(0, indexOfLastDot);
+        name = fullName.substring(indexOfLastDot + 1);
+    }
 
-//             int indexOfLastDot = fullName.LastIndexOf('.');
-//             if (indexOfLastDot == -1)
-//             {
-//                 ns = string.Empty;
-//                 name = fullName;
-//             }
-//             else
-//             {
-//                 ns = fullName.Substring(0, indexOfLastDot);
-//                 name = fullName.Substring(indexOfLastDot + 1);
-//             }
-//         }
+    return { ns, name };
+}
 
 //         //
 //         // Rejoin a namespace and type name back into a full name.
@@ -288,18 +293,20 @@ import { RoAssemblyName } from "System.Reflection.TypeLoading";
 //             return true;
 //         }
 
-//         public static RoType? LoadTypeFromAssemblyQualifiedName(string name, RoAssembly defaultAssembly, bool ignoreCase, bool throwOnError)
-//         {
-//             if (!name.TypeNameContainsTypeParserMetacharacters())
-//             {
-//                 // Fast-path: the type contains none of the parser metacharacters nor the escape character. Just treat as plain old type name.
-//                 name.SplitTypeName(out string ns, out string simpleName);
-//                 RoType? type = defaultAssembly.GetTypeCore(ns, simpleName, ignoreCase: ignoreCase, out Exception? e);
-//                 if (type != undefined)
-//                     return type;
-//                 if (throwOnError)
-//                     throw e!;
-//             }
+export function LoadTypeFromAssemblyQualifiedName(name: string, defaultAssembly: RoAssembly, ignoreCase: boolean): RoType | undefined {
+    if (!TypeNameContainsTypeParserMetacharacters(name)) {
+        // Fast-path: the type contains none of the parser metacharacters nor the escape character. Just treat as plain old type name.
+        const out = SplitTypeName(name);
+        const ns = Uint8Array.from(Buffer.from(out.ns));
+        const simpleName = Uint8Array.from(Buffer.from(out.name));
+        const type = defaultAssembly.GetTypeCore(ns, simpleName, ignoreCase);
+        if (type != undefined) {
+            return type;
+        }
+    }
+
+    return undefined;
+}
 
 //             MetadataLoadContext loader = defaultAssembly.Loader;
 

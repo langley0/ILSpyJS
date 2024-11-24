@@ -2,7 +2,7 @@ import assert from "assert";
 // import PointerBuffer from "PointerBuffer";
 import { Throw, sizeof, BitConverter, Guid } from "System";
 import { MetadataStringDecoder, BlobReader } from "System.Reflection.Metadata";
-import { HeapHandleType } from "System.Reflection.Metadata.Ecma335";
+import { HeapHandleType, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
 
 export class MemoryBlock {
     public readonly Pointer: Uint8Array;
@@ -155,11 +155,10 @@ export class MemoryBlock {
         return BitConverter.IsLittleEndian ? (b1 + (b2 << 8)) : ((b1 << 8) + b2);
     }
 
-    // // When reference has tag bits.
-    // public uint PeekTaggedReference(int offset, bool smallRefSize)
-    // {
-    //     return PeekReferenceUnchecked(offset, smallRefSize);
-    // }
+    // When reference has tag bits.
+    public PeekTaggedReference(offset: number, smallRefSize: boolean): number {
+        return this.PeekReferenceUnchecked(offset, smallRefSize);
+    }
 
     // Use when searching for a tagged or non-tagged reference.
     // The result may be an invalid reference and shall only be used to compare with a valid reference.
@@ -167,23 +166,20 @@ export class MemoryBlock {
         return smallRefSize ? this.PeekUInt16(offset) : this.PeekUInt32(offset);
     }
 
-    // // When reference has at most 24 bits.
-    // public int PeekReference(int offset, bool smallRefSize)
-    // {
-    //     if (smallRefSize)
-    //     {
-    //         return PeekUInt16(offset);
-    //     }
+    // When reference has at most 24 bits.
+    public PeekReference(offset: number, smallRefSize: boolean): number {
+        if (smallRefSize) {
+            return this.PeekUInt16(offset);
+        }
 
-    //     uint value = PeekUInt32(offset);
+        const value = this.PeekUInt32(offset);
 
-    //     if (!TokenTypeIds.IsValidRowId(value))
-    //     {
-    //         Throw.ReferenceOverflow();
-    //     }
+        if (!TokenTypeIds.IsValidRowId(value)) {
+            Throw.ReferenceOverflow();
+        }
 
-    //     return value;
-    // }
+        return value;
+    }
 
     // #String, #Blob heaps
     public PeekHeapReference(offset: number, smallRefSize: boolean): number {
@@ -252,16 +248,16 @@ export class MemoryBlock {
     /// If a value other than '\0' is passed we still stop at the undefined terminator if encountered first.</param>
     /// <returns>The decoded string.</returns>
     public PeekUtf8NullTerminated(offset: number, prefix: Uint8Array | undefined, utf8Decoder: MetadataStringDecoder, terminator: number = '\0'.charCodeAt(0)): string {
-    assert(terminator <= 0x7F);
-    this.CheckBounds(offset, 0);
-    const numberOfBytesRead = this.GetUtf8NullTerminatedLength(offset, terminator);
-    const value = Buffer.from(this.Pointer.subarray(offset, offset + numberOfBytesRead)).toString("utf8");
-    // if last character is terminator, remove it
-    if (value.charCodeAt(value.length - 1) == terminator) {
-        return value.substring(0, value.length - 1);
+        assert(terminator <= 0x7F);
+        this.CheckBounds(offset, 0);
+        const numberOfBytesRead = this.GetUtf8NullTerminatedLength(offset, terminator);
+        const value = Buffer.from(this.Pointer.subarray(offset, offset + numberOfBytesRead)).toString("utf8");
+        // if last character is terminator, remove it
+        if (value.charCodeAt(value.length - 1) == terminator) {
+            return value.substring(0, value.length - 1);
+        }
+        return value;
     }
-    return value;
-}
 
     /// <summary>
     /// Get number of bytes from offset to given terminator, undefined terminator, or end-of-block (whichever comes first).
@@ -273,24 +269,24 @@ export class MemoryBlock {
     /// <param name="numberOfBytesRead">The number of bytes read, which includes the terminator if we did not hit the end of the block.</param>
     /// <returns>Length (byte count) not including terminator.</returns>
     public GetUtf8NullTerminatedLength(offset: number, terminator: number): number {
-    this.CheckBounds(offset, 0);
+        this.CheckBounds(offset, 0);
 
-    assert(terminator <= 0x7f);
+        assert(terminator <= 0x7f);
 
-    const span = this.Pointer.subarray(offset);
-    let length = span.indexOf(terminator);
-    length = length >= 0 ? length : span.indexOf(0);
+        const span = this.Pointer.subarray(offset);
+        let length = span.indexOf(terminator);
+        length = length >= 0 ? length : span.indexOf(0);
 
-    let numberOfBytesRead: number;
-    if (length >= 0) {
-        numberOfBytesRead = length + 1; // we also read the terminator
+        let numberOfBytesRead: number;
+        if (length >= 0) {
+            numberOfBytesRead = length + 1; // we also read the terminator
+        }
+        else {
+            numberOfBytesRead = length = span.length;
+        }
+
+        return numberOfBytesRead
     }
-    else {
-        numberOfBytesRead = length = span.length;
-    }
-
-    return numberOfBytesRead
-}
 
     // public int Utf8NullTerminatedOffsetOfAsciiChar(int startOffset, char asciiChar)
     // {
@@ -431,44 +427,40 @@ export class MemoryBlock {
     //     return true;
     // }
 
-    // public int CompareUtf8NullTerminatedStringWithAsciiString(int offset, string asciiString)
-    // {
-    //     // Assumes stringAscii only contains ASCII characters and no nil characters.
+    public CompareUtf8NullTerminatedStringWithAsciiString(offset: number, asciiString: string): number {
+        // Assumes stringAscii only contains ASCII characters and no nil characters.
 
-    //     CheckBounds(offset, 0);
+        this.CheckBounds(offset, 0);
 
-    //     byte* p = Pointer + offset;
-    //     int limit = Length - offset;
+        let p = offset;
+        const limit = this.Length - offset;
 
-    //     for (int i = 0; i < asciiString.Length; i++)
-    //     {
-    //         assert(asciiString[i] > 0 && asciiString[i] <= 0x7f);
+        for (let i = 0; i < asciiString.length; i++) {
+            assert(asciiString.charCodeAt(i) > 0 && asciiString.charCodeAt(i) <= 0x7f);
 
-    //         if (i > limit)
-    //         {
-    //             // Heap value is shorter.
-    //             return -1;
-    //         }
+            if (i > limit) {
+                // Heap value is shorter.
+                return -1;
+            }
 
-    //         if (*p != asciiString[i])
-    //         {
-    //             // If we hit the end of the heap value (*p == 0)
-    //             // the heap value is shorter than the string, so we return negative value.
-    //             return *p - asciiString[i];
-    //         }
+            if (this.Pointer[p] != asciiString.charCodeAt(i)) {
+                // If we hit the end of the heap value (*p == 0)
+                // the heap value is shorter than the string, so we return negative value.
+                return this.Pointer[p] - asciiString.charCodeAt(i);
+            }
 
-    //         p++;
-    //     }
+            p++;
+        }
 
-    //     // Either the heap value name matches exactly the given string or
-    //     // it is longer so it is considered "greater".
-    //     return (*p == 0) ? 0 : +1;
-    // }
+        // Either the heap value name matches exactly the given string or
+        // it is longer so it is considered "greater".
+        return (this.Pointer[p] == 0) ? 0 : +1;
+    }
 
     public PeekBytes(offset: number, byteCount: number): Uint8Array {
-    this.CheckBounds(offset, byteCount);
-    return this.Pointer.subarray(offset, offset + byteCount);
-}
+        this.CheckBounds(offset, byteCount);
+        return this.Pointer.subarray(offset, offset + byteCount);
+    }
 
     // public int IndexOf(byte b, int start)
     // {
@@ -484,278 +476,262 @@ export class MemoryBlock {
     //         -1;
     // }
 
-    // // same as Array.BinarySearch, but without using IComparer
-    // public int BinarySearch(string[] asciiKeys, int offset)
-    // {
-    //     var low = 0;
-    //     var high = asciiKeys.Length - 1;
+    // same as Array.BinarySearch, but without using IComparer
+    public BinarySearch(asciiKeys: string[], offset: number): number {
+        var low = 0;
+        var high = asciiKeys.length - 1;
 
-    //     while (low <= high)
-    //     {
-    //         var middle = low + ((high - low) >> 1);
-    //         var midValue = asciiKeys[middle];
+        while (low <= high) {
+            var middle = low + ((high - low) >> 1);
+            var midValue = asciiKeys[middle];
 
-    //         int comparison = CompareUtf8NullTerminatedStringWithAsciiString(offset, midValue);
-    //         if (comparison == 0)
-    //         {
-    //             return middle;
-    //         }
+            const comparison = this.CompareUtf8NullTerminatedStringWithAsciiString(offset, midValue);
+            if (comparison == 0) {
+                return middle;
+            }
 
-    //         if (comparison < 0)
-    //         {
-    //             high = middle - 1;
-    //         }
-    //         else
-    //         {
-    //             low = middle + 1;
-    //         }
-    //     }
+            if (comparison < 0) {
+                high = middle - 1;
+            }
+            else {
+                low = middle + 1;
+            }
+        }
 
-    //     return ~low;
-    // }
+        return ~low;
+    }
 
-    // /// <summary>
-    // /// In a table that specifies children via a list field (e.g. TypeDef.FieldList, TypeDef.MethodList),
-    // /// searches for the parent given a reference to a child.
-    // /// </summary>
-    // /// <returns>Returns row number [0..RowCount).</returns>
-    // public int BinarySearchForSlot(
-    //     int rowCount,
-    //     int rowSize,
-    //     int referenceListOffset,
-    //     uint referenceValue,
-    //     bool isReferenceSmall)
-    // {
-    //     int startRowNumber = 0;
-    //     int endRowNumber = rowCount - 1;
-    //     uint startValue = PeekReferenceUnchecked(startRowNumber * rowSize + referenceListOffset, isReferenceSmall);
-    //     uint endValue = PeekReferenceUnchecked(endRowNumber * rowSize + referenceListOffset, isReferenceSmall);
-    //     if (endRowNumber == 1)
-    //     {
-    //         if (referenceValue >= endValue)
-    //         {
-    //             return endRowNumber;
-    //         }
+    /// <summary>
+    /// In a table that specifies children via a list field (e.g. TypeDef.FieldList, TypeDef.MethodList),
+    /// searches for the parent given a reference to a child.
+    /// </summary>
+    /// <returns>Returns row number [0..RowCount).</returns>
+    public BinarySearchForSlot(
+        rowCount: number,
+        rowSize: number,
+        referenceListOffset: number,
+        referenceValue: number,
+        isReferenceSmall: boolean,
+    ): number {
+        let startRowNumber = 0;
+        let endRowNumber = rowCount - 1;
+        let startValue = this.PeekReferenceUnchecked(startRowNumber * rowSize + referenceListOffset, isReferenceSmall);
+        let endValue = this.PeekReferenceUnchecked(endRowNumber * rowSize + referenceListOffset, isReferenceSmall);
+        if (endRowNumber == 1) {
+            if (referenceValue >= endValue) {
+                return endRowNumber;
+            }
 
-    //         return startRowNumber;
-    //     }
+            return startRowNumber;
+        }
 
-    //     while (endRowNumber - startRowNumber > 1)
-    //     {
-    //         if (referenceValue <= startValue)
-    //         {
-    //             return referenceValue == startValue ? startRowNumber : startRowNumber - 1;
-    //         }
+        while (endRowNumber - startRowNumber > 1) {
+            if (referenceValue <= startValue) {
+                return referenceValue == startValue ? startRowNumber : startRowNumber - 1;
+            }
 
-    //         if (referenceValue >= endValue)
-    //         {
-    //             return referenceValue == endValue ? endRowNumber : endRowNumber + 1;
-    //         }
+            if (referenceValue >= endValue) {
+                return referenceValue == endValue ? endRowNumber : endRowNumber + 1;
+            }
 
-    //         int midRowNumber = (startRowNumber + endRowNumber) / 2;
-    //         uint midReferenceValue = PeekReferenceUnchecked(midRowNumber * rowSize + referenceListOffset, isReferenceSmall);
-    //         if (referenceValue > midReferenceValue)
-    //         {
-    //             startRowNumber = midRowNumber;
-    //             startValue = midReferenceValue;
-    //         }
-    //         else if (referenceValue < midReferenceValue)
-    //         {
-    //             endRowNumber = midRowNumber;
-    //             endValue = midReferenceValue;
-    //         }
-    //         else
-    //         {
-    //             return midRowNumber;
-    //         }
-    //     }
+            const midRowNumber = (startRowNumber + endRowNumber) / 2;
+            const midReferenceValue = this.PeekReferenceUnchecked(midRowNumber * rowSize + referenceListOffset, isReferenceSmall);
+            if (referenceValue > midReferenceValue) {
+                startRowNumber = midRowNumber;
+                startValue = midReferenceValue;
+            }
+            else if (referenceValue < midReferenceValue) {
+                endRowNumber = midRowNumber;
+                endValue = midReferenceValue;
+            }
+            else {
+                return midRowNumber;
+            }
+        }
 
-    //     return startRowNumber;
-    // }
+        return startRowNumber;
+    }
 
     /// <summary>
     /// In a table ordered by a column containing entity references searches for a row with the specified reference.
     /// </summary>
     /// <returns>Returns row number [0..RowCount) or -1 if not found.</returns>
     public BinarySearchReference(
-    rowCount: number,
-    rowSize: number,
-    referenceOffset: number,
-    referenceValue: number,
-    isReferenceSmall: boolean
-): number {
-    let startRowNumber = 0;
-    let endRowNumber = rowCount - 1;
-    while (startRowNumber <= endRowNumber) {
-        let midRowNumber = (startRowNumber + endRowNumber) / 2;
-        let midReferenceValue = this.PeekReferenceUnchecked(midRowNumber * rowSize + referenceOffset, isReferenceSmall);
-        if (referenceValue > midReferenceValue) {
-            startRowNumber = midRowNumber + 1;
+        rowCount: number,
+        rowSize: number,
+        referenceOffset: number,
+        referenceValue: number,
+        isReferenceSmall: boolean
+    ): number {
+        let startRowNumber = 0;
+        let endRowNumber = rowCount - 1;
+        while (startRowNumber <= endRowNumber) {
+            let midRowNumber = (startRowNumber + endRowNumber) / 2;
+            let midReferenceValue = this.PeekReferenceUnchecked(midRowNumber * rowSize + referenceOffset, isReferenceSmall);
+            if (referenceValue > midReferenceValue) {
+                startRowNumber = midRowNumber + 1;
+            }
+            else if (referenceValue < midReferenceValue) {
+                endRowNumber = midRowNumber - 1;
+            }
+            else {
+                return midRowNumber;
+            }
         }
-        else if (referenceValue < midReferenceValue) {
-            endRowNumber = midRowNumber - 1;
-        }
-        else {
-            return midRowNumber;
-        }
-    }
 
-    return -1;
-}
+        return -1;
+    }
 
     // Row number [0, ptrTable.Length) or -1 if not found.
     public BinarySearchReferenceTable(
-    ptrTable: number[],
-    rowSize: number,
-    referenceOffset: number,
-    referenceValue: number,
-    isReferenceSmall: boolean): number {
-    let startRowNumber = 0;
-    let endRowNumber = ptrTable.length - 1;
-    while (startRowNumber <= endRowNumber) {
-        const midRowNumber = (startRowNumber + endRowNumber) / 2;
-        const midReferenceValue = this.PeekReferenceUnchecked((ptrTable[midRowNumber] - 1) * rowSize + referenceOffset, isReferenceSmall);
-        if (referenceValue > midReferenceValue) {
-            startRowNumber = midRowNumber + 1;
+        ptrTable: number[],
+        rowSize: number,
+        referenceOffset: number,
+        referenceValue: number,
+        isReferenceSmall: boolean): number {
+        let startRowNumber = 0;
+        let endRowNumber = ptrTable.length - 1;
+        while (startRowNumber <= endRowNumber) {
+            const midRowNumber = (startRowNumber + endRowNumber) / 2;
+            const midReferenceValue = this.PeekReferenceUnchecked((ptrTable[midRowNumber] - 1) * rowSize + referenceOffset, isReferenceSmall);
+            if (referenceValue > midReferenceValue) {
+                startRowNumber = midRowNumber + 1;
+            }
+            else if (referenceValue < midReferenceValue) {
+                endRowNumber = midRowNumber - 1;
+            }
+            else {
+                return midRowNumber;
+            }
         }
-        else if (referenceValue < midReferenceValue) {
-            endRowNumber = midRowNumber - 1;
-        }
-        else {
-            return midRowNumber;
-        }
-    }
 
-    return -1;
-}
+        return -1;
+    }
 
     /// <summary>
     /// Calculates a range of rows that have specified value in the specified column in a table that is sorted by that column.
     /// </summary>
     public BinarySearchReferenceRange(
-    rowCount: number | number[],
-    rowSize: number,
-    referenceOffset: number,
-    referenceValue: number,
-    isReferenceSmall: boolean,
-): {
-    startRowNumber: number,
+        rowCount: number | number[],
+        rowSize: number,
+        referenceOffset: number,
+        referenceValue: number,
+        isReferenceSmall: boolean,
+    ): {
+        startRowNumber: number,
         endRowNumber: number
-} // [0, rowCount) or -1 
-{
-    const foundRowNumber = Array.isArray(rowCount) ?
-        this.BinarySearchReferenceTable(
-            rowCount,
-            rowSize,
-            referenceOffset,
-            referenceValue,
-            isReferenceSmall
-        ) :
-        this.BinarySearchReference(
-            rowCount,
-            rowSize,
-            referenceOffset,
-            referenceValue,
-            isReferenceSmall
-        );
+    } // [0, rowCount) or -1 
+    {
+        const foundRowNumber = Array.isArray(rowCount) ?
+            this.BinarySearchReferenceTable(
+                rowCount,
+                rowSize,
+                referenceOffset,
+                referenceValue,
+                isReferenceSmall
+            ) :
+            this.BinarySearchReference(
+                rowCount,
+                rowSize,
+                referenceOffset,
+                referenceValue,
+                isReferenceSmall
+            );
 
-    if (foundRowNumber == -1) {
-        const startRowNumber = -1;
-        const endRowNumber = -1;
+        if (foundRowNumber == -1) {
+            const startRowNumber = -1;
+            const endRowNumber = -1;
+            return { startRowNumber, endRowNumber };
+        }
+
+        let startRowNumber = foundRowNumber;
+        while (startRowNumber > 0 &&
+            this.PeekReferenceUnchecked((startRowNumber - 1) * rowSize + referenceOffset, isReferenceSmall) == referenceValue) {
+            startRowNumber--;
+        }
+
+        let endRowNumber = foundRowNumber;
+        while (endRowNumber + 1 < (Array.isArray(rowCount) ? rowCount.length : rowCount) &&
+            this.PeekReferenceUnchecked((endRowNumber + 1) * rowSize + referenceOffset, isReferenceSmall) == referenceValue) {
+            endRowNumber++;
+        }
+
         return { startRowNumber, endRowNumber };
     }
 
-    let startRowNumber = foundRowNumber;
-    while (startRowNumber > 0 &&
-        this.PeekReferenceUnchecked((startRowNumber - 1) * rowSize + referenceOffset, isReferenceSmall) == referenceValue) {
-        startRowNumber--;
-    }
 
-    let endRowNumber = foundRowNumber;
-    while (endRowNumber + 1 < (Array.isArray(rowCount) ? rowCount.length : rowCount) &&
-        this.PeekReferenceUnchecked((endRowNumber + 1) * rowSize + referenceOffset, isReferenceSmall) == referenceValue) {
-        endRowNumber++;
-    }
+    // Always RowNumber....
+    public LinearSearchReference(
+        rowSize: number,
+        referenceOffset: number,
+        referenceValue: number,
+        isReferenceSmall: boolean): number {
+        let currOffset = referenceOffset;
+        const totalSize = this.Length;
+        while (currOffset < totalSize) {
+            const currReference = this.PeekReferenceUnchecked(currOffset, isReferenceSmall);
+            if (currReference == referenceValue) {
+                return Math.floor(currOffset / rowSize);
+            }
 
-    return { startRowNumber, endRowNumber };
-}
-
-
-    // // Always RowNumber....
-    // public int LinearSearchReference(
-    //     int rowSize,
-    //     int referenceOffset,
-    //     uint referenceValue,
-    //     bool isReferenceSmall)
-    // {
-    //     int currOffset = referenceOffset;
-    //     int totalSize = this.Length;
-    //     while (currOffset < totalSize)
-    //     {
-    //         uint currReference = PeekReferenceUnchecked(currOffset, isReferenceSmall);
-    //         if (currReference == referenceValue)
-    //         {
-    //             return currOffset / rowSize;
-    //         }
-
-    //         currOffset += rowSize;
-    //     }
-
-    //     return -1;
-    // }
-
-    public IsOrderedByReferenceAscending(
-    rowSize: number,
-    referenceOffset: number,
-    isReferenceSmall: boolean): boolean {
-    let offset = referenceOffset;
-    const totalSize = this.Length;
-
-    let previous = 0;
-    while (offset < totalSize) {
-        const current = this.PeekReferenceUnchecked(offset, isReferenceSmall);
-        if (current < previous) {
-            return false;
+            currOffset += rowSize;
         }
 
-        previous = current;
-        offset += rowSize;
+        return -1;
     }
 
-    return true;
-}
+    public IsOrderedByReferenceAscending(
+        rowSize: number,
+        referenceOffset: number,
+        isReferenceSmall: boolean): boolean {
+        let offset = referenceOffset;
+        const totalSize = this.Length;
+
+        let previous = 0;
+        while (offset < totalSize) {
+            const current = this.PeekReferenceUnchecked(offset, isReferenceSmall);
+            if (current < previous) {
+                return false;
+            }
+
+            previous = current;
+            offset += rowSize;
+        }
+
+        return true;
+    }
 
     public BuildPtrTable(
-    numberOfRows: number,
-    rowSize: number,
-    referenceOffset: number,
-    isReferenceSmall: boolean): number[] {
-    const ptrTable = new Array<number>(numberOfRows);
-    const unsortedReferences = new Array<number>(numberOfRows);
+        numberOfRows: number,
+        rowSize: number,
+        referenceOffset: number,
+        isReferenceSmall: boolean): number[] {
+        const ptrTable = new Array<number>(numberOfRows);
+        const unsortedReferences = new Array<number>(numberOfRows);
 
-    for (let i = 0; i < ptrTable.length; i++) {
-        ptrTable[i] = i + 1;
+        for (let i = 0; i < ptrTable.length; i++) {
+            ptrTable[i] = i + 1;
+        }
+
+        this.ReadColumn(unsortedReferences, rowSize, referenceOffset, isReferenceSmall);
+        return ptrTable.sort((a, b) => { return unsortedReferences[a - 1] - unsortedReferences[b - 1]; });
     }
-
-    this.ReadColumn(unsortedReferences, rowSize, referenceOffset, isReferenceSmall);
-    return ptrTable.sort((a, b) => { return unsortedReferences[a - 1] - unsortedReferences[b - 1]; });
-}
 
     private ReadColumn(
-    result: number[],
-    rowSize: number,
-    referenceOffset: number,
-    isReferenceSmall: boolean,
-): void {
-    let offset = referenceOffset;
-    let totalSize = this.Length;
+        result: number[],
+        rowSize: number,
+        referenceOffset: number,
+        isReferenceSmall: boolean,
+    ): void {
+        let offset = referenceOffset;
+        let totalSize = this.Length;
 
-    let i = 0;
-    while(offset <totalSize) {
-        result[i] = this.PeekReferenceUnchecked(offset, isReferenceSmall);
-        offset += rowSize;
-        i++;
-    }
+        let i = 0;
+        while (offset < totalSize) {
+            result[i] = this.PeekReferenceUnchecked(offset, isReferenceSmall);
+            offset += rowSize;
+            i++;
+        }
 
         assert(i == result.length);
     }

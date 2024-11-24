@@ -152,7 +152,7 @@ class ResolverReturnsSomething implements MetadataAssemblyResolver {
     public Assembly!: Assembly;
     public AssemblyName!: AssemblyName;
     public Context!: MetadataLoadContext;
-    public CallCount!: number;
+    public CallCount: number = 0;
 }
 
 export function LoadBinary() {
@@ -166,18 +166,20 @@ export function ResolverReturns() {
     var resolver = new ResolverReturnsSomething();
     const lc = new MetadataLoadContext(resolver);
 
+    {
     assert(lc == resolver.Context);
-    assert(1 == resolver.CallCount);
+    assert('1' === resolver.CallCount.toString());
+    }
 
     const derived = lc.LoadFromByteArray(s_DerivedClassWithVariationsOnFooImage);
     const t = derived.GetType("Derived1", true);
     const bt = t?.BaseType;
-
-    // Assert.Same(lc, resolver.Context);
-    assert("Foo" == resolver.AssemblyName.Name);
-    // Assert.Equal(2, resolver.CallCount);
-
-    // Assembly a = bt.Assembly;
-    // Assert.Equal(a, resolver.Assembly);
+{
+    assert(lc == resolver.Context);
+    // assert("Foo" == resolver.AssemblyName.Name);
+    assert('2' === resolver.CallCount.toString());
+}
+    const a = bt?.Assembly;
+    assert(a == resolver.Assembly);
 
 }

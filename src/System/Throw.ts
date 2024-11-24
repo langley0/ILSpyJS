@@ -11,6 +11,10 @@ export class ArgumentNullException extends Error {
 }
 
 export class Throw {
+    
+    static InvalidCodedIndex(): never {
+        throw new Error("InvalidCodedIndex: Invalid coded index.");
+    }
 
     static SecurityException(description: string): never {
         throw new Error(`SecurityException: ${description}`);
@@ -74,7 +78,7 @@ export class Throw {
         throw new Error("InvalidOperation: Entity or UserString handle expected.");
     }
 
-    static ArgumentException(description: string, parameterName?: string): never {
+    static ArgumentException(description?: string, parameterName?: string): never {
         throw new Error(`ArgumentException: ${description}, ${parameterName}`);
     }
 
@@ -90,7 +94,7 @@ export class Throw {
         throw new Error("InvalidOperation: Builder is already linked to another metadata.");
     }
 
-    static InvalidOperationException(description: string, parameterName?: string): never {
+    static InvalidOperationException(description?: string, parameterName?: string): never {
         throw new Error(`InvalidOperation: ${description}, ${parameterName}`);
     }
 

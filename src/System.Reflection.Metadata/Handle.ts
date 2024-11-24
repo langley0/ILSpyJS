@@ -20,13 +20,12 @@ export class Handle {
     // 0..6: token type
     private readonly _vType: number;
 
-    // /// <summary>
-    // /// Creates <see cref="Handle"/> from a token or a token combined with a virtual flag.
-    // /// </summary>
-    // public static Handle FromVToken(uint vToken)
-    // {
-    //     return new Handle((byte)(vToken >> TokenTypeIds.RowIdBitCount), (vToken & TokenTypeIds.RIDMask));
-    // }
+    /// <summary>
+    /// Creates <see cref="Handle"/> from a token or a token combined with a virtual flag.
+    /// </summary>
+    public static FromVToken(vToken: number): Handle {
+        return new Handle((vToken >> TokenTypeIds.RowIdBitCount), (vToken & TokenTypeIds.RIDMask));
+    }
 
     public constructor(vType: number, value: number) {
         this._vType = vType;
@@ -43,33 +42,24 @@ export class Handle {
             (!this.IsHeapHandle && value <= TokenTypeIds.RIDMask));
     }
 
-    // // for entity handles:
-    // public int RowId
-    // {
-    //     get
-    //     {
-    //         assert(!IsHeapHandle);
-    //         return _value;
-    //     }
-    // }
+    // for entity handles:
+    public get RowId(): number {
+        assert(!this.IsHeapHandle);
+        return this._value;
+    }
 
-    // // for heap handles:
-    // public int Offset
-    // {
-    //     get
-    //     {
-    //         assert(IsHeapHandle);
-    //         return _value;
-    //     }
-    // }
+    // for heap handles:
+    public get Offset(): number {
+        assert(this.IsHeapHandle);
+        return this._value;
+    }
 
-    // /// <summary>
-    // /// Token type (0x##000000), does not include virtual flag.
-    // /// </summary>
-    // public uint EntityHandleType
-    // {
-    //     get { return Type << TokenTypeIds.RowIdBitCount; }
-    // }
+    /// <summary>
+    /// Token type (0x##000000), does not include virtual flag.
+    /// </summary>
+    public get EntityHandleType(): number {
+        return this.Type << TokenTypeIds.RowIdBitCount;
+    }
 
     /// <summary>
     /// Small token type (0x##), does not include virtual flag.
@@ -78,34 +68,25 @@ export class Handle {
         return this._vType & HandleType.TypeMask;
     }
 
-    // /// <summary>
-    // /// Value stored in an <see cref="EntityHandle"/>.
-    // /// </summary>
-    // public uint EntityHandleValue
-    // {
-    //     get
-    //     {
-    //         assert((_value & TokenTypeIds.RIDMask) == _value);
-    //         return (uint)_vType << TokenTypeIds.RowIdBitCount | (uint)_value;
-    //     }
-    // }
+    /// <summary>
+    /// Value stored in an <see cref="EntityHandle"/>.
+    /// </summary>
+    public get EntityHandleValue(): number {
+        assert((this._value & TokenTypeIds.RIDMask) == this._value);
+        return this._vType << TokenTypeIds.RowIdBitCount | this._value;
+    }
 
-    // /// <summary>
-    // /// Value stored in a concrete entity handle (see <see cref="TypeDefinitionHandle"/>, <see cref="MethodDefinitionHandle"/>, etc.).
-    // /// </summary>
-    // public uint SpecificEntityHandleValue
-    // {
-    //     get
-    //     {
-    //         assert((_value & TokenTypeIds.RIDMask) == _value);
-    //         return (_vType & HandleType.VirtualBit) << TokenTypeIds.RowIdBitCount | (uint)_value;
-    //     }
-    // }
+    /// <summary>
+    /// Value stored in a concrete entity handle (see <see cref="TypeDefinitionHandle"/>, <see cref="MethodDefinitionHandle"/>, etc.).
+    /// </summary>
+    public get SpecificEntityHandleValue(): number {
+        assert((this._value & TokenTypeIds.RIDMask) == this._value);
+        return (this._vType & HandleType.VirtualBit) << TokenTypeIds.RowIdBitCount | this._value;
+    }
 
-    // public byte VType
-    // {
-    //     get { return _vType; }
-    // }
+    public get VType(): number {
+        return this._vType;
+    }
 
     public get IsVirtual(): boolean {
         return (this._vType & HandleType.VirtualBit) != 0;
@@ -152,10 +133,10 @@ export class Handle {
     //     return _value == other._value && _vType == other._vType;
     // }
 
-    // public override int GetHashCode()
-    // {
-    //     return _value ^ (_vType << 24);
-    // }
+    public  GetHashCode(): number
+    {
+        return this._value ^ (this._vType << 24);
+    }
 
     // public static bool operator ==(Handle left, Handle right)
     // {

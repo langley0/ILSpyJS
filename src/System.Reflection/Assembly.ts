@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { Throw, Type } from "System";
 import { ICustomAttributeProvider } from './ICustomAttributeProvider';
 import { ISerializable } from 'System.Runtime.Serialization';
@@ -73,13 +72,13 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
 
     //     [Obsolete("Assembly.CodeBase and Assembly.EscapedCodeBase are only included for .NET Framework compatibility. Use Assembly.Location.", DiagnosticId = "SYSLIB0012", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
     //     [RequiresAssemblyFiles(ThrowingMessageInRAF)]
-    //     public virtual string? CodeBase => throw NotImplemented.ByDesign;
-    //     public virtual MethodInfo? EntryPoint => throw NotImplemented.ByDesign;
-    //     public virtual string? FullName => throw NotImplemented.ByDesign;
-    //     public virtual string ImageRuntimeVersion => throw NotImplemented.ByDesign;
+    //     public virtual string? CodeBase: { throw new Error("NotImplemented.ByDesign"); }
+    //     public virtual MethodInfo? EntryPoint: { throw new Error("NotImplemented.ByDesign"); }
+    public get FullName(): string | undefined { throw new Error("NotImplemented.ByDesign"); }
+    //     public virtual string ImageRuntimeVersion: { throw new Error("NotImplemented.ByDesign"); }
     //     public virtual bool IsDynamic => false;
-    //     public virtual string Location => throw NotImplemented.ByDesign;
-    //     public virtual bool ReflectionOnly => throw NotImplemented.ByDesign;
+    //     public virtual string Location: { throw new Error("NotImplemented.ByDesign"); }
+    //     public virtual bool ReflectionOnly: { throw new Error("NotImplemented.ByDesign"); }
     //     public virtual bool IsCollectible => true;
 
     //     public virtual ManifestResourceInfo? GetManifestResourceInfo(string resourceName) { throw NotImplemented.ByDesign; }
@@ -165,8 +164,8 @@ export class Assembly implements ICustomAttributeProvider, ISerializable {
     //       Returns true if the assembly was loaded from the global assembly cache.
     //     */
     //     [Obsolete(Obsoletions.GlobalAssemblyCacheMessage, DiagnosticId = Obsoletions.GlobalAssemblyCacheDiagId, UrlFormat = Obsoletions.SharedUrlFormat)]
-    //     public virtual bool GlobalAssemblyCache => throw NotImplemented.ByDesign;
-    //     public virtual long HostContext => throw NotImplemented.ByDesign;
+    //     public virtual bool GlobalAssemblyCache: { throw new Error("NotImplemented.ByDesign"); }
+    //     public virtual long HostContext: { throw new Error("NotImplemented.ByDesign"); }
 
     //     public override bool Equals(object? o) => base.Equals(o);
     //     public override int GetHashCode() => base.GetHashCode();

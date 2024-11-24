@@ -111,16 +111,12 @@ export abstract class RoModule extends Module {
 
         const hashCode = GetTypeCoreCache.ComputeHashCode(name);
         let type = this._getTypeCoreCache.TryGet(ns, name, hashCode);
-        if (type != undefined) {
+        if (type == undefined) {
             type = this.GetTypeCoreNoCache(ns, name);
             if (type == undefined) {
                 throw new Error(`Type not found: ${ns} ${name}`);
             }
             this._getTypeCoreCache.GetOrAdd(ns, name, hashCode, type); // Type objects are unified independently of this cache so no need to check if we won the race to cache this Type
-        }
-
-        if (type == undefined) {
-            return undefined;
         }
 
         return type;

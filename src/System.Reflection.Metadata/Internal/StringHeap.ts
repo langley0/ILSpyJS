@@ -7,14 +7,12 @@ export class StringHeap {
     private static s_virtualValues?: string[];
 
     public readonly Block: MemoryBlock;
-    private  _lazyVirtualHeap?: VirtualHeap;
+    private _lazyVirtualHeap?: VirtualHeap;
 
-    public constructor( block: MemoryBlock,  metadataKind: MetadataKind)
-    {
+    public constructor(block: MemoryBlock, metadataKind: MetadataKind) {
         this._lazyVirtualHeap = undefined;
 
-        if (StringHeap.s_virtualValues == undefined && metadataKind != MetadataKind.Ecma335)
-        {
+        if (StringHeap.s_virtualValues == undefined && metadataKind != MetadataKind.Ecma335) {
             // Note:
             // Virtual values shall not contain surrogates, otherwise StartsWith might be inconsistent
             // when comparing to a text that ends with a high surrogate.
@@ -102,10 +100,8 @@ export class StringHeap {
     }
 
     // [Conditional("DEBUG")]
-    private static AssertFilled()
-    {
-        for (let i = 0; i < StringHeap.s_virtualValues!.length; i++)
-        {
+    private static AssertFilled() {
+        for (let i = 0; i < StringHeap.s_virtualValues!.length; i++) {
             assert(StringHeap.s_virtualValues![i] != undefined, `Missing virtual value for StringHandle.VirtualIndex.${i}`);
         }
     }
@@ -114,22 +110,18 @@ export class StringHeap {
     // See StgStringPool::InitOnMem in ndp\clr\src\Utilcode\StgPool.cpp.
 
     // This is especially important for EnC.
-    private static  TrimEnd( block: MemoryBlock):MemoryBlock
-    {
-        if (block.Length == 0)
-        {
+    private static TrimEnd(block: MemoryBlock): MemoryBlock {
+        if (block.Length == 0) {
             return block;
         }
 
         let i = block.Length - 1;
-        while (i >= 0 && block.PeekByte(i) == 0)
-        {
+        while (i >= 0 && block.PeekByte(i) == 0) {
             i--;
         }
 
         // this shouldn't happen in valid metadata:
-        if (i == block.Length - 1)
-        {
+        if (i == block.Length - 1) {
             return block;
         }
 
@@ -137,8 +129,7 @@ export class StringHeap {
         return block.GetMemoryBlockAt(0, i + 2);
     }
 
-    public GetString( handle: StringHandle,  utf8Decoder: MetadataStringDecoder):string
-    {
+    public GetString(handle: StringHandle, utf8Decoder: MetadataStringDecoder): string {
         return handle.IsVirtual ? this.GetVirtualHandleString(handle, utf8Decoder) : this.GetNonVirtualString(handle, utf8Decoder);
     }
 
@@ -147,13 +138,11 @@ export class StringHeap {
     //     return handle.IsVirtual ? GetVirtualHandleMemoryBlock(handle) : GetNonVirtualStringMemoryBlock(handle);
     // }
 
-    public static GetVirtualString(index: StringHandle.VirtualIndex ): string
-    {
+    public static GetVirtualString(index: StringHandle.VirtualIndex): string {
         return StringHeap.s_virtualValues![index];
     }
 
-    private  GetNonVirtualString( handle: StringHandle,  utf8Decoder: MetadataStringDecoder, prefixOpt?: Uint8Array): string
-    {
+    private GetNonVirtualString(handle: StringHandle, utf8Decoder: MetadataStringDecoder, prefixOpt?: Uint8Array): string {
         assert(handle.StringKind != StringKind.Virtual);
 
         const otherTerminator = handle.StringKind == StringKind.DotTerminated ? '.' : '\0';
@@ -182,10 +171,9 @@ export class StringHeap {
     //     return bytes;
     // }
 
-    private  GetVirtualHandleString(handle: StringHandle ,  utf8Decoder: MetadataStringDecoder): string
-    {
+    private GetVirtualHandleString(handle: StringHandle, utf8Decoder: MetadataStringDecoder): string {
         assert(handle.IsVirtual);
-        switch(handle.StringKind) {
+        switch (handle.StringKind) {
             case StringKind.Virtual:
                 return StringHeap.GetVirtualString(handle.GetVirtualIndex());
             case StringKind.WinRTPrefixed:
@@ -194,7 +182,7 @@ export class StringHeap {
                 throw new Error(`Unexpected value: ${handle.StringKind}`);
         }
 
-   
+
     }
 
     // private MemoryBlock GetVirtualHandleMemoryBlock(StringHandle handle)
@@ -307,13 +295,12 @@ export class StringHeap {
     //     return this.Block.Utf8NullTerminatedStringStartsWithAsciiPrefix(rawHandle.GetHeapOffset(), asciiPrefix);
     // }
 
-    // /// <summary>
-    // /// Equivalent to Array.BinarySearch, searches for given raw (non-virtual) handle in given array of ASCII strings.
-    // /// </summary>
-    // public int BinarySearchRaw(string[] asciiKeys, StringHandle rawHandle)
-    // {
-    //     assert(!rawHandle.IsVirtual);
-    //     assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
-    //     return this.Block.BinarySearch(asciiKeys, rawHandle.GetHeapOffset());
-    // }
+    /// <summary>
+    /// Equivalent to Array.BinarySearch, searches for given raw (non-virtual) handle in given array of ASCII strings.
+    /// </summary>
+    public BinarySearchRaw(asciiKeys: string[], rawHandle: StringHandle): number {
+        assert(!rawHandle.IsVirtual);
+        assert(rawHandle.StringKind != StringKind.DotTerminated, "Not supported");
+        return this.Block.BinarySearch(asciiKeys, rawHandle.GetHeapOffset());
+    }
 }

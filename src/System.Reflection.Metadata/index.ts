@@ -3,6 +3,10 @@ export * from './TypeSystem/HandleCollections.TypeSystem';
 export * from './TypeSystem/ModuleDefinition';
 export * from './TypeSystem/AssemblyDefinition';
 
+export * from "./TypeSystem/TypeDefinition";
+export * from "./TypeSystem/ExportedType";
+export * from "./TypeSystem/TypeDefinition";
+
 export * from "./HandleKind";
 export * from './Machine';
 export * from './Blob';

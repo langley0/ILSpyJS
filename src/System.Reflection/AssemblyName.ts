@@ -14,6 +14,7 @@ import {
     ProcessorArchitecture,
     AssemblyContentType,
     AssemblyNameHelpers,
+    AssemblyNameFormatter,
 } from "System.Reflection";
 
 export class AssemblyName {
@@ -28,12 +29,16 @@ export class AssemblyName {
 
     private _hashAlgorithm?: AssemblyHashAlgorithm;
 
-    private _versionCompatibility: AssemblyVersionCompatibility;
-    private _flags: AssemblyNameFlags;
+    private _versionCompatibility: AssemblyVersionCompatibility = AssemblyVersionCompatibility.SameMachine;
+    private _flags: AssemblyNameFlags = AssemblyNameFlags.None;
 
     public constructor(assemblyName?: string) {
-        this._versionCompatibility = AssemblyVersionCompatibility.SameMachine;
+        if (assemblyName == undefined) {
+            // called from CreateAssemlyName
+            return;
+        }
 
+        this._versionCompatibility = AssemblyVersionCompatibility.SameMachine;
         Throw.ThrowIfNullOrEmpty(assemblyName);
         if (assemblyName[0] == '\0') {
             Throw.ArgumentException('Format_StringZeroLength');
@@ -254,11 +259,8 @@ export class AssemblyName {
         }
 
         // Do not call GetPublicKeyToken() here - that latches the result into AssemblyName which isn't a side effect we want.
-        // const pkt = this._publicKeyToken ?? AssemblyNameHelpers.ComputePublicKeyToken(_publicKey);
-        // return AssemblyNameFormatter.ComputeDisplayName(Name, Version, CultureName, pkt, Flags, ContentType);
-
-        throw new Error("Not implemented");
-
+        const pkt = this._publicKeyToken ?? AssemblyNameHelpers.ComputePublicKeyToken(this._publicKey);
+        return AssemblyNameFormatter.ComputeDisplayName(this.Name, this.Version, this.CultureName, pkt, this.Flags, this.ContentType);
     }
 
     // public override string ToString()

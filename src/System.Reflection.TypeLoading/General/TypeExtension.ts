@@ -1,4 +1,8 @@
-import { TypeInfo } from "System.Reflection";
+import {
+    TypeInfo,
+    Assembly,
+    MethodInfo,
+} from "System.Reflection";
 
 // This file makes NetStandard Reflection's "subclassing" surface area look as much like NetCore as possible so the rest of the code can be written without #if's.
 //     public static class NetCoreApiEmulators
@@ -19,35 +23,33 @@ export abstract class LeveledTypeInfo extends TypeInfo {
     protected constructor() { super(); }
 }
 
-//     public abstract class LeveledAssembly : Assembly
-//     {
-//     }
+export abstract class LeveledAssembly extends Assembly {
+}
 
-//     public abstract class LeveledConstructorInfo : ConstructorInfo
-//     {
-//     }
+// export abstract class LeveledConstructorInfo extends ConstructorInfo
+// {
+// }
 
-//     public abstract class LeveledMethodInfo : MethodInfo
-//     {
-//     }
+export abstract class LeveledMethodInfo extends MethodInfo {
+}
 
-//     public abstract class LeveledEventInfo : EventInfo
-//     {
-//     }
+// export abstract class LeveledEventInfo extends EventInfo
+// {
+// }
 
-//     public abstract class LeveledFieldInfo : FieldInfo
-//     {
-//     }
+// export abstract class LeveledFieldInfo extends FieldInfo
+// {
+// }
 
-//     public abstract class LeveledParameterInfo : ParameterInfo
-//     {
-//     }
+// export abstract class LeveledParameterInfo extends ParameterInfo
+// {
+// }
 
-//     public abstract class LeveledPropertyInfo : PropertyInfo
-//     {
-//     }
+// export abstract class LeveledPropertyInfo extends PropertyInfo
+// {
+// }
 
-//     public abstract class LeveledCustomAttributeData : CustomAttributeData
-//     {
-//     }
+// export abstract class LeveledCustomAttributeData extends CustomAttributeData
+// {
+// }
 // }

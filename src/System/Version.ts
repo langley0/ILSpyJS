@@ -19,73 +19,24 @@ export class Version {
         this._Revision = revision;
     }
 
-    // public Version(int major, int minor, int build)
-    // {
-    //     ArgumentOutOfRangeException.ThrowIfNegative(major);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(minor);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(build);
-
-    //     _Major = major;
-    //     _Minor = minor;
-    //     _Build = build;
-    //     _Revision = -1;
-    // }
-
-    // public Version(int major, int minor)
-    // {
-    //     ArgumentOutOfRangeException.ThrowIfNegative(major);
-    //     ArgumentOutOfRangeException.ThrowIfNegative(minor);
-
-    //     _Major = major;
-    //     _Minor = minor;
-    //     _Build = -1;
-    //     _Revision = -1;
-    // }
-
-    // public Version(string version)
-    // {
-    //     Version v = Parse(version);
-    //     _Major = v.Major;
-    //     _Minor = v.Minor;
-    //     _Build = v.Build;
-    //     _Revision = v.Revision;
-    // }
-
-    // public Version()
-    // {
-    //     //_Major = 0;
-    //     //_Minor = 0;
-    //     _Build = -1;
-    //     _Revision = -1;
-    // }
-
-    // private Version(Version version)
-    // {
-    //     assert(version != undefined);
-
-    //     _Major = version._Major;
-    //     _Minor = version._Minor;
-    //     _Build = version._Build;
-    //     _Revision = version._Revision;
-    // }
 
     // public object Clone()
     // {
     //     return new Version(this);
     // }
 
-    // // Properties for setting and getting version numbers
-    // public int Major => _Major;
+    // Properties for setting and getting version numbers
+    public get Major(): number { return this._Major; }
 
-    // public int Minor => _Minor;
+    public get Minor(): number { return this._Minor; }
 
-    // public int Build => _Build;
+    public get Build(): number { return this._Build; }
 
-    // public int Revision => _Revision;
+    public get Revision(): number { return this._Revision; }
 
-    // public short MajorRevision => (short)(_Revision >> 16);
+    public get MajorRevision(): number { return this._Revision >> 16; }
 
-    // public short MinorRevision => (short)(_Revision & 0xFFFF);
+    public get MinorRevision(): number { return this._Revision & 0xFFFF; }
 
     // public int CompareTo(object? version)
     // {

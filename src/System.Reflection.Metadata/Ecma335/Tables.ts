@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Throw, sizeof, Version } from "System";
 import { AssemblyHashAlgorithm } from "System.Configuration.Assemblies";
-import { AssemblyFlags } from "System.Reflection";
+import { AssemblyFlags, TypeAttributes } from "System.Reflection";
 import { MemoryBlock } from "System.Reflection.Internal";
 import {
     MetadataKind,
@@ -10,11 +10,20 @@ import {
     BlobHandle,
     StringHandle,
     GuidHandle,
+    TypeDefinitionHandle,
+    TypeReferenceHandle,
+    CustomAttributeHandle,
+    MethodDefinitionHandle,
+    MemberReferenceHandle,
 } from "System.Reflection.Metadata";
 import {
     TableIndex,
     MetadataStreamKind,
     HasCustomAttributeTag,
+    TypeDefOrRefTag,
+    CustomAttributeTypeTag,
+    ResolutionScopeTag,
+    MemberRefParentTag,
 } from "System.Reflection.Metadata.Ecma335";
 
 
@@ -61,8 +70,7 @@ export class ModuleTableReader {
     //     return StringHandle.FromOffset(this.Block.PeekHeapReference(_NameOffset, _IsStringHeapRefSizeSmall));
     // }
 
-    public  GetMvid(): GuidHandle
-    {
+    public GetMvid(): GuidHandle {
         assert(this.NumberOfRows > 0);
         return GuidHandle.FromIndex(this.Block.PeekHeapReference(this._MVIdOffset, this._IsGUIDHeapRefSizeSmall));
     }
@@ -106,23 +114,20 @@ export class TypeRefTableReader {
         this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
     }
 
-    // public EntityHandle GetResolutionScope(TypeReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return ResolutionScopeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + _ResolutionScopeOffset, _IsResolutionScopeRefSizeSmall));
-    // }
+    public GetResolutionScope(handle: TypeReferenceHandle): EntityHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return ResolutionScopeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + this._ResolutionScopeOffset, this._IsResolutionScopeRefSizeSmall));
+    }
 
-    // public StringHandle GetName(TypeReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _NameOffset, _IsStringHeapRefSizeSmall));
-    // }
+    public GetName(handle: TypeReferenceHandle): StringHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._NameOffset, this._IsStringHeapRefSizeSmall));
+    }
 
-    // public StringHandle GetNamespace(TypeReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _NamespaceOffset, _IsStringHeapRefSizeSmall));
-    // }
+    public GetNamespace(handle: TypeReferenceHandle): StringHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._NamespaceOffset, this._IsStringHeapRefSizeSmall));
+    }
 }
 
 export class TypeDefTableReader {
@@ -163,11 +168,10 @@ export class TypeDefTableReader {
         this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
     }
 
-    // public TypeAttributes GetFlags(TypeDefinitionHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return (TypeAttributes)this.Block.PeekUInt32(rowOffset + _FlagsOffset);
-    // }
+    public GetFlags(handle: TypeDefinitionHandle): TypeAttributes {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return this.Block.PeekUInt32(rowOffset + this._FlagsOffset);
+    }
 
     // public NamespaceDefinitionHandle GetNamespaceDefinition(TypeDefinitionHandle handle)
     // {
@@ -175,76 +179,73 @@ export class TypeDefTableReader {
     //     return NamespaceDefinitionHandle.FromFullNameOffset(this.Block.PeekHeapReference(rowOffset + _NamespaceOffset, _IsStringHeapRefSizeSmall));
     // }
 
-    // public StringHandle GetNamespace(TypeDefinitionHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _NamespaceOffset, _IsStringHeapRefSizeSmall));
-    // }
+    public GetNamespace(handle: TypeDefinitionHandle): StringHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._NamespaceOffset, this._IsStringHeapRefSizeSmall));
+    }
 
-    // public StringHandle GetName(TypeDefinitionHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _NameOffset, _IsStringHeapRefSizeSmall));
-    // }
+    public GetName(handle: TypeDefinitionHandle): StringHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._NameOffset, this._IsStringHeapRefSizeSmall));
+    }
 
-    // public EntityHandle GetExtends(TypeDefinitionHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return TypeDefOrRefTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + _ExtendsOffset, _IsTypeDefOrRefRefSizeSmall));
-    // }
+    public GetExtends(handle: TypeDefinitionHandle): EntityHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return TypeDefOrRefTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + this._ExtendsOffset, this._IsTypeDefOrRefRefSizeSmall));
+    }
 
-    // public int GetFieldStart(int rowId)
-    // {
-    //     int rowOffset = (rowId - 1) * this.RowSize;
-    //     return this.Block.PeekReference(rowOffset + _FieldListOffset, _IsFieldRefSizeSmall);
-    // }
+    public  GetFieldStart( rowId: number): number
+    {
+        const rowOffset = (rowId - 1) * this.RowSize;
+        return this.Block.PeekReference(rowOffset + this._FieldListOffset, this._IsFieldRefSizeSmall);
+    }
 
-    // public int GetMethodStart(int rowId)
-    // {
-    //     int rowOffset = (rowId - 1) * this.RowSize;
-    //     return this.Block.PeekReference(rowOffset + _MethodListOffset, _IsMethodRefSizeSmall);
-    // }
+    public  GetMethodStart( rowId: number): number
+    {
+        const rowOffset = (rowId - 1) * this.RowSize;
+        return this.Block.PeekReference(rowOffset + this._MethodListOffset, this._IsMethodRefSizeSmall);
+    }
 
-    // public TypeDefinitionHandle FindTypeContainingMethod(int methodDefOrPtrRowId, int numberOfMethods)
-    // {
-    //     int numOfRows = this.NumberOfRows;
-    //     int slot = this.Block.BinarySearchForSlot(numOfRows, this.RowSize, _MethodListOffset, (uint)methodDefOrPtrRowId, _IsMethodRefSizeSmall);
-    //     int row = slot + 1;
-    //     if (row == 0)
-    //     {
-    //         return default(TypeDefinitionHandle);
-    //     }
+    public  FindTypeContainingMethod( methodDefOrPtrRowId: number, numberOfMethods: number): TypeDefinitionHandle
+    {
+        const numOfRows = this.NumberOfRows;
+        const slot = this.Block.BinarySearchForSlot(numOfRows, this.RowSize, this._MethodListOffset, methodDefOrPtrRowId, this._IsMethodRefSizeSmall);
+        let row = slot + 1;
+        if (row == 0)
+        {
+            return TypeDefinitionHandle.Default;
+        }
 
-    //     if (row > numOfRows)
-    //     {
-    //         if (methodDefOrPtrRowId <= numberOfMethods)
-    //         {
-    //             return TypeDefinitionHandle.FromRowId(numOfRows);
-    //         }
+        if (row > numOfRows)
+        {
+            if (methodDefOrPtrRowId <= numberOfMethods)
+            {
+                return TypeDefinitionHandle.FromRowId(numOfRows);
+            }
 
-    //         return default(TypeDefinitionHandle);
-    //     }
+            return TypeDefinitionHandle.Default;
+        }
 
-    //     int value = this.GetMethodStart(row);
-    //     if (value == methodDefOrPtrRowId)
-    //     {
-    //         while (row < numOfRows)
-    //         {
-    //             int newRow = row + 1;
-    //             value = this.GetMethodStart(newRow);
-    //             if (value == methodDefOrPtrRowId)
-    //             {
-    //                 row = newRow;
-    //             }
-    //             else
-    //             {
-    //                 break;
-    //             }
-    //         }
-    //     }
+        let value = this.GetMethodStart(row);
+        if (value == methodDefOrPtrRowId)
+        {
+            while (row < numOfRows)
+            {
+                const newRow = row + 1;
+                value = this.GetMethodStart(newRow);
+                if (value == methodDefOrPtrRowId)
+                {
+                    row = newRow;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
 
-    //     return TypeDefinitionHandle.FromRowId(row);
-    // }
+        return TypeDefinitionHandle.FromRowId(row);
+    }
 
     // public TypeDefinitionHandle FindTypeContainingField(int fieldDefOrPtrRowId, int numberOfFields)
     // {
@@ -386,17 +387,15 @@ export class MethodPtrTableReader {
         this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
     }
 
-    // // returns a rid
-    // public MethodDefinitionHandle GetMethodFor(int rowId)
-    // {
-    //     int rowOffset = (rowId - 1) * this.RowSize;
-    //     return MethodDefinitionHandle.FromRowId(this.Block.PeekReference(rowOffset + _MethodOffset, _IsMethodTableRowRefSizeSmall));
-    // }
+    // returns a rid
+    public GetMethodFor(rowId: number): MethodDefinitionHandle {
+        const rowOffset = (rowId - 1) * this.RowSize;
+        return MethodDefinitionHandle.FromRowId(this.Block.PeekReference(rowOffset + this._MethodOffset, this._IsMethodTableRowRefSizeSmall));
+    }
 
-    // public int GetRowIdForMethodDefRow(int methodDefRowId)
-    // {
-    //     return this.Block.LinearSearchReference(this.RowSize, _MethodOffset, (uint)methodDefRowId, _IsMethodTableRowRefSizeSmall) + 1;
-    // }
+    public GetRowIdForMethodDefRow(methodDefRowId: number): number {
+        return this.Block.LinearSearchReference(this.RowSize, this._MethodOffset, methodDefRowId, this._IsMethodTableRowRefSizeSmall) + 1;
+    }
 }
 
 export class MethodTableReader {
@@ -642,23 +641,23 @@ export class MemberRefTableReader {
         this.Block = containingBlock.GetMemoryBlockAt(containingBlockOffset, this.RowSize * numberOfRows);
     }
 
-    // public BlobHandle GetSignature(MemberReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return BlobHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _SignatureOffset, _IsBlobHeapRefSizeSmall));
-    // }
+    public  GetSignature( handle:MemberReferenceHandle):BlobHandle
+    {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return BlobHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._SignatureOffset, this._IsBlobHeapRefSizeSmall));
+    }
 
-    // public StringHandle GetName(MemberReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _NameOffset, _IsStringHeapRefSizeSmall));
-    // }
+    public  GetName( handle:MemberReferenceHandle):StringHandle
+    {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return StringHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._NameOffset, this._IsStringHeapRefSizeSmall));
+    }
 
-    // public EntityHandle GetClass(MemberReferenceHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return MemberRefParentTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + _ClassOffset, _IsMemberRefParentRefSizeSmall));
-    // }
+    public  GetClass( handle:MemberReferenceHandle):EntityHandle
+    {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return MemberRefParentTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + this._ClassOffset, this._IsMemberRefParentRefSizeSmall));
+    }
 }
 
 export class ConstantTableReader {
@@ -772,23 +771,20 @@ export class CustomAttributeTableReader {
         }
     }
 
-    // public EntityHandle GetParent(CustomAttributeHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return HasCustomAttributeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + _ParentOffset, _IsHasCustomAttributeRefSizeSmall));
-    // }
+    public GetParent(handle: CustomAttributeHandle): EntityHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return HasCustomAttributeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + this._ParentOffset, this._IsHasCustomAttributeRefSizeSmall));
+    }
 
-    // public EntityHandle GetConstructor(CustomAttributeHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return CustomAttributeTypeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + _TypeOffset, _IsCustomAttributeTypeRefSizeSmall));
-    // }
+    public GetConstructor(handle: CustomAttributeHandle): EntityHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return CustomAttributeTypeTag.ConvertToHandle(this.Block.PeekTaggedReference(rowOffset + this._TypeOffset, this._IsCustomAttributeTypeRefSizeSmall));
+    }
 
-    // public BlobHandle GetValue(CustomAttributeHandle handle)
-    // {
-    //     int rowOffset = (handle.RowId - 1) * this.RowSize;
-    //     return BlobHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + _ValueOffset, _IsBlobHeapRefSizeSmall));
-    // }
+    public GetValue(handle: CustomAttributeHandle): BlobHandle {
+        const rowOffset = (handle.RowId - 1) * this.RowSize;
+        return BlobHandle.FromOffset(this.Block.PeekHeapReference(rowOffset + this._ValueOffset, this._IsBlobHeapRefSizeSmall));
+    }
 
     public GetAttributeRange(parentHandle: EntityHandle): { firstImplRowId: number, lastImplRowId: number } {
         let startRowNumber: number;

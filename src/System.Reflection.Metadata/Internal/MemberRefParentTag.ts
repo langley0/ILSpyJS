@@ -1,4 +1,5 @@
 import { TableMask, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+import { EntityHandle } from "System.Reflection.Metadata/EntityHandle";
 export class MemberRefParentTag {
     public static readonly NumberOfBits = 3;
     public static readonly LargeRowSize = 0x00000001 << (16 - MemberRefParentTag.NumberOfBits);
@@ -22,16 +23,14 @@ export class MemberRefParentTag {
         | TokenTypeIds.TypeSpec << 8;
 
     // [MethodImplAttribute(MethodImplOptions.AggressiveInlining)]
-    // internal static EntityHandle ConvertToHandle(uint memberRef)
-    // {
-    //     uint tokenType = unchecked((uint)((TagToTokenTypeByteVector >> ((int)(memberRef & TagMask) << 3)) << TokenTypeIds.RowIdBitCount));
-    //     uint rowId = (memberRef >> NumberOfBits);
+    public static ConvertToHandle(memberRef: number): EntityHandle {
+        const tokenType = (MemberRefParentTag.TagToTokenTypeByteVector >> ((memberRef & MemberRefParentTag.TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
+        const rowId = (memberRef >> MemberRefParentTag.NumberOfBits);
 
-    //     if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0)
-    //     {
-    //         Throw.InvalidCodedIndex();
-    //     }
+        if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0) {
+            throw new Error("Invalid member ref parent");
+        }
 
-    //     return new EntityHandle(tokenType | rowId);
-    // }
+        return new EntityHandle(tokenType | rowId);
+    }
 }

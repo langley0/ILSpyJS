@@ -21,6 +21,7 @@ export * from "System.Reflection.Metadata/Internal/MemberForwardedTag";
 export * from "System.Reflection.Metadata/Internal/MemberRefParentTag";
 export * from "System.Reflection.Metadata/Internal/MethodDefOrRefTag";
 export * from "System.Reflection.Metadata/Internal/ResolutionScopeTag";
+export * from "System.Reflection.Metadata/Internal/Treatment";
 
 export * from "System.Reflection.Metadata/Ecma335/Tables";
 export * from "System.Reflection.Metadata/Ecma335/HeapIndex";

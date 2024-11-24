@@ -294,7 +294,7 @@ export class MetadataLoadContext {
     // This maintains the canonical list of Assembly instances for a given def name. Each defname can only appear
     // once in the list and its appearance prevents further assemblies with the same identity from loading unless the Mvids's match.
     // undefined entries do *not* appear here.
-    private readonly _loadedAssemblies = new Map<RoAssemblyName, RoAssembly>();
+    private readonly _loadedAssemblies = new Map<string, RoAssembly>();
 
     public LoadFromByteArray(buffer: Uint8Array): Assembly {
         const stream = new MemoryStream(buffer);
@@ -315,9 +315,9 @@ export class MetadataLoadContext {
             pkt = ComputePublicKeyToken(defNameData.PublicKey)!;
         }
         const defName = new RoAssemblyName(defNameData.Name, defNameData.Version, defNameData.CultureName, pkt, defNameData.Flags);
-        const winner = this._loadedAssemblies.get(defName);
+        const winner = this._loadedAssemblies.get(defName.FullName);
         if (winner == undefined) {
-            this._loadedAssemblies.set(defName, candidate);
+            this._loadedAssemblies.set(defName.FullName, candidate);
             return candidate; 
         }
 

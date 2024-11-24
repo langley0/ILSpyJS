@@ -1,13 +1,19 @@
+import { Type, Throw } from "System";
 import { Stream } from "System.IO";
 import { Assembly } from "System.Reflection";
-import { AssemblyNameData } from "./AssemblyNameData";
+import { AssemblyNameData } from "../AssemblyNameData";
 import { MetadataLoadContext } from "System.Reflection";
-import { RoModule, RoDefinitionType, AssemblyFileInfo } from "System.Reflection.TypeLoading";
-import { 
-    Module, 
+import {
+    RoModule,
+    RoDefinitionType,
+    AssemblyFileInfo,
+    LoadTypeFromAssemblyQualifiedName,
+} from "System.Reflection.TypeLoading";
+import {
+    Module,
     AssemblyName,
     ModuleResolveEventHandler,
-    
+
 } from "System.Reflection";
 
 export abstract class RoAssembly extends Assembly {
@@ -28,7 +34,7 @@ export abstract class RoAssembly extends Assembly {
     // public sealed override string ToString() => Loader.GetDisposedString() ?? base.ToString();
 
     // Naming
-    public override  GetName(copiedName: boolean): AssemblyName { return this.GetAssemblyNameDataNoCopy().CreateAssemblyName(); }
+    public override  GetName(copiedName?: boolean): AssemblyName { return this.GetAssemblyNameDataNoCopy().CreateAssemblyName(); }
     public GetAssemblyNameDataNoCopy(): AssemblyNameData {
         this._lazyAssemblyNameData ??= this.ComputeNameData();
         return this._lazyAssemblyNameData;
@@ -36,8 +42,11 @@ export abstract class RoAssembly extends Assembly {
     protected abstract ComputeNameData(): AssemblyNameData;
     private _lazyAssemblyNameData?: AssemblyNameData;
 
-    //         public sealed override string FullName => _lazyFullName ??= GetName().FullName;
-    //         private volatile string? _lazyFullName;
+    public override get FullName(): string {
+        this._lazyFullName ??= this.GetName().FullName;
+        return this._lazyFullName;
+    }
+    private _lazyFullName?: string
 
     //         public const string ThrowingMessageInRAF = "This member throws an exception for assemblies embedded in a single-file app";
 
@@ -94,21 +103,20 @@ export abstract class RoAssembly extends Assembly {
     //             }
     //         }
 
-    //         // Api to retrieve types by name. Retrieves both types physically defined in this module and types this assembly forwards from another assembly.
-    //         public sealed override Type? GetType(string name, boolean throwOnError, boolean ignoreCase)
-    //         {
-    //             if (name is undefined)
-    //             {
-    //                 throw new ArgumentNullException(nameof(name));
-    //             }
+    // Api to retrieve types by name. Retrieves both types physically defined in this module and types this assembly forwards from another assembly.
+    public override GetType(name: string, throwOnErro?: boolean, ignoreCase?: boolean): Type | undefined {
 
-    //             // Known compat disagreement: This api is supposed to throw an ArgumentException if the name has an assembly qualification
-    //             // (though the intended meaning seems clear.) This is difficult for us to implement as we don't have our own type name parser.
-    //             // (We can't just throw in the assemblyResolve delegate because assembly qualifications are permitted inside generic arguments,
-    //             // just not in the top level type name.) In the bigger scheme of things, this does not seem worth worrying about.
+        if (name == undefined) {
+            Throw.ArgumentException('name');
+        }
 
-    //             return Helpers.LoadTypeFromAssemblyQualifiedName(name, defaultAssembly: this, ignoreCase: ignoreCase, throwOnError: throwOnError);
-    //         }
+        // Known compat disagreement: This api is supposed to throw an ArgumentException if the name has an assembly qualification
+        // (though the intended meaning seems clear.) This is difficult for us to implement as we don't have our own type name parser.
+        // (We can't just throw in the assemblyResolve delegate because assembly qualifications are permitted inside generic arguments,
+        // just not in the top level type name.) In the bigger scheme of things, this does not seem worth worrying about.
+
+        return LoadTypeFromAssemblyQualifiedName(name, this, ignoreCase ?? false);
+    }
 
     //         /// <summary>
     //         /// Helper routine for the more general Assembly.GetType() family of apis. Also used in typeRef resolution.
@@ -243,7 +251,7 @@ export abstract class RoAssembly extends Assembly {
     //         return modules.ToArray();
     //     }
 
-        public abstract override get ModuleResolve(): ModuleResolveEventHandler | undefined;
+    public abstract override get ModuleResolve(): ModuleResolveEventHandler | undefined;
 
     public GetRoModuleByName(name: string): RoModule | undefined {
         const afi: AssemblyFileInfo | undefined = this.TryGetAssemblyFileInfo(name, true);
@@ -312,8 +320,8 @@ export abstract class RoAssembly extends Assembly {
     }
 
     protected abstract LoadModule(moduleName: string, containsMetadata: boolean): RoModule;
-    protected abstract  CreateModule( peStream: Stream,  containsMetadata: boolean): RoModule
+    protected abstract CreateModule(peStream: Stream, containsMetadata: boolean): RoModule
     protected abstract GetAssemblyFileInfosFromManifest(includeManifestModule: boolean, includeResourceModules: boolean): Array<AssemblyFileInfo>;
 
- 
+
 }

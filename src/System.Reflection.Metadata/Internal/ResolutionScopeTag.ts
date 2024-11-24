@@ -1,4 +1,5 @@
 import { TableMask, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+import { EntityHandle } from "System.Reflection.Metadata/EntityHandle";
 
 export class ResolutionScopeTag {
     public static readonly NumberOfBits = 2;
@@ -16,16 +17,14 @@ export class ResolutionScopeTag {
         | TableMask.TypeRef;
 
     // [MethodImplAttribute(MethodImplOptions.AggressiveInlining)]
-    // internal static EntityHandle ConvertToHandle(uint resolutionScope)
-    // {
-    //     uint tokenType = (TagToTokenTypeByteVector >> ((int)(resolutionScope & TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
-    //     uint rowId = (resolutionScope >> NumberOfBits);
+    public static ConvertToHandle(resolutionScope: number): EntityHandle {
+        const tokenType = (ResolutionScopeTag.TagToTokenTypeByteVector >> ((resolutionScope & ResolutionScopeTag.TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
+        const rowId = (resolutionScope >> ResolutionScopeTag.NumberOfBits);
 
-    //     if ((rowId & ~TokenTypeIds.RIDMask) != 0)
-    //     {
-    //         Throw.InvalidCodedIndex();
-    //     }
+        if ((rowId & ~TokenTypeIds.RIDMask) != 0) {
+            throw new Error("Invalid resolution scope");
+        }
 
-    //     return new EntityHandle(tokenType | rowId);
-    // }
+        return new EntityHandle(tokenType | rowId);
+    }
 }

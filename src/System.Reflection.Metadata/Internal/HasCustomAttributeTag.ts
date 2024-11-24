@@ -95,18 +95,18 @@ export class HasCustomAttributeTag {
         | TableMask.MethodSpec;
 
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    // internal static EntityHandle ConvertToHandle(uint hasCustomAttribute)
-    // {
-    //     uint tokenType = TagToTokenTypeArray[(int)(hasCustomAttribute & TagMask)];
-    //     uint rowId = (hasCustomAttribute >> NumberOfBits);
+    public static  ConvertToHandle( hasCustomAttribute: number):EntityHandle
+    {
+        const tokenType = HasCustomAttributeTag.TagToTokenTypeArray[hasCustomAttribute & HasCustomAttributeTag.TagMask];
+        const rowId = (hasCustomAttribute >> HasCustomAttributeTag.NumberOfBits);
 
-    //     if (tokenType == InvalidTokenType || ((rowId & ~TokenTypeIds.RIDMask) != 0))
-    //     {
-    //         Throw.InvalidCodedIndex();
-    //     }
+        if (tokenType == HasCustomAttributeTag.InvalidTokenType || ((rowId & ~TokenTypeIds.RIDMask) != 0))
+        {
+            throw new Error("InvalidHasCustomAttributeTag");
+        }
 
-    //     return new EntityHandle(tokenType | rowId);
-    // }
+        return new EntityHandle(tokenType | rowId);
+    }
 
     public static ConvertToTag(handle: EntityHandle): number {
         const tokenType = handle.Type;

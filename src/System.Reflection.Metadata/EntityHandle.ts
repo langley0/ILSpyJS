@@ -4,6 +4,7 @@ import {
     HeapHandleType,
     TokenTypeIds,
 } from './Internal/MetadataFlags';
+import { HandleKind } from './HandleKind';
 
 export class EntityHandle {
     // bits:
@@ -35,10 +36,9 @@ export class EntityHandle {
         return this._vToken & TokenTypeIds.TypeMask;
     }
 
-    // public uint VType
-    // {
-    //     get { return _vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.TypeMask); }
-    // }
+    public get VType(): number {
+        return this._vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.TypeMask);
+    }
 
     public get IsVirtual(): boolean {
         return (this._vToken & TokenTypeIds.VirtualBit) != 0;
@@ -54,23 +54,19 @@ export class EntityHandle {
         return (this._vToken & TokenTypeIds.RIDMask);
     }
 
-    // /// <summary>
-    // /// Value stored in a specific entity handle (see <see cref="TypeDefinitionHandle"/>, <see cref="MethodDefinitionHandle"/>, etc.).
-    // /// </summary>
-    // public uint SpecificHandleValue
-    // {
-    //     get { return _vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.RIDMask); }
-    // }
+    /// <summary>
+    /// Value stored in a specific entity handle (see <see cref="TypeDefinitionHandle"/>, <see cref="MethodDefinitionHandle"/>, etc.).
+    /// </summary>
+    public get SpecificHandleValue(): number {
+        return this._vToken & (TokenTypeIds.VirtualBit | TokenTypeIds.RIDMask);
+    }
 
-    // public HandleKind Kind
-    // {
-    //     get
-    //     {
-    //         // EntityHandles cannot be StringHandles and therefore we do not need
-    //         // to handle stripping the extra non-virtual string type bits here.
-    //         return (HandleKind)(Type >> TokenTypeIds.RowIdBitCount);
-    //     }
-    // }
+    public get Kind(): HandleKind {
+        // EntityHandles cannot be StringHandles and therefore we do not need
+        // to handle stripping the extra non-virtual string type bits here.
+        return (this.Type >> TokenTypeIds.RowIdBitCount);
+
+    }
 
     public get Token(): number {
         assert(!this.IsVirtual);

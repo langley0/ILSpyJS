@@ -1,5 +1,14 @@
 import assert from "assert"
-import { MetadataReader, EntityHandle } from "System.Reflection.Metadata";
+import {
+    MetadataReader,
+    EntityHandle,
+    ExportedTypeHandle,
+} from "System.Reflection.Metadata";
+import { TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+import {
+    TypeDefinitionHandle,
+    CustomAttributeHandle,
+} from "./Handles.TypeSystem";
 // /// <summary>
 // /// Represents generic type parameters of a method or type.
 // /// </summary>
@@ -337,6 +346,23 @@ export class CustomAttributeHandleCollection {
     //     void IDisposable.Dispose()
     //     {
     //     }
+    ToArray(): CustomAttributeHandle[] {
+        const result: CustomAttributeHandle[] = [];
+        for (let i = this._firstRowId; i <= this._lastRowId; i++) {
+
+            let handle: CustomAttributeHandle;
+            if (this._reader.CustomAttributeTable.PtrTable != undefined) {
+                handle = CustomAttributeHandle.FromRowId(
+                    this._reader.CustomAttributeTable.PtrTable![(i & TokenTypeIds.RIDMask) - 1]);
+            }
+            else {
+                handle = CustomAttributeHandle.FromRowId((i & TokenTypeIds.RIDMask));
+            }
+
+            result.push(handle);
+        }
+        return result;
+    }
 }
 
 
@@ -1234,365 +1260,373 @@ export class DeclarativeSecurityAttributeHandleCollection {
 //     }
 // }
 
-// /// <summary>
-// /// Represents a collection of <see cref="TypeDefinitionHandle"/>.
-// /// </summary>
-// public readonly struct TypeDefinitionHandleCollection : IReadOnlyCollection<TypeDefinitionHandle>
-// {
-//     private readonly int _lastRowId;
+/// <summary>
+/// Represents a collection of <see cref="TypeDefinitionHandle"/>.
+/// </summary>
+export class TypeDefinitionHandleCollection {
+    private readonly _lastRowId: number;
 
-//     // Creates collection that represents the entire TypeDef table.
-//     public TypeDefinitionHandleCollection(int lastRowId)
-//     {
-//         _lastRowId = lastRowId;
-//     }
+    // Creates collection that represents the entire TypeDef table.
+    public constructor(lastRowId: number) {
+        this._lastRowId = lastRowId;
+    }
 
-//     public int Count
-//     {
-//         get { return _lastRowId; }
-//     }
+    public get Count(): number {
+        return this._lastRowId;
+    }
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_lastRowId);
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_lastRowId);
+    // }
 
-//     IEnumerator<TypeDefinitionHandle> IEnumerable<TypeDefinitionHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator<TypeDefinitionHandle> IEnumerable<TypeDefinitionHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     public struct Enumerator : IEnumerator<TypeDefinitionHandle>, IEnumerator
-//     {
-//         private readonly int _lastRowId;
+    // public struct Enumerator : IEnumerator<TypeDefinitionHandle>, IEnumerator
+    // {
+    //     private readonly int _lastRowId;
 
-//         // 0: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    //     // 0: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public Enumerator(int lastRowId)
-//         {
-//             _lastRowId = lastRowId;
-//             _currentRowId = 0;
-//         }
+    //     public Enumerator(int lastRowId)
+    //     {
+    //         _lastRowId = lastRowId;
+    //         _currentRowId = 0;
+    //     }
 
-//         public TypeDefinitionHandle Current
-//         {
-//             get
-//             {
-//                 return TypeDefinitionHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//             }
-//         }
+    //     public TypeDefinitionHandle Current
+    //     {
+    //         get
+    //         {
+    //             return TypeDefinitionHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //         }
+    //     }
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this method small to enable inlining.
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this method small to enable inlining.
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+    // }
 
-// /// <summary>
-// /// Represents a collection of <see cref="TypeReferenceHandle"/>.
-// /// </summary>
-// public readonly struct TypeReferenceHandleCollection : IReadOnlyCollection<TypeReferenceHandle>
-// {
-//     private readonly int _lastRowId;
+    ToArray(): TypeDefinitionHandle[] {
+        const result = new Array<TypeDefinitionHandle>();
+        for (let i = 0; i < this._lastRowId; i++) {
+            TypeDefinitionHandle.FromRowId((i & TokenTypeIds.RIDMask));
+        }
+        return result;
+    }
+}
 
-//     // Creates collection that represents the entire TypeRef table.
-//     public TypeReferenceHandleCollection(int lastRowId)
-//     {
-//         _lastRowId = lastRowId;
-//     }
+/// <summary>
+/// Represents a collection of <see cref="TypeReferenceHandle"/>.
+/// </summary>
+export class TypeReferenceHandleCollection {
+    private readonly _lastRowId: number;
 
-//     public int Count
-//     {
-//         get { return _lastRowId; }
-//     }
+    // Creates collection that represents the entire TypeRef table.
+    public constructor(lastRowId: number) {
+        this._lastRowId = lastRowId;
+    }
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_lastRowId);
-//     }
+    public get Count(): number {
+        return this._lastRowId;
+    }
 
-//     IEnumerator<TypeReferenceHandle> IEnumerable<TypeReferenceHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_lastRowId);
+    // }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator<TypeReferenceHandle> IEnumerable<TypeReferenceHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     public struct Enumerator : IEnumerator<TypeReferenceHandle>, IEnumerator
-//     {
-//         private readonly int _lastRowId;
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//         // 0: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    // public struct Enumerator : IEnumerator<TypeReferenceHandle>, IEnumerator
+    // {
+    //     private readonly int _lastRowId;
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    //     // 0: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         public Enumerator(int lastRowId)
-//         {
-//             _lastRowId = lastRowId;
-//             _currentRowId = 0;
-//         }
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public TypeReferenceHandle Current
-//         {
-//             get
-//             {
-//                 return TypeReferenceHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//             }
-//         }
+    //     public Enumerator(int lastRowId)
+    //     {
+    //         _lastRowId = lastRowId;
+    //         _currentRowId = 0;
+    //     }
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this method small to enable inlining.
+    //     public TypeReferenceHandle Current
+    //     {
+    //         get
+    //         {
+    //             return TypeReferenceHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //         }
+    //     }
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this method small to enable inlining.
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
 
-// /// <summary>
-// /// Represents a collection of <see cref="TypeReferenceHandle"/>.
-// /// </summary>
-// public readonly struct ExportedTypeHandleCollection : IReadOnlyCollection<ExportedTypeHandle>
-// {
-//     private readonly int _lastRowId;
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+    // }
+}
 
-//     // Creates collection that represents the entire TypeRef table.
-//     public ExportedTypeHandleCollection(int lastRowId)
-//     {
-//         _lastRowId = lastRowId;
-//     }
+/// <summary>
+/// Represents a collection of <see cref="TypeReferenceHandle"/>.
+/// </summary>
+export class ExportedTypeHandleCollection {
+    private readonly _lastRowId: number;
 
-//     public int Count
-//     {
-//         get { return _lastRowId; }
-//     }
+    // Creates collection that represents the entire TypeRef table.
+    public constructor(lastRowId: number) {
+        this._lastRowId = lastRowId;
+    }
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_lastRowId);
-//     }
+    public get Count(): number {
+        return this._lastRowId;
+    }
 
-//     IEnumerator<ExportedTypeHandle> IEnumerable<ExportedTypeHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_lastRowId);
+    // }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // IEnumerator<ExportedTypeHandle> IEnumerable<ExportedTypeHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//     public struct Enumerator : IEnumerator<ExportedTypeHandle>, IEnumerator
-//     {
-//         private readonly int _lastRowId;
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//         // 0: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    // public struct Enumerator : IEnumerator<ExportedTypeHandle>, IEnumerator
+    // {
+    //     private readonly int _lastRowId;
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    //     // 0: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         public Enumerator(int lastRowId)
-//         {
-//             _lastRowId = lastRowId;
-//             _currentRowId = 0;
-//         }
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public ExportedTypeHandle Current
-//         {
-//             get
-//             {
-//                 return ExportedTypeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//             }
-//         }
+    //     public Enumerator(int lastRowId)
+    //     {
+    //         _lastRowId = lastRowId;
+    //         _currentRowId = 0;
+    //     }
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this method small to enable inlining.
+    //     public ExportedTypeHandle Current
+    //     {
+    //         get
+    //         {
+    //             return ExportedTypeHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //         }
+    //     }
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this method small to enable inlining.
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
 
-// /// <summary>
-// /// Represents a collection of <see cref="MemberReferenceHandle"/>.
-// /// </summary>
-// public readonly struct MemberReferenceHandleCollection : IReadOnlyCollection<MemberReferenceHandle>
-// {
-//     private readonly int _lastRowId;
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+    // }
 
-//     // Creates collection that represents the entire TypeRef table.
-//     public MemberReferenceHandleCollection(int lastRowId)
-//     {
-//         _lastRowId = lastRowId;
-//     }
+    ToArray(): ExportedTypeHandle[] {
+        const result = new Array<ExportedTypeHandle>();
+        for (let i = 0; i < this._lastRowId; i++) {
+            ExportedTypeHandle.FromRowId((i & TokenTypeIds.RIDMask));
+        }
+        return result;
+    }
+}
 
-//     public int Count
-//     {
-//         get { return _lastRowId; }
-//     }
+/// <summary>
+/// Represents a collection of <see cref="MemberReferenceHandle"/>.
+/// </summary>
+export class MemberReferenceHandleCollection
+{
+    private readonly  _lastRowId: number;
 
-//     public Enumerator GetEnumerator()
-//     {
-//         return new Enumerator(_lastRowId);
-//     }
+    // Creates collection that represents the entire TypeRef table.
+    public constructor(lastRowId: number)
+    {
+        this._lastRowId = lastRowId;
+    }
 
-//     IEnumerator<MemberReferenceHandle> IEnumerable<MemberReferenceHandle>.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    public get Count(): number
+    {
+       return this._lastRowId; 
+    }
 
-//     IEnumerator IEnumerable.GetEnumerator()
-//     {
-//         return GetEnumerator();
-//     }
+    // public Enumerator GetEnumerator()
+    // {
+    //     return new Enumerator(_lastRowId);
+    // }
 
-//     public struct Enumerator : IEnumerator<MemberReferenceHandle>, IEnumerator
-//     {
-//         private readonly int _lastRowId;
+    // IEnumerator<MemberReferenceHandle> IEnumerable<MemberReferenceHandle>.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//         // 0: initial state
-//         // EnumEnded: enumeration ended
-//         private int _currentRowId;
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
-//         // greater than any RowId and with last 24 bits clear, so that Current returns nil token
-//         private const int EnumEnded = TokenTypeIds.RIDMask + 1;
+    // public struct Enumerator : IEnumerator<MemberReferenceHandle>, IEnumerator
+    // {
+    //     private readonly int _lastRowId;
 
-//         public Enumerator(int lastRowId)
-//         {
-//             _lastRowId = lastRowId;
-//             _currentRowId = 0;
-//         }
+    //     // 0: initial state
+    //     // EnumEnded: enumeration ended
+    //     private int _currentRowId;
 
-//         public MemberReferenceHandle Current
-//         {
-//             get
-//             {
-//                 return MemberReferenceHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
-//             }
-//         }
+    //     // greater than any RowId and with last 24 bits clear, so that Current returns nil token
+    //     private const int EnumEnded = TokenTypeIds.RIDMask + 1;
 
-//         public boolean MoveNext()
-//         {
-//             // PERF: keep this method small to enable inlining.
+    //     public Enumerator(int lastRowId)
+    //     {
+    //         _lastRowId = lastRowId;
+    //         _currentRowId = 0;
+    //     }
 
-//             if (_currentRowId >= _lastRowId)
-//             {
-//                 _currentRowId = EnumEnded;
-//                 return false;
-//             }
-//             else
-//             {
-//                 _currentRowId++;
-//                 return true;
-//             }
-//         }
+    //     public MemberReferenceHandle Current
+    //     {
+    //         get
+    //         {
+    //             return MemberReferenceHandle.FromRowId((_currentRowId & TokenTypeIds.RIDMask));
+    //         }
+    //     }
 
-//         object IEnumerator.Current
-//         {
-//             get { return Current; }
-//         }
+    //     public boolean MoveNext()
+    //     {
+    //         // PERF: keep this method small to enable inlining.
 
-//         void IEnumerator.Reset()
-//         {
-//             throw new NotSupportedException();
-//         }
+    //         if (_currentRowId >= _lastRowId)
+    //         {
+    //             _currentRowId = EnumEnded;
+    //             return false;
+    //         }
+    //         else
+    //         {
+    //             _currentRowId++;
+    //             return true;
+    //         }
+    //     }
 
-//         void IDisposable.Dispose()
-//         {
-//         }
-//     }
-// }
+    //     object IEnumerator.Current
+    //     {
+    //         get { return Current; }
+    //     }
+
+    //     void IEnumerator.Reset()
+    //     {
+    //         throw new NotSupportedException();
+    //     }
+
+    //     void IDisposable.Dispose()
+    //     {
+    //     }
+    // }
+    
+}
 
 // public readonly struct PropertyAccessors
 // {

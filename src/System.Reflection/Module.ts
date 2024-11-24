@@ -1,10 +1,11 @@
 import { Guid } from "System";
+import { Assembly } from "./Assembly";
 
 export class Module //: ICustomAttributeProvider, ISerializable
 {
     protected constructor() { }
 
-    // public virtual Assembly Assembly => throw NotImplemented.ByDesign;
+    public get Assembly(): Assembly { throw new Error("NotImplemented.ByDesign"); }
 
     // internal const string UnknownStringMessageInRAF = "Returns <Unknown> for modules with no file path";
     // [RequiresAssemblyFiles(UnknownStringMessageInRAF)]
@@ -13,7 +14,7 @@ export class Module //: ICustomAttributeProvider, ISerializable
     // public virtual string Name => throw NotImplemented.ByDesign;
 
     // public virtual int MDStreamVersion => throw NotImplemented.ByDesign;
-    public  get ModuleVersionId(): Guid  { throw new Error("Not implemented by design"); }
+    public get ModuleVersionId(): Guid { throw new Error("Not implemented by design"); }
     // public virtual string ScopeName => throw NotImplemented.ByDesign;
     // public ModuleHandle ModuleHandle => GetModuleHandleImpl();
     // private protected virtual ModuleHandle GetModuleHandleImpl() => ModuleHandle.EmptyHandle;

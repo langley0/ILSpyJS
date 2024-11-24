@@ -1,4 +1,5 @@
 import { TableMask, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+import { EntityHandle } from "System.Reflection.Metadata/EntityHandle";
 
 export class CustomAttributeTypeTag {
     public static readonly NumberOfBits = 3;
@@ -12,16 +13,14 @@ export class CustomAttributeTypeTag {
         | TableMask.MemberRef;
 
     // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    // internal static EntityHandle ConvertToHandle(uint customAttributeType)
-    // {
-    //     uint tokenType = unchecked((uint)(TagToTokenTypeByteVector >> ((int)(customAttributeType & TagMask) << 3)) << TokenTypeIds.RowIdBitCount);
-    //     uint rowId = (customAttributeType >> NumberOfBits);
+    public static ConvertToHandle(customAttributeType: number): EntityHandle {
+        let tokenType = (CustomAttributeTypeTag.TagToTokenTypeByteVector >> ((customAttributeType & CustomAttributeTypeTag.TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
+        const rowId = (customAttributeType >> CustomAttributeTypeTag.NumberOfBits);
 
-    //     if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0)
-    //     {
-    //         Throw.InvalidCodedIndex();
-    //     }
+        if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0) {
+            throw new Error("InvalidCustomAttributeTypeTag");
+        }
 
-    //     return new EntityHandle(tokenType | rowId);
-    // }
+        return new EntityHandle(tokenType | rowId);
+    }
 }

@@ -1,5 +1,6 @@
 import assert from "assert";
 import { Guid, Throw, sizeof } from "System";
+import { TypeAttributes, } from "System.Reflection";
 import { BitArithmetic, MemoryBlock } from "System.Reflection.Internal";
 import {
     AssemblyReferenceHandleCollection,
@@ -15,8 +16,19 @@ import {
     AssemblyDefinition,
     StringHandle,
     GuidHandle,
+    TypeDefinitionHandleCollection,
+    ExportedTypeHandleCollection,
+    CustomAttributeHandleCollection,
+    TypeDefinition,
+    AssemblyReferenceHandle,
+    EntityHandle,
+    TypeReferenceHandle,
+    HandleKind,
+    CustomAttributeHandle,
+    ExportedTypeHandle,
+    ExportedType,
+    MemberReferenceHandle,
 } from "System.Reflection.Metadata";
-
 import {
     StringHeap,
     GuidHeap,
@@ -98,7 +110,37 @@ import {
     StateMachineMethodTableReader,
     CustomDebugInformationTableReader,
     HasCustomDebugInformationTag,
+    TypeDefTreatment,
+    TypeRefSignatureTreatment,
 } from "System.Reflection.Metadata.Ecma335";
+
+class ProjectionInfo {
+    public readonly WinRTNamespace: string;
+    public readonly ClrNamespace: StringHandle.VirtualIndex;
+    public readonly ClrName: StringHandle.VirtualIndex;
+    public readonly AssemblyRef: AssemblyReferenceHandle.VirtualIndex;
+    public readonly Treatment: TypeDefTreatment;
+    public readonly SignatureTreatment: TypeRefSignatureTreatment;
+    public readonly IsIDisposable: boolean;
+
+    public constructor(
+        winRtNamespace: string,
+        clrNamespace: StringHandle.VirtualIndex,
+        clrName: StringHandle.VirtualIndex,
+        clrAssembly: AssemblyReferenceHandle.VirtualIndex,
+        treatment: TypeDefTreatment = TypeDefTreatment.RedirectedToClrType,
+        signatureTreatment: TypeRefSignatureTreatment = TypeRefSignatureTreatment.None,
+        isIDisposable: boolean = false
+    ) {
+        this.WinRTNamespace = winRtNamespace;
+        this.ClrNamespace = clrNamespace;
+        this.ClrName = clrName;
+        this.AssemblyRef = clrAssembly;
+        this.Treatment = treatment;
+        this.SignatureTreatment = signatureTreatment;
+        this.IsIDisposable = isIDisposable;
+    }
+}
 
 export class MetadataReader {
     static readonly ClrPrefix = "<CLR>";
@@ -1071,14 +1113,14 @@ export class MetadataReader {
     /// </summary>
     public get IsAssembly(): boolean { return this.AssemblyTable.NumberOfRows == 1; }
     public get AssemblyReferences() { return new AssemblyReferenceHandleCollection(this); }
-    // public TypeDefinitionHandleCollection TypeDefinitions => new TypeDefinitionHandleCollection(TypeDefTable.NumberOfRows);
+    public get TypeDefinitions() { return new TypeDefinitionHandleCollection(this.TypeDefTable.NumberOfRows); }
     // public TypeReferenceHandleCollection TypeReferences => new TypeReferenceHandleCollection(TypeRefTable.NumberOfRows);
-    // public CustomAttributeHandleCollection CustomAttributes => new CustomAttributeHandleCollection(this);
+    public get CustomAttributes() { return new CustomAttributeHandleCollection(this); }
     // public DeclarativeSecurityAttributeHandleCollection DeclarativeSecurityAttributes => new DeclarativeSecurityAttributeHandleCollection(this);
     // public MemberReferenceHandleCollection MemberReferences => new MemberReferenceHandleCollection(MemberRefTable.NumberOfRows);
     // public ManifestResourceHandleCollection ManifestResources => new ManifestResourceHandleCollection(ManifestResourceTable.NumberOfRows);
     public get AssemblyFiles() { return new AssemblyFileHandleCollection(this.FileTable.NumberOfRows); }
-    // public ExportedTypeHandleCollection ExportedTypes => new ExportedTypeHandleCollection(ExportedTypeTable.NumberOfRows);
+    public get ExportedTypes() { return new ExportedTypeHandleCollection(this.ExportedTypeTable.NumberOfRows); }
     // public MethodDefinitionHandleCollection MethodDefinitions => new MethodDefinitionHandleCollection(this);
     // public FieldDefinitionHandleCollection FieldDefinitions => new FieldDefinitionHandleCollection(this);
     // public EventDefinitionHandleCollection EventDefinitions => new EventDefinitionHandleCollection(this);
@@ -1136,8 +1178,7 @@ export class MetadataReader {
     //     return UserStringHeap.GetString(handle);
     // }
 
-    public  GetGuid( handle: GuidHandle): Guid
-    {
+    public GetGuid(handle: GuidHandle): Guid {
         return this.GuidHeap.GetGuid(handle);
     }
 
@@ -1154,11 +1195,10 @@ export class MetadataReader {
     //     return new AssemblyReference(this, handle.Value);
     // }
 
-    // public TypeDefinition GetTypeDefinition(TypeDefinitionHandle handle)
-    // {
-    //     // PERF: This code pattern is JIT friendly and results in very efficient code.
-    //     return new TypeDefinition(this, GetTypeDefTreatmentAndRowId(handle));
-    // }
+    public GetTypeDefinition(handle: TypeDefinitionHandle): TypeDefinition {
+        // PERF: This code pattern is JIT friendly and results in very efficient code.
+        return new TypeDefinition(this, this.GetTypeDefTreatmentAndRowId(handle));
+    }
 
     // public NamespaceDefinition GetNamespaceDefinitionRoot()
     // {
@@ -1172,16 +1212,14 @@ export class MetadataReader {
     //     return new NamespaceDefinition(data);
     // }
 
-    // private uint GetTypeDefTreatmentAndRowId(TypeDefinitionHandle handle)
-    // {
-    //     // PERF: This code pattern is JIT friendly and results in very efficient code.
-    //     if (_metadataKind == MetadataKind.Ecma335)
-    //     {
-    //         return (uint)handle.RowId;
-    //     }
+    private GetTypeDefTreatmentAndRowId(handle: TypeDefinitionHandle): number {
+        // PERF: This code pattern is JIT friendly and results in very efficient code.
+        if (this._metadataKind == MetadataKind.Ecma335) {
+            return handle.RowId;
+        }
 
-    //     return CalculateTypeDefTreatmentAndRowId(handle);
-    // }
+        return this.CalculateTypeDefTreatmentAndRowId(handle);
+    }
 
     // public TypeReference GetTypeReference(TypeReferenceHandle handle)
     // {
@@ -1200,15 +1238,13 @@ export class MetadataReader {
     //     return CalculateTypeRefTreatmentAndRowId(handle);
     // }
 
-    // public ExportedType GetExportedType(ExportedTypeHandle handle)
-    // {
-    //     return new ExportedType(this, handle.RowId);
-    // }
+    public GetExportedType(handle: ExportedTypeHandle): ExportedType {
+        return new ExportedType(this, handle.RowId);
+    }
 
-    // public CustomAttributeHandleCollection GetCustomAttributes(EntityHandle handle)
-    // {
-    //     return new CustomAttributeHandleCollection(this, handle);
-    // }
+    public GetCustomAttributes(handle: EntityHandle): CustomAttributeHandleCollection {
+        return new CustomAttributeHandleCollection(this, handle);
+    }
 
     // public CustomAttribute GetCustomAttribute(CustomAttributeHandle handle)
     // {
@@ -1354,20 +1390,17 @@ export class MetadataReader {
     //     return new InterfaceImplementation(this, handle);
     // }
 
-    // public TypeDefinitionHandle GetDeclaringType(MethodDefinitionHandle methodDef)
-    // {
-    //     int methodRowId;
-    //     if (UseMethodPtrTable)
-    //     {
-    //         methodRowId = MethodPtrTable.GetRowIdForMethodDefRow(methodDef.RowId);
-    //     }
-    //     else
-    //     {
-    //         methodRowId = methodDef.RowId;
-    //     }
+    public GetDeclaringType(methodDef: MethodDefinitionHandle): TypeDefinitionHandle {
+        let methodRowId;
+        if (this.UseMethodPtrTable) {
+            methodRowId = this.MethodPtrTable.GetRowIdForMethodDefRow(methodDef.RowId);
+        }
+        else {
+            methodRowId = methodDef.RowId;
+        }
 
-    //     return TypeDefTable.FindTypeContainingMethod(methodRowId, MethodDefTable.NumberOfRows);
-    // }
+        return this.TypeDefTable.FindTypeContainingMethod(methodRowId, this.MethodDefTable.NumberOfRows);
+    }
 
     // public TypeDefinitionHandle GetDeclaringType(FieldDefinitionHandle fieldDef)
     // {
@@ -1508,5 +1541,756 @@ export class MetadataReader {
 
     //     return ImmutableArray<TypeDefinitionHandle>.Empty;
     // }
+    // #endregion
+
+    //=======================================================================================================
+    // Win.MD
+    // internal const string ClrPrefix = "<CLR>";
+
+    // internal static readonly byte[] WinRTPrefix = "<WinRT>"u8.ToArray();
+
+    // #region Projection Tables
+
+    // Maps names of projected types to projection information for each type.
+    // Both arrays are of the same length and sorted by the type name.
+    private static s_projectedTypeNames: string[] | undefined;
+    private static s_projectionInfos: ProjectionInfo[] | undefined;
+
+
+
+    private GetWellKnownTypeDefinitionTreatment(typeDef: TypeDefinitionHandle): TypeDefTreatment {
+        MetadataReader.InitializeProjectedTypes();
+
+        const name: StringHandle = this.TypeDefTable.GetName(typeDef);
+
+        const index = this.StringHeap.BinarySearchRaw(MetadataReader.s_projectedTypeNames!, name);
+        if (index < 0) {
+            return TypeDefTreatment.None;
+        }
+
+        const namespaceName: StringHandle = this.TypeDefTable.GetNamespace(typeDef);
+        if (namespaceName.GetString(this) == StringHeap.GetVirtualString(MetadataReader.s_projectionInfos![index].ClrNamespace)) {
+            return MetadataReader.s_projectionInfos![index].Treatment;
+        }
+
+        // TODO: we can avoid this comparison if info.DotNetNamespace == info.WinRtNamespace
+        if (namespaceName.GetString(this) == MetadataReader.s_projectionInfos![index].WinRTNamespace) {
+            return MetadataReader.s_projectionInfos![index].Treatment | TypeDefTreatment.MarkInternalFlag;
+        }
+
+        return TypeDefTreatment.None;
+    }
+
+    // private int GetProjectionIndexForTypeReference(TypeReferenceHandle typeRef, out bool isIDisposable)
+    // {
+    //     InitializeProjectedTypes();
+
+    //     int index = StringHeap.BinarySearchRaw(s_projectedTypeNames!, TypeRefTable.GetName(typeRef));
+    //     if (index >= 0 && StringHeap.EqualsRaw(TypeRefTable.GetNamespace(typeRef), s_projectionInfos![index].WinRTNamespace))
+    //     {
+    //         isIDisposable = s_projectionInfos[index].IsIDisposable;
+    //         return index;
+    //     }
+
+    //     isIDisposable = false;
+    //     return -1;
+    // }
+
+    // internal static AssemblyReferenceHandle GetProjectedAssemblyRef(int projectionIndex)
+    // {
+    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
+    //     return AssemblyReferenceHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].AssemblyRef);
+    // }
+
+    // internal static StringHandle GetProjectedName(int projectionIndex)
+    // {
+    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
+    //     return StringHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].ClrName);
+    // }
+
+    // internal static StringHandle GetProjectedNamespace(int projectionIndex)
+    // {
+    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
+    //     return StringHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].ClrNamespace);
+    // }
+
+    // internal static TypeRefSignatureTreatment GetProjectedSignatureTreatment(int projectionIndex)
+    // {
+    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
+    //     return s_projectionInfos[projectionIndex].SignatureTreatment;
+    // }
+
+    private static InitializeProjectedTypes() {
+        if (MetadataReader.s_projectedTypeNames == undefined || MetadataReader.s_projectionInfos == undefined) {
+            const systemRuntimeWindowsRuntime = AssemblyReferenceHandle.VirtualIndex.System_Runtime_WindowsRuntime;
+            const systemRuntime = AssemblyReferenceHandle.VirtualIndex.System_Runtime;
+            const systemObjectModel = AssemblyReferenceHandle.VirtualIndex.System_ObjectModel;
+            const systemRuntimeWindowsUiXaml = AssemblyReferenceHandle.VirtualIndex.System_Runtime_WindowsRuntime_UI_Xaml;
+            const systemRuntimeInterop = AssemblyReferenceHandle.VirtualIndex.System_Runtime_InteropServices_WindowsRuntime;
+            const systemNumericsVectors = AssemblyReferenceHandle.VirtualIndex.System_Numerics_Vectors;
+
+            // sorted by name
+            const keys = new Array<string>(50);
+            const values = new Array<ProjectionInfo>(50);
+            let k = 0, v = 0;
+
+            // WARNING: Keys must be sorted by name and must only contain ASCII characters. WinRTNamespace must also be ASCII only.
+
+            keys[k++] = "AttributeTargets"; values[v++] = new ProjectionInfo("Windows.Foundation.Metadata", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.AttributeTargets, systemRuntime);
+            keys[k++] = "AttributeUsageAttribute"; values[v++] = new ProjectionInfo("Windows.Foundation.Metadata", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.AttributeUsageAttribute, systemRuntime, TypeDefTreatment.RedirectedToClrAttribute);
+            keys[k++] = "Color"; values[v++] = new ProjectionInfo("Windows.UI", StringHandle.VirtualIndex.Windows_UI, StringHandle.VirtualIndex.Color, systemRuntimeWindowsRuntime);
+            keys[k++] = "CornerRadius"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.CornerRadius, systemRuntimeWindowsUiXaml);
+            keys[k++] = "DateTime"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.DateTimeOffset, systemRuntime);
+            keys[k++] = "Duration"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.Duration, systemRuntimeWindowsUiXaml);
+            keys[k++] = "DurationType"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.DurationType, systemRuntimeWindowsUiXaml);
+            keys[k++] = "EventHandler`1"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.EventHandler1, systemRuntime);
+            keys[k++] = "EventRegistrationToken"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System_Runtime_InteropServices_WindowsRuntime, StringHandle.VirtualIndex.EventRegistrationToken, systemRuntimeInterop);
+            keys[k++] = "GeneratorPosition"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Controls.Primitives", StringHandle.VirtualIndex.Windows_UI_Xaml_Controls_Primitives, StringHandle.VirtualIndex.GeneratorPosition, systemRuntimeWindowsUiXaml);
+            keys[k++] = "GridLength"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.GridLength, systemRuntimeWindowsUiXaml);
+            keys[k++] = "GridUnitType"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.GridUnitType, systemRuntimeWindowsUiXaml);
+            keys[k++] = "HResult"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.Exception, systemRuntime, TypeDefTreatment.RedirectedToClrType, TypeRefSignatureTreatment.ProjectedToClass);
+            keys[k++] = "IBindableIterable"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections, StringHandle.VirtualIndex.IEnumerable, systemRuntime);
+            keys[k++] = "IBindableVector"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections, StringHandle.VirtualIndex.IList, systemRuntime);
+            keys[k++] = "IClosable"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.IDisposable, systemRuntime, TypeDefTreatment.RedirectedToClrType, TypeRefSignatureTreatment.None, true);
+            keys[k++] = "ICommand"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Input", StringHandle.VirtualIndex.System_Windows_Input, StringHandle.VirtualIndex.ICommand, systemObjectModel);
+            keys[k++] = "IIterable`1"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.IEnumerable1, systemRuntime);
+            keys[k++] = "IKeyValuePair`2"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.KeyValuePair2, systemRuntime, TypeDefTreatment.RedirectedToClrType, TypeRefSignatureTreatment.ProjectedToValueType);
+            keys[k++] = "IMapView`2"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.IReadOnlyDictionary2, systemRuntime);
+            keys[k++] = "IMap`2"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.IDictionary2, systemRuntime);
+            keys[k++] = "INotifyCollectionChanged"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections_Specialized, StringHandle.VirtualIndex.INotifyCollectionChanged, systemObjectModel);
+            keys[k++] = "INotifyPropertyChanged"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Data", StringHandle.VirtualIndex.System_ComponentModel, StringHandle.VirtualIndex.INotifyPropertyChanged, systemObjectModel);
+            keys[k++] = "IReference`1"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.Nullable1, systemRuntime, TypeDefTreatment.RedirectedToClrType, TypeRefSignatureTreatment.ProjectedToValueType);
+            keys[k++] = "IVectorView`1"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.IReadOnlyList1, systemRuntime);
+            keys[k++] = "IVector`1"; values[v++] = new ProjectionInfo("Windows.Foundation.Collections", StringHandle.VirtualIndex.System_Collections_Generic, StringHandle.VirtualIndex.IList1, systemRuntime);
+            keys[k++] = "KeyTime"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Media.Animation", StringHandle.VirtualIndex.Windows_UI_Xaml_Media_Animation, StringHandle.VirtualIndex.KeyTime, systemRuntimeWindowsUiXaml);
+            keys[k++] = "Matrix"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Media", StringHandle.VirtualIndex.Windows_UI_Xaml_Media, StringHandle.VirtualIndex.Matrix, systemRuntimeWindowsUiXaml);
+            keys[k++] = "Matrix3D"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Media.Media3D", StringHandle.VirtualIndex.Windows_UI_Xaml_Media_Media3D, StringHandle.VirtualIndex.Matrix3D, systemRuntimeWindowsUiXaml);
+            keys[k++] = "Matrix3x2"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Matrix3x2, systemNumericsVectors);
+            keys[k++] = "Matrix4x4"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Matrix4x4, systemNumericsVectors);
+            keys[k++] = "NotifyCollectionChangedAction"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections_Specialized, StringHandle.VirtualIndex.NotifyCollectionChangedAction, systemObjectModel);
+            keys[k++] = "NotifyCollectionChangedEventArgs"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections_Specialized, StringHandle.VirtualIndex.NotifyCollectionChangedEventArgs, systemObjectModel);
+            keys[k++] = "NotifyCollectionChangedEventHandler"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System_Collections_Specialized, StringHandle.VirtualIndex.NotifyCollectionChangedEventHandler, systemObjectModel);
+            keys[k++] = "Plane"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Plane, systemNumericsVectors);
+            keys[k++] = "Point"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.Windows_Foundation, StringHandle.VirtualIndex.Point, systemRuntimeWindowsRuntime);
+            keys[k++] = "PropertyChangedEventArgs"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Data", StringHandle.VirtualIndex.System_ComponentModel, StringHandle.VirtualIndex.PropertyChangedEventArgs, systemObjectModel);
+            keys[k++] = "PropertyChangedEventHandler"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Data", StringHandle.VirtualIndex.System_ComponentModel, StringHandle.VirtualIndex.PropertyChangedEventHandler, systemObjectModel);
+            keys[k++] = "Quaternion"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Quaternion, systemNumericsVectors);
+            keys[k++] = "Rect"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.Windows_Foundation, StringHandle.VirtualIndex.Rect, systemRuntimeWindowsRuntime);
+            keys[k++] = "RepeatBehavior"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Media.Animation", StringHandle.VirtualIndex.Windows_UI_Xaml_Media_Animation, StringHandle.VirtualIndex.RepeatBehavior, systemRuntimeWindowsUiXaml);
+            keys[k++] = "RepeatBehaviorType"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Media.Animation", StringHandle.VirtualIndex.Windows_UI_Xaml_Media_Animation, StringHandle.VirtualIndex.RepeatBehaviorType, systemRuntimeWindowsUiXaml);
+            keys[k++] = "Size"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.Windows_Foundation, StringHandle.VirtualIndex.Size, systemRuntimeWindowsRuntime);
+            keys[k++] = "Thickness"; values[v++] = new ProjectionInfo("Windows.UI.Xaml", StringHandle.VirtualIndex.Windows_UI_Xaml, StringHandle.VirtualIndex.Thickness, systemRuntimeWindowsUiXaml);
+            keys[k++] = "TimeSpan"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.TimeSpan, systemRuntime);
+            keys[k++] = "TypeName"; values[v++] = new ProjectionInfo("Windows.UI.Xaml.Interop", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.Type, systemRuntime, TypeDefTreatment.RedirectedToClrType, TypeRefSignatureTreatment.ProjectedToClass);
+            keys[k++] = "Uri"; values[v++] = new ProjectionInfo("Windows.Foundation", StringHandle.VirtualIndex.System, StringHandle.VirtualIndex.Uri, systemRuntime);
+            keys[k++] = "Vector2"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Vector2, systemNumericsVectors);
+            keys[k++] = "Vector3"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Vector3, systemNumericsVectors);
+            keys[k++] = "Vector4"; values[v++] = new ProjectionInfo("Windows.Foundation.Numerics", StringHandle.VirtualIndex.System_Numerics, StringHandle.VirtualIndex.Vector4, systemNumericsVectors);
+
+            assert(k == keys.length && v == keys.length && k == v);
+            // AssertSorted(keys);
+
+            MetadataReader.s_projectedTypeNames = keys;
+            MetadataReader.s_projectionInfos = values;
+        }
+    }
+
+    // [Conditional("DEBUG")]
+    // private static void AssertSorted(string[] keys)
+    // {
+    //     for (int i = 0; i < keys.Length - 1; i++)
+    //     {
+    //         assert(string.CompareOrdinal(keys[i], keys[i + 1]) < 0);
+    //     }
+    // }
+
+    // // test only
+    // internal static string[] GetProjectedTypeNames()
+    // {
+    //     InitializeProjectedTypes();
+    //     return s_projectedTypeNames!;
+    // }
+
+    // #endregion
+
+    private static TreatmentAndRowId(treatment: number, rowId: number): number {
+        return (treatment << TokenTypeIds.RowIdBitCount) | rowId;
+    }
+
+    // #region TypeDef
+
+    // [MethodImpl(MethodImplOptions.NoInlining)]
+    public CalculateTypeDefTreatmentAndRowId(handle: TypeDefinitionHandle): number {
+        assert(this._metadataKind != MetadataKind.Ecma335);
+
+        let treatment: TypeDefTreatment;
+
+        const flags = this.TypeDefTable.GetFlags(handle);
+        const extns = this.TypeDefTable.GetExtends(handle);
+
+        if ((flags & TypeAttributes.WindowsRuntime) != 0) {
+            if (this._metadataKind == MetadataKind.WindowsMetadata) {
+                treatment = this.GetWellKnownTypeDefinitionTreatment(handle);
+                if (treatment != TypeDefTreatment.None) {
+                    return MetadataReader.TreatmentAndRowId(treatment, handle.RowId);
+                }
+
+                // Is this an attribute?
+                if (extns.Kind == HandleKind.TypeReference && this.IsSystemAttribute(extns as unknown as TypeReferenceHandle)) {
+                    treatment = TypeDefTreatment.NormalAttribute;
+                }
+                else {
+                    treatment = TypeDefTreatment.NormalNonAttribute;
+                }
+            }
+            else if (this._metadataKind == MetadataKind.ManagedWindowsMetadata && this.NeedsWinRTPrefix(flags, extns)) {
+                // WinMDExp emits two versions of RuntimeClasses and Enums:
+                //
+                //    public class Foo {}            // the WinRT reference class
+                //    internal class <CLR>Foo {}     // the implementation class that we want WinRT consumers to ignore
+                //
+                // The adapter's job is to undo WinMDExp's transformations. I.e. turn the above into:
+                //
+                //    internal class <WinRT>Foo {}   // the WinRT reference class that we want CLR consumers to ignore
+                //    public class Foo {}            // the implementation class
+                //
+                // We only add the <WinRT> prefix here since the WinRT view is the only view that is marked WindowsRuntime
+                // De-mangling the CLR name is done below.
+
+
+                // tomat: The CLR adapter implements a back-compat quirk: Enums exported with an older WinMDExp have only one version
+                // not marked with tdSpecialName. These enums should *not* be mangled and flipped to private.
+                // We don't implement this flag since the WinMDs produced by the older WinMDExp are not used in the wild.
+
+                treatment = TypeDefTreatment.PrefixWinRTName;
+            }
+            else {
+                treatment = TypeDefTreatment.None;
+            }
+
+            // Scan through Custom Attributes on type, looking for interesting bits. We only
+            // need to do this for RuntimeClasses
+            if ((treatment == TypeDefTreatment.PrefixWinRTName || treatment == TypeDefTreatment.NormalNonAttribute)) {
+                if ((flags & TypeAttributes.Interface) == 0
+                    && this.HasAttribute(handle.ToEntityHandle(), "Windows.UI.Xaml", "TreatAsAbstractComposableClassAttribute")) {
+                    treatment |= TypeDefTreatment.MarkAbstractFlag;
+                }
+            }
+        }
+        else if (this._metadataKind == MetadataKind.ManagedWindowsMetadata && this.IsClrImplementationType(handle)) {
+            // <CLR> implementation classes are not marked WindowsRuntime, but still need to be modified
+            // by the adapter.
+            treatment = TypeDefTreatment.UnmangleWinRTName;
+        }
+        else {
+            treatment = TypeDefTreatment.None;
+        }
+
+        return MetadataReader.TreatmentAndRowId(treatment, handle.RowId);
+    }
+
+    private IsClrImplementationType(typeDef: TypeDefinitionHandle): boolean {
+        const attrs = this.TypeDefTable.GetFlags(typeDef);
+
+        if ((attrs & (TypeAttributes.VisibilityMask | TypeAttributes.SpecialName)) != TypeAttributes.SpecialName) {
+            return false;
+        }
+
+        return this.TypeDefTable.GetName(typeDef).GetString(this).startsWith(MetadataReader.ClrPrefix);
+    }
+
+    // #endregion
+
+    // #region TypeRef
+
+    // internal uint CalculateTypeRefTreatmentAndRowId(TypeReferenceHandle handle)
+    // {
+    //     assert(_metadataKind != MetadataKind.Ecma335);
+
+    //     int projectionIndex = GetProjectionIndexForTypeReference(handle, out _);
+    //     if (projectionIndex >= 0)
+    //     {
+    //         return TreatmentAndRowId((byte)TypeRefTreatment.UseProjectionInfo, projectionIndex);
+    //     }
+    //     else
+    //     {
+    //         return TreatmentAndRowId((byte)GetSpecialTypeRefTreatment(handle), handle.RowId);
+    //     }
+    // }
+
+    // private TypeRefTreatment GetSpecialTypeRefTreatment(TypeReferenceHandle handle)
+    // {
+    //     if (StringHeap.EqualsRaw(TypeRefTable.GetNamespace(handle), "System"))
+    //     {
+    //         StringHandle name = TypeRefTable.GetName(handle);
+
+    //         if (StringHeap.EqualsRaw(name, "MulticastDelegate"))
+    //         {
+    //             return TypeRefTreatment.SystemDelegate;
+    //         }
+
+    //         if (StringHeap.EqualsRaw(name, "Attribute"))
+    //         {
+    //             return TypeRefTreatment.SystemAttribute;
+    //         }
+    //     }
+
+    //     return TypeRefTreatment.None;
+    // }
+
+    private IsSystemAttribute(handle: TypeReferenceHandle): boolean {
+        return this.TypeRefTable.GetNamespace(handle).GetString(this) == "System" &&
+            this.TypeRefTable.GetName(handle).GetString(this) == "Attribute";
+    }
+
+    private NeedsWinRTPrefix(flags: TypeAttributes, extns: EntityHandle): boolean {
+        if ((flags & (TypeAttributes.VisibilityMask | TypeAttributes.Interface)) != TypeAttributes.Public) {
+            return false;
+        }
+
+        if (extns.Kind != HandleKind.TypeReference) {
+            return false;
+        }
+
+        // Check if the type is a delegate, struct, or attribute
+        const extendsRefHandle = extns as unknown as TypeReferenceHandle;
+        if (this.TypeRefTable.GetNamespace(extendsRefHandle).GetString(this) == "System") {
+            const nameHandle = this.TypeRefTable.GetName(extendsRefHandle);
+            const nameHandleString = nameHandle.GetString(this);
+            if (nameHandleString == "MulticastDelegate"
+                || nameHandleString == "ValueType"
+                || nameHandleString == "Attribute") {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // #endregion
+
+    // #region MethodDef
+
+    // private uint CalculateMethodDefTreatmentAndRowId(MethodDefinitionHandle methodDef)
+    // {
+    //     MethodDefTreatment treatment = MethodDefTreatment.Implementation;
+
+    //     TypeDefinitionHandle parentTypeDef = GetDeclaringType(methodDef);
+    //     TypeAttributes parentFlags = TypeDefTable.GetFlags(parentTypeDef);
+
+    //     if ((parentFlags & TypeAttributes.WindowsRuntime) != 0)
+    //     {
+    //         if (IsClrImplementationType(parentTypeDef))
+    //         {
+    //             treatment = MethodDefTreatment.Implementation;
+    //         }
+    //         else if (parentFlags.IsNested())
+    //         {
+    //             treatment = MethodDefTreatment.Implementation;
+    //         }
+    //         else if ((parentFlags & TypeAttributes.Interface) != 0)
+    //         {
+    //             treatment = MethodDefTreatment.InterfaceMethod;
+    //         }
+    //         else if (_metadataKind == MetadataKind.ManagedWindowsMetadata && (parentFlags & TypeAttributes.Public) == 0)
+    //         {
+    //             treatment = MethodDefTreatment.Implementation;
+    //         }
+    //         else
+    //         {
+    //             treatment = MethodDefTreatment.Other;
+
+    //             const parentBaseType = TypeDefTable.GetExtends(parentTypeDef);
+    //             if (parentBaseType.Kind == HandleKind.TypeReference)
+    //             {
+    //                 switch (GetSpecialTypeRefTreatment((TypeReferenceHandle)parentBaseType))
+    //                 {
+    //                     case TypeRefTreatment.SystemAttribute:
+    //                         treatment = MethodDefTreatment.AttributeMethod;
+    //                         break;
+
+    //                     case TypeRefTreatment.SystemDelegate:
+    //                         treatment = MethodDefTreatment.DelegateMethod | MethodDefTreatment.MarkPublicFlag;
+    //                         break;
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     if (treatment == MethodDefTreatment.Other)
+    //     {
+    //         // we want to hide the method if it implements
+    //         // only redirected interfaces
+    //         // We also want to check if the methodImpl is IClosable.Close,
+    //         // so we can change the name
+    //         bool seenRedirectedInterfaces = false;
+    //         bool seenNonRedirectedInterfaces = false;
+
+    //         bool isIClosableClose = false;
+
+    //         foreach (const methodImplHandle in new MethodImplementationHandleCollection(this, parentTypeDef))
+    //         {
+    //             MethodImplementation methodImpl = GetMethodImplementation(methodImplHandle);
+    //             if (methodImpl.MethodBody == methodDef)
+    //             {
+    //                 EntityHandle declaration = methodImpl.MethodDeclaration;
+
+    //                 // See if this MethodImpl implements a redirected interface
+    //                 // In WinMD, MethodImpl will always use MemberRef and TypeRefs to refer to redirected interfaces,
+    //                 // even if they are in the same module.
+    //                 if (declaration.Kind == HandleKind.MemberReference &&
+    //                     ImplementsRedirectedInterface((MemberReferenceHandle)declaration, out isIClosableClose))
+    //                 {
+    //                     seenRedirectedInterfaces = true;
+    //                     if (isIClosableClose)
+    //                     {
+    //                         // This method implements IClosable.Close
+    //                         // Let's rename to IDisposable later
+    //                         // Once we know this implements IClosable.Close, we are done
+    //                         // looking
+    //                         break;
+    //                     }
+    //                 }
+    //                 else
+    //                 {
+    //                     // Now we know this implements a non-redirected interface
+    //                     // But we need to keep looking, just in case we got a methodimpl that
+    //                     // implements the IClosable.Close method and needs to be renamed
+    //                     seenNonRedirectedInterfaces = true;
+    //                 }
+    //             }
+    //         }
+
+    //         if (isIClosableClose)
+    //         {
+    //             treatment = MethodDefTreatment.DisposeMethod;
+    //         }
+    //         else if (seenRedirectedInterfaces && !seenNonRedirectedInterfaces)
+    //         {
+    //             // Only hide if all the interfaces implemented are redirected
+    //             treatment = MethodDefTreatment.HiddenInterfaceImplementation;
+    //         }
+    //     }
+
+    //     // If treatment is other, then this is a non-managed WinRT runtime class definition
+    //     // Find out about various bits that we apply via attributes and name parsing
+    //     if (treatment == MethodDefTreatment.Other)
+    //     {
+    //         treatment |= GetMethodTreatmentFromCustomAttributes(methodDef);
+    //     }
+
+    //     return TreatmentAndRowId((byte)treatment, methodDef.RowId);
+    // }
+
+    // private MethodDefTreatment GetMethodTreatmentFromCustomAttributes(MethodDefinitionHandle methodDef)
+    // {
+    //     MethodDefTreatment treatment = 0;
+
+    //     foreach (const caHandle in GetCustomAttributes(methodDef))
+    //     {
+    //         StringHandle namespaceHandle, nameHandle;
+    //         if (!GetAttributeTypeNameRaw(caHandle, out namespaceHandle, out nameHandle))
+    //         {
+    //             continue;
+    //         }
+
+    //         assert(!namespaceHandle.IsVirtual && !nameHandle.IsVirtual);
+
+    //         if (StringHeap.EqualsRaw(namespaceHandle, "Windows.UI.Xaml"))
+    //         {
+    //             if (StringHeap.EqualsRaw(nameHandle, "TreatAsPublicMethodAttribute"))
+    //             {
+    //                 treatment |= MethodDefTreatment.MarkPublicFlag;
+    //             }
+
+    //             if (StringHeap.EqualsRaw(nameHandle, "TreatAsAbstractMethodAttribute"))
+    //             {
+    //                 treatment |= MethodDefTreatment.MarkAbstractFlag;
+    //             }
+    //         }
+    //     }
+
+    //     return treatment;
+    // }
+
+    // #endregion
+
+    // #region FieldDef
+
+    // /// <summary>
+    // /// The backing field of a WinRT enumeration type is not public although the backing fields
+    // /// of managed enumerations are. To allow managed languages to directly access this field,
+    // /// it is made public by the metadata adapter.
+    // /// </summary>
+    // private uint CalculateFieldDefTreatmentAndRowId(FieldDefinitionHandle handle)
+    // {
+    //     const flags = FieldTable.GetFlags(handle);
+    //     FieldDefTreatment treatment = FieldDefTreatment.None;
+
+    //     if ((flags & FieldAttributes.RTSpecialName) != 0 && StringHeap.EqualsRaw(FieldTable.GetName(handle), "value__"))
+    //     {
+    //         TypeDefinitionHandle typeDef = GetDeclaringType(handle);
+
+    //         EntityHandle baseTypeHandle = TypeDefTable.GetExtends(typeDef);
+    //         if (baseTypeHandle.Kind == HandleKind.TypeReference)
+    //         {
+    //             const typeRef = (TypeReferenceHandle)baseTypeHandle;
+
+    //             if (StringHeap.EqualsRaw(TypeRefTable.GetName(typeRef), "Enum") &&
+    //                 StringHeap.EqualsRaw(TypeRefTable.GetNamespace(typeRef), "System"))
+    //             {
+    //                 treatment = FieldDefTreatment.EnumValue;
+    //             }
+    //         }
+    //     }
+
+    //     return TreatmentAndRowId((byte)treatment, handle.RowId);
+    // }
+
+    // #endregion
+
+    // #region MemberRef
+
+    // private uint CalculateMemberRefTreatmentAndRowId(MemberReferenceHandle handle)
+    // {
+    //     MemberRefTreatment treatment;
+
+    //     // We need to rename the MemberRef for IClosable.Close as well
+    //     // so that the MethodImpl for the Dispose method can be correctly shown
+    //     // as IDisposable.Dispose instead of IDisposable.Close
+    //     bool isIDisposable;
+    //     if (ImplementsRedirectedInterface(handle, out isIDisposable) && isIDisposable)
+    //     {
+    //         treatment = MemberRefTreatment.Dispose;
+    //     }
+    //     else
+    //     {
+    //         treatment = MemberRefTreatment.None;
+    //     }
+
+    //     return TreatmentAndRowId((byte)treatment, handle.RowId);
+    // }
+
+    // /// <summary>
+    // /// We want to know if a given method implements a redirected interface.
+    // /// For example, if we are given the method RemoveAt on a class "A"
+    // /// which implements the IVector interface (which is redirected
+    // /// to IList in .NET) then this method would return true. The most
+    // /// likely reason why we would want to know this is that we wish to hide
+    // /// (mark private) all methods which implement methods on a redirected
+    // /// interface.
+    // /// </summary>
+    // /// <param name="memberRef">The declaration token for the method</param>
+    // /// <param name="isIDisposable">
+    // /// Returns true if the redirected interface is <see cref="IDisposable"/>.
+    // /// </param>
+    // /// <returns>True if the method implements a method on a redirected interface.
+    // /// False otherwise.</returns>
+    // private bool ImplementsRedirectedInterface(MemberReferenceHandle memberRef, out bool isIDisposable)
+    // {
+    //     isIDisposable = false;
+
+    //     EntityHandle parent = MemberRefTable.GetClass(memberRef);
+
+    //     TypeReferenceHandle typeRef;
+    //     if (parent.Kind == HandleKind.TypeReference)
+    //     {
+    //         typeRef = (TypeReferenceHandle)parent;
+    //     }
+    //     else if (parent.Kind == HandleKind.TypeSpecification)
+    //     {
+    //         BlobHandle blob = TypeSpecTable.GetSignature((TypeSpecificationHandle)parent);
+    //         BlobReader sig = new BlobReader(BlobHeap.GetMemoryBlock(blob));
+
+    //         if (sig.Length < 2 ||
+    //             sig.ReadByte() != (byte)CorElementType.ELEMENT_TYPE_GENERICINST ||
+    //             sig.ReadByte() != (byte)CorElementType.ELEMENT_TYPE_CLASS)
+    //         {
+    //             return false;
+    //         }
+
+    //         EntityHandle token = sig.ReadTypeHandle();
+    //         if (token.Kind != HandleKind.TypeReference)
+    //         {
+    //             return false;
+    //         }
+
+    //         typeRef = (TypeReferenceHandle)token;
+    //     }
+    //     else
+    //     {
+    //         return false;
+    //     }
+
+    //     return GetProjectionIndexForTypeReference(typeRef, out isIDisposable) >= 0;
+    // }
+
+    // #endregion
+
+    // #region AssemblyRef
+
+    // private int FindMscorlibAssemblyRefNoProjection()
+    // {
+    //     for (int i = 1; i <= AssemblyRefTable.NumberOfNonVirtualRows; i++)
+    //     {
+    //         if (StringHeap.EqualsRaw(AssemblyRefTable.GetName(i), "mscorlib"))
+    //         {
+    //             return i;
+    //         }
+    //     }
+
+    //     throw new BadImageFormatException(SR.WinMDMissingMscorlibRef);
+    // }
+
+    // #endregion
+
+    // #region CustomAttribute
+
+    // internal CustomAttributeValueTreatment CalculateCustomAttributeValueTreatment(CustomAttributeHandle handle)
+    // {
+    //     assert(_metadataKind != MetadataKind.Ecma335);
+
+    //     const parent = CustomAttributeTable.GetParent(handle);
+
+    //     // Check for Windows.Foundation.Metadata.AttributeUsageAttribute.
+    //     // WinMD rules:
+    //     //   - The attribute is only applicable on TypeDefs.
+    //     //   - Constructor must be a MemberRef with TypeRef.
+    //     if (!IsWindowsAttributeUsageAttribute(parent, handle))
+    //     {
+    //         return CustomAttributeValueTreatment.None;
+    //     }
+
+    //     const targetTypeDef = (TypeDefinitionHandle)parent;
+    //     if (StringHeap.EqualsRaw(TypeDefTable.GetNamespace(targetTypeDef), "Windows.Foundation.Metadata"))
+    //     {
+    //         if (StringHeap.EqualsRaw(TypeDefTable.GetName(targetTypeDef), "VersionAttribute"))
+    //         {
+    //             return CustomAttributeValueTreatment.AttributeUsageVersionAttribute;
+    //         }
+
+    //         if (StringHeap.EqualsRaw(TypeDefTable.GetName(targetTypeDef), "DeprecatedAttribute"))
+    //         {
+    //             return CustomAttributeValueTreatment.AttributeUsageDeprecatedAttribute;
+    //         }
+    //     }
+
+    //     bool allowMultiple = HasAttribute(targetTypeDef, "Windows.Foundation.Metadata", "AllowMultipleAttribute");
+    //     return allowMultiple ? CustomAttributeValueTreatment.AttributeUsageAllowMultiple : CustomAttributeValueTreatment.AttributeUsageAllowSingle;
+    // }
+
+    // private bool IsWindowsAttributeUsageAttribute(EntityHandle targetType, CustomAttributeHandle attributeHandle)
+    // {
+    //     // Check for Windows.Foundation.Metadata.AttributeUsageAttribute.
+    //     // WinMD rules:
+    //     //   - The attribute is only applicable on TypeDefs.
+    //     //   - Constructor must be a MemberRef with TypeRef.
+
+    //     if (targetType.Kind != HandleKind.TypeDefinition)
+    //     {
+    //         return false;
+    //     }
+
+    //     const attributeCtor = CustomAttributeTable.GetConstructor(attributeHandle);
+    //     if (attributeCtor.Kind != HandleKind.MemberReference)
+    //     {
+    //         return false;
+    //     }
+
+    //     const attributeType = MemberRefTable.GetClass((MemberReferenceHandle)attributeCtor);
+    //     if (attributeType.Kind != HandleKind.TypeReference)
+    //     {
+    //         return false;
+    //     }
+
+    //     const attributeTypeRef = (TypeReferenceHandle)attributeType;
+    //     return StringHeap.EqualsRaw(TypeRefTable.GetName(attributeTypeRef), "AttributeUsageAttribute") &&
+    //            StringHeap.EqualsRaw(TypeRefTable.GetNamespace(attributeTypeRef), "Windows.Foundation.Metadata");
+    // }
+
+    private HasAttribute(token: EntityHandle, asciiNamespaceName: string, asciiTypeName: string) {
+        for (const caHandle of this.GetCustomAttributes(token).ToArray()) {
+            let namespaceName: StringHandle;
+            let typeName: StringHandle;
+            const out = this.GetAttributeTypeNameRaw(caHandle)
+            if (out !== undefined &&
+                out.typeName.GetString(this) == asciiTypeName &&
+                out.namespaceName.GetString(this) == asciiNamespaceName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private GetAttributeTypeNameRaw(caHandle: CustomAttributeHandle): { namespaceName: StringHandle, typeName: StringHandle } | undefined {
+        let namespaceName: StringHandle;
+        let typeName: StringHandle;
+
+        const typeDefOrRef: EntityHandle = this.GetAttributeTypeRaw(caHandle);
+        if (typeDefOrRef.IsNil) {
+            return undefined;
+        }
+
+        if (typeDefOrRef.Kind == HandleKind.TypeReference) {
+            const typeRef = TypeReferenceHandle.FromEntityHandle(typeDefOrRef);
+            const resolutionScope = this.TypeRefTable.GetResolutionScope(typeRef);
+
+            if (!resolutionScope.IsNil && resolutionScope.Kind == HandleKind.TypeReference) {
+                // we don't need to handle nested types
+                return undefined;
+            }
+
+            // other resolution scopes don't affect full name
+
+            typeName = this.TypeRefTable.GetName(typeRef);
+            namespaceName = this.TypeRefTable.GetNamespace(typeRef);
+        }
+        else if (typeDefOrRef.Kind == HandleKind.TypeDefinition) {
+            const typeDef = TypeDefinitionHandle.FromEntityHandle(typeDefOrRef);
+
+            // from MetadataExtensions
+            const NestedMask = 0x00000006;
+            const IsNested = (flags: TypeAttributes) => (flags & NestedMask) != 0;
+
+            if (IsNested(this.TypeDefTable.GetFlags(typeDef))) {
+                // we don't need to handle nested types
+                return undefined;
+            }
+
+            typeName = this.TypeDefTable.GetName(typeDef);
+            namespaceName = this.TypeDefTable.GetNamespace(typeDef);
+        }
+        else {
+            // invalid metadata
+            return undefined;
+        }
+
+        return { namespaceName, typeName };
+    }
+
+    /// <summary>
+    /// Returns the type definition or reference handle of the attribute type.
+    /// </summary>
+    /// <returns><see cref="TypeDefinitionHandle"/> or <see cref="TypeReferenceHandle"/> or nil token if the metadata is invalid and the type can't be determined.</returns>
+    private GetAttributeTypeRaw(handle: CustomAttributeHandle): EntityHandle {
+        const ctor = this.CustomAttributeTable.GetConstructor(handle);
+
+        if (ctor.Kind == HandleKind.MethodDefinition) {
+            return this.GetDeclaringType(MethodDefinitionHandle.FromEntityHandle(ctor)).ToEntityHandle();
+        }
+
+        if (ctor.Kind == HandleKind.MemberReference) {
+            // In general the parent can be MethodDef, ModuleRef, TypeDef, TypeRef, or TypeSpec.
+            // For attributes only TypeDef and TypeRef are applicable.
+            const typeDefOrRef = this.MemberRefTable.GetClass(MemberReferenceHandle.FromEntityHandle(ctor));
+            const handleType = typeDefOrRef.Kind;
+
+            if (handleType == HandleKind.TypeReference || handleType == HandleKind.TypeDefinition) {
+                return typeDefOrRef;
+            }
+        }
+
+        return new EntityHandle(0);
+    }
     // #endregion
 }

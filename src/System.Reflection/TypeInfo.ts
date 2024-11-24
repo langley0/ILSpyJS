@@ -4,7 +4,7 @@
 // using System.Collections.Generic;
 // using System.Diagnostics.CodeAnalysis;
 // namespace System.Reflection
-import { Type } from "System";
+import { Type } from "System/Type";
 import { IReflectableType } from "System.Reflection";
 
 export abstract class TypeInfo extends Type implements IReflectableType {

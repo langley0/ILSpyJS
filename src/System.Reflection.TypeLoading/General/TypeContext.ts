@@ -1,24 +1,23 @@
+import { RoType } from "System.Reflection.TypeLoading/Types/RoType";
+
 export class TypeContext {
-    // internal TypeContext(RoType[] genericTypeArguments, RoType[]? genericMethodArguments)
-    // {
-    //     GenericTypeArguments = genericTypeArguments;
-    //     GenericMethodArguments = genericMethodArguments;
-    // }
+    public constructor(genericTypeArguments: RoType[], genericMethodArguments?: RoType[]) {
+        this.GenericTypeArguments = genericTypeArguments;
+        this.GenericMethodArguments = genericMethodArguments;
+    }
 
-    // public RoType[] GenericTypeArguments { get; }
-    // public RoType[]? GenericMethodArguments { get; }
+    public readonly GenericTypeArguments: RoType[];
+    public readonly GenericMethodArguments: RoType[] | undefined;
 
-    // public RoType? GetGenericTypeArgumentOrNull(int index)
-    // {
-    //     if (GenericTypeArguments == null || ((uint)index) >= GenericTypeArguments.Length)
-    //         return null;
-    //     return GenericTypeArguments[index];
-    // }
+    public GetGenericTypeArgumentOrNull(index: number): RoType | undefined {
+        if (this.GenericTypeArguments == undefined || index >= this.GenericTypeArguments.length)
+            return undefined;
+        return this.GenericTypeArguments[index];
+    }
 
-    // public RoType? GetGenericMethodArgumentOrNull(int index)
-    // {
-    //     if (GenericMethodArguments == null || ((uint)index) >= GenericMethodArguments.Length)
-    //         return null;
-    //     return GenericMethodArguments[index];
-    // }
+    public GetGenericMethodArgumentOrNull(index: number): RoType | undefined {
+        if (this.GenericMethodArguments == undefined || index >= this.GenericMethodArguments.length)
+            return undefined;
+        return this.GenericMethodArguments[index];
+    }
 }

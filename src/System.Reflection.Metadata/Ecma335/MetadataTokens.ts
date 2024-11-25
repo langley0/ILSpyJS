@@ -196,34 +196,29 @@ export class MetadataTokens {
     /// Handle represents a metadata entity that doesn't have a token.
     /// A token can only be retrieved for a metadata table handle or a heap handle of type <see cref="HandleKind.UserString"/>.
     /// </exception>
-    public static GetToken(handle: Handle | EntityHandle): number {
-        if (handle instanceof EntityHandle) {
-            return handle.IsVirtual ? 0 : handle.Token;
-        } else {
-
-            if (!handle.IsEntityOrUserStringHandle) {
-                Throw.EntityOrUserStringHandleRequired();
-            }
-
-            if (handle.IsVirtual) {
-                return 0;
-            }
-
-            return handle.Token;
+    public static GetTokenFromHandle(handle: Handle): number {
+        if (!handle.IsEntityOrUserStringHandle) {
+            Throw.EntityOrUserStringHandleRequired();
         }
+
+        if (handle.IsVirtual) {
+            return 0;
+        }
+
+        return handle.Token;
+
     }
 
-    // /// <summary>
-    // /// Returns the metadata token of the specified <paramref name="handle"/>.
-    // /// </summary>
-    // /// <returns>
-    // /// Metadata token, or 0 if <paramref name="handle"/> can only be interpreted in a context of a specific <see cref="MetadataReader"/>.
-    // /// See <see cref="GetToken(MetadataReader, EntityHandle)"/>.
-    // /// </returns>
-    // public static GetToken( handle: EntityHandle): number
-    // {
-    //     return handle.IsVirtual ? 0 : handle.Token;
-    // }
+    /// <summary>
+    /// Returns the metadata token of the specified <paramref name="handle"/>.
+    /// </summary>
+    /// <returns>
+    /// Metadata token, or 0 if <paramref name="handle"/> can only be interpreted in a context of a specific <see cref="MetadataReader"/>.
+    /// See <see cref="GetToken(MetadataReader, EntityHandle)"/>.
+    /// </returns>
+    public static GetTokenFromEntityHandle(handle: EntityHandle): number {
+        return handle.IsVirtual ? 0 : handle.Token;
+    }
 
     // /// <summary>
     // /// Gets the <see cref="TableIndex"/> of the table corresponding to the specified <see cref="HandleKind"/>.

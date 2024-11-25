@@ -1,3 +1,4 @@
+import { Binder } from "Microsoft.CSharp.RuntimeBinder";
 import { Throw, Type } from "System";
 import {
     MetadataLoadContext,
@@ -5,8 +6,29 @@ import {
     Module,
     GenericParameterAttributes,
     TypeAttributes,
+    CustomAttributeData,
+    MethodBase,
+    BindingFlags,
+    CallingConventions,
+    ParameterModifier,
+    EventInfo,
+    FieldInfo,
 } from "System.Reflection";
-import { LeveledTypeInfo, CoreType, RoModule } from "System.Reflection.TypeLoading";
+import { LeveledTypeInfo, CoreType, RoModule, Utf8Constants, ToReadOnlyCollection } from "System.Reflection.TypeLoading";
+import { ConstructorInfo } from "System.Reflection/ConstructorInfo";
+
+enum TypeClassification {
+    Computed = 0x00000001,    // Always set (to indicate that the lazy evaluation has occurred)
+    IsByRefLike = 0x00000004,
+}
+
+
+enum BaseTypeClassification {
+    Computed = 0x00000001,    // Always set (to indicate that the lazy evaluation has occurred)
+    IsValueType = 0x00000002,
+    IsEnum = 0x00000004,
+}
+
 
 export abstract class RoType extends LeveledTypeInfo {
     private readonly TypeAttributesSentinel: TypeAttributes = -1 as TypeAttributes;
@@ -46,7 +68,7 @@ export abstract class RoType extends LeveledTypeInfo {
     public abstract override get IsGenericParameter(): boolean;
     public abstract override get IsGenericTypeParameter(): boolean;
     public abstract override get IsGenericMethodParameter(): boolean;
-    //         public  override bool IsByRefLike : boolean { return this. (GetClassification() & TypeClassification.IsByRefLike) != 0;
+    public override get IsByRefLike(): boolean { return (this.GetClassification() & TypeClassification.IsByRefLike) != 0; }
 
     public abstract override get IsFunctionPointer(): boolean;
     public abstract override get IsUnmanagedFunctionPointer(): boolean;
@@ -106,7 +128,7 @@ export abstract class RoType extends LeveledTypeInfo {
     private _lazyName: string | undefined = undefined;
 
     public override get Namespace(): string | undefined { this._lazyNamespace = this._lazyNamespace ?? this.ComputeNamespace(); return this._lazyNamespace; }
-    protected abstract ComputeNamespace(): string;
+    protected abstract ComputeNamespace(): string | undefined;
     public Call_ComputeNamespace(): string | undefined { return this.ComputeNamespace(); }
     private _lazyNamespace: string | undefined = undefined;
 
@@ -129,25 +151,28 @@ export abstract class RoType extends LeveledTypeInfo {
     public override get Module(): Module { return this.GetRoModule(); }
     public abstract GetRoModule(): RoModule;
 
-    //         // Nesting
-    //         public  override Type? DeclaringType { return this.GetRoDeclaringType();
-    //         protected abstract RoType? ComputeDeclaringType();
-    //         public RoType? GetRoDeclaringType() { return this._lazyDeclaringType ??= ComputeDeclaringType();
-    //         public RoType? Call_ComputeDeclaringType() { return this.ComputeDeclaringType();
-    //         private volatile RoType? _lazyDeclaringType;
+    // Nesting
+    public override get DeclaringType(): Type | undefined { return this.GetRoDeclaringType(); }
+    protected abstract ComputeDeclaringType(): RoType | undefined;
+    public GetRoDeclaringType(): RoType | undefined {
+        this._lazyDeclaringType ??= this.ComputeDeclaringType();
+        return this._lazyDeclaringType;
+    }
+    public Call_ComputeDeclaringType(): RoType | undefined { return this.ComputeDeclaringType(); }
+    private _lazyDeclaringType: RoType | undefined = undefined;
 
-    //         public abstract override MethodBase? DeclaringMethod { get; }
-    //         // .NET Framework compat: For types, ReflectedType == DeclaringType. Nested types are always looked up as if BindingFlags.DeclaredOnly was passed.
-    //         // For non-nested types, the concept of a ReflectedType doesn't even make sense.
-    //         public  override Type? ReflectedType { return this.DeclaringType;
+    public abstract override get DeclaringMethod(): MethodBase | undefined;
+    // .NET Framework compat: For types, ReflectedType == DeclaringType. Nested types are always looked up as if BindingFlags.DeclaredOnly was passed.
+    // For non-nested types, the concept of a ReflectedType doesn't even make sense.
+    public override get ReflectedType(): Type | undefined { return this.DeclaringType; }
 
-    //         // CustomAttributeData
-    //         public  override IList<CustomAttributeData> GetCustomAttributesData() { return this.CustomAttributes.ToReadOnlyCollection();
-    //         public abstract override IEnumerable<CustomAttributeData> CustomAttributes { get; }
+    // CustomAttributeData
+    public override  GetCustomAttributesData(): Array<CustomAttributeData> { return ToReadOnlyCollection(this.CustomAttributes); }
+    public abstract override get CustomAttributes(): Array<CustomAttributeData>;
 
     //         // Optimized routines that find a custom attribute by type name only.
-    //         public abstract bool IsCustomAttributeDefined(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name);
-    //         public abstract CustomAttributeData? TryFindCustomAttribute(ReadOnlySpan<byte> ns, ReadOnlySpan<byte> name);
+    public abstract IsCustomAttributeDefined(ns: Uint8Array, name: Uint8Array): boolean
+    public abstract TryFindCustomAttribute(ns: Uint8Array, name: Uint8Array): CustomAttributeData | undefined;
 
     //         // Inheritance
     public override get BaseType(): Type | undefined {
@@ -261,12 +286,12 @@ export abstract class RoType extends LeveledTypeInfo {
     //         }
 
     //         // Identify interesting subgroups of Types
-    //         protected  override bool IsCOMObjectImpl() { return this.false;   // RCW's are irrelevant in a MetadataLoadContext without object creation.
-    //         public override bool IsEnum { return this.(GetBaseTypeClassification() & BaseTypeClassification.IsEnum) != 0;
-    //         protected override bool IsValueTypeImpl() { return this.(GetBaseTypeClassification() & BaseTypeClassification.IsValueType) != 0;
+    protected override  IsCOMObjectImpl(): boolean { return false; }   // RCW's are irrelevant in a MetadataLoadContext without object creation.
+    public override get IsEnum(): boolean { return (this.GetBaseTypeClassification() & BaseTypeClassification.IsEnum) != 0; }
+    protected override  IsValueTypeImpl(): boolean { return (this.GetBaseTypeClassification() & BaseTypeClassification.IsValueType) != 0; }
 
     //         // Metadata
-    //         public abstract override int MetadataToken { get; }
+    public abstract override get MetadataToken(): number;
     //         public  override bool HasSameMetadataDefinitionAs(MemberInfo other) { return this.this.HasSameMetadataDefinitionAsCore(other);
 
     // TypeAttributes
@@ -284,7 +309,7 @@ export abstract class RoType extends LeveledTypeInfo {
     //         public  override MemberTypes MemberType { return this.IsPublic || IsNotPublic ? MemberTypes.TypeInfo : MemberTypes.NestedType;
     //         protected abstract override TypeCode GetTypeCodeImpl();
     //         public TypeCode Call_GetTypeCodeImpl() { return this.GetTypeCodeImpl();
-    //         public abstract override string ToString();
+    public abstract override  ToString(): string;
 
     //         // Random interop stuff
     //         public abstract override Guid GUID { get; }
@@ -393,4 +418,295 @@ export abstract class RoType extends LeveledTypeInfo {
 
     //         // Returns the MetadataLoadContext used to load this type.
     public get Loader(): MetadataLoadContext { return this.GetRoModule().Loader; }
+
+    //==============================================================================================================
+    // TypeClassifications
+    private GetClassification(): TypeClassification {
+        this._lazyClassification = this._lazyClassification != (0 as TypeClassification) ? this._lazyClassification : this.ComputeClassification();
+        return this._lazyClassification;
+    }
+    private ComputeClassification(): TypeClassification {
+        let classification = TypeClassification.Computed;
+
+        if (this.IsCustomAttributeDefined(Utf8Constants.SystemRuntimeCompilerServices, Utf8Constants.IsByRefLikeAttribute)) {
+            classification |= TypeClassification.IsByRefLike;
+        }
+
+        return classification;
+    }
+    private _lazyClassification: TypeClassification = 0 as TypeClassification;
+
+    private GetBaseTypeClassification(): BaseTypeClassification {
+        this._lazyBaseTypeClassification = this._lazyBaseTypeClassification != (0 as BaseTypeClassification) ? this._lazyBaseTypeClassification : this.ComputeBaseTypeClassification();
+        return this._lazyBaseTypeClassification;
+    }
+    private ComputeBaseTypeClassification(): BaseTypeClassification {
+        let classification = BaseTypeClassification.Computed;
+
+        const baseType = this.BaseType;
+        if (baseType != null) {
+            const coreTypes = this.Loader.GetAllFoundCoreTypes();
+
+            const enumType = coreTypes.At(CoreType.Enum);
+            const valueType = coreTypes.At(CoreType.ValueType);
+
+            if (baseType.Equals(enumType))
+                classification |= BaseTypeClassification.IsEnum | BaseTypeClassification.IsValueType;
+
+            if (baseType.Equals(valueType) && this != enumType) {
+                classification |= BaseTypeClassification.IsValueType;
+            }
+        }
+
+        return classification;
+    }
+    private _lazyBaseTypeClassification: BaseTypeClassification = 0 as BaseTypeClassification;
+
+    // Keep this separate from the other TypeClassification computations as it locks in the core assembly name.
+    protected override IsPrimitiveImpl(): boolean {
+        const coreTypes = this.Loader.GetAllFoundCoreTypes();
+        for (const primitiveType of RoType.s_primitiveTypes) {
+            if (this == coreTypes.At(primitiveType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The exact set of types for which IsPrimitive is supposed to return true.
+    private static readonly s_primitiveTypes = Array.from([
+
+        CoreType.Boolean,
+        CoreType.Char,
+        CoreType.SByte,
+        CoreType.Byte,
+        CoreType.Int16,
+        CoreType.UInt16,
+        CoreType.Int32,
+        CoreType.UInt32,
+        CoreType.Int64,
+        CoreType.UInt64,
+        CoreType.Single,
+        CoreType.Double,
+        CoreType.IntPtr,
+        CoreType.UIntPtr,
+    ]);
+
+    //==============================================================================================================
+    // Binding Flags
+    // public sealed override ConstructorInfo[] GetConstructors(BindingFlags bindingAttr) => Query<ConstructorInfo>(bindingAttr).ToArray();
+
+    protected override GetConstructorImpl(bindingAttr: BindingFlags, binder: Binder | undefined, callConvention: CallingConventions, types: Type[] | undefined, modifiers: ParameterModifier[] | undefined): ConstructorInfo | undefined {
+        // Debug.Assert(types != null);
+
+        // QueryResult<ConstructorInfo> queryResult = Query<ConstructorInfo>(bindingAttr);
+        // ListBuilder<ConstructorInfo> candidates = default;
+        // foreach (ConstructorInfo candidate in queryResult)
+        // {
+        //     if (candidate.QualifiesBasedOnParameterCount(bindingAttr, callConvention, types))
+        //         candidates.Add(candidate);
+        // }
+
+        // // For perf and .NET Framework compat, fast-path these specific checks before calling on the binder to break ties.
+        // if (candidates.Count == 0)
+        //     return null;
+
+        // if (types.Length == 0 && candidates.Count == 1)
+        // {
+        //     ConstructorInfo firstCandidate = candidates[0];
+        //     ParameterInfo[] parameters = firstCandidate.GetParametersNoCopy();
+        //     if (parameters.Length == 0)
+        //         return firstCandidate;
+        // }
+
+        // if ((bindingAttr & BindingFlags.ExactBinding) != 0)
+        //     return System.DefaultBinder.ExactBinding(candidates.ToArray(), types) as ConstructorInfo;
+
+        // binder ??= Loader.GetDefaultBinder();
+
+        // return binder.SelectMethod(bindingAttr, candidates.ToArray(), types, modifiers) as ConstructorInfo;
+        throw new Error("Not implemented");
+    }
+
+    public override  GetEvents(bindingAttr: BindingFlags): EventInfo[] {
+        //  return this.Query<EventInfo>(bindingAttr).ToArray();
+        throw new Error("Not implemented");
+    }
+    public override  GetEvent(name: string, bindingAttr: BindingFlags): EventInfo | undefined {
+        // return this.Query<EventInfo>(name, bindingAttr).Disambiguate();
+        throw new Error("Not implemented");
+    }
+
+    public override GetFields(bindingAttr: BindingFlags): FieldInfo[] {
+        //return  Query<FieldInfo>(bindingAttr).ToArray();
+        throw new Error("Not implemented");
+    }
+    public override  GetField(name: string, bindingAttr: BindingFlags): FieldInfo | undefined {
+        //return  Query<FieldInfo>(name, bindingAttr).Disambiguate();
+        throw new Error("Not implemented");
+    }
+
+    // public sealed override MethodInfo[] GetMethods(BindingFlags bindingAttr) => Query<MethodInfo>(bindingAttr).ToArray();
+
+    // protected sealed override MethodInfo? GetMethodImpl(string name, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers)
+    // {
+    //     return GetMethodImplCommon(name, GenericParameterCountAny, bindingAttr, binder, callConvention, types, modifiers);
+    // }
+
+    // protected sealed override MethodInfo? GetMethodImpl(string name, int genericParameterCount, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers)
+    // {
+    //     return GetMethodImplCommon(name, genericParameterCount, bindingAttr, binder, callConvention, types, modifiers);
+    // }
+
+    // private MethodInfo? GetMethodImplCommon(string name, int genericParameterCount, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers)
+    // {
+    //     Debug.Assert(name != null);
+
+    //     // GetMethodImpl() is a funnel for two groups of api. We can distinguish by comparing "types" to null.
+    //     if (types == null)
+    //     {
+    //         // Group #1: This group of api accept only a name and BindingFlags. The other parameters are hard-wired by the non-virtual api entrypoints.
+    //         Debug.Assert(genericParameterCount == GenericParameterCountAny);
+    //         Debug.Assert(binder == null);
+    //         Debug.Assert(callConvention == CallingConventions.Any);
+    //         Debug.Assert(modifiers == null);
+    //         return Query<MethodInfo>(name, bindingAttr).Disambiguate();
+    //     }
+    //     else
+    //     {
+    //         // Group #2: This group of api takes a set of parameter types and an optional binder.
+    //         QueryResult<MethodInfo> queryResult = Query<MethodInfo>(name, bindingAttr);
+    //         ListBuilder<MethodInfo> candidates = default;
+    //         foreach (MethodInfo candidate in queryResult)
+    //         {
+    //             if (genericParameterCount != GenericParameterCountAny && genericParameterCount != candidate.GetGenericParameterCount())
+    //                 continue;
+    //             if (candidate.QualifiesBasedOnParameterCount(bindingAttr, callConvention, types))
+    //                 candidates.Add(candidate);
+    //         }
+
+    //         if (candidates.Count == 0)
+    //             return null;
+
+    //         // For perf and .NET Framework compat, fast-path these specific checks before calling on the binder to break ties.
+    //         if (types.Length == 0 && candidates.Count == 1)
+    //             return candidates[0];
+
+    //         binder ??= Loader.GetDefaultBinder();
+    //         return binder.SelectMethod(bindingAttr, candidates.ToArray(), types, modifiers) as MethodInfo;
+    //     }
+    // }
+
+    // public sealed override Type[] GetNestedTypes(BindingFlags bindingAttr) => Query<Type>(bindingAttr).ToArray();
+    // public sealed override Type? GetNestedType(string name, BindingFlags bindingAttr) => Query<Type>(name, bindingAttr).Disambiguate();
+
+    // public sealed override PropertyInfo[] GetProperties(BindingFlags bindingAttr) => Query<PropertyInfo>(bindingAttr).ToArray();
+
+    // protected sealed override PropertyInfo? GetPropertyImpl(string name, BindingFlags bindingAttr, Binder? binder, Type? returnType, Type[]? types, ParameterModifier[]? modifiers)
+    // {
+    //     Debug.Assert(name != null);
+
+    //     // GetPropertyImpl() is a funnel for two groups of api. We can distinguish by comparing "types" to null.
+    //     if (types == null && returnType == null)
+    //     {
+    //         // Group #1: This group of api accept only a name and BindingFlags. The other parameters are hard-wired by the non-virtual api entrypoints.
+    //         Debug.Assert(binder == null);
+    //         Debug.Assert(modifiers == null);
+    //         return Query<PropertyInfo>(name, bindingAttr).Disambiguate();
+    //     }
+    //     else
+    //     {
+    //         // Group #2: This group of api takes a set of parameter types, a return type (both cannot be null) and an optional binder.
+    //         QueryResult<PropertyInfo> queryResult = Query<PropertyInfo>(name, bindingAttr);
+    //         ListBuilder<PropertyInfo> candidates = default;
+    //         foreach (PropertyInfo candidate in queryResult)
+    //         {
+    //             if (types == null || (candidate.GetIndexParameters().Length == types.Length))
+    //             {
+    //                 candidates.Add(candidate);
+    //             }
+    //         }
+
+    //         if (candidates.Count == 0)
+    //             return null;
+
+    //         // For perf and .NET Framework compat, fast-path these specific checks before calling on the binder to break ties.
+    //         if (types == null || types.Length == 0)
+    //         {
+    //             PropertyInfo firstCandidate = candidates[0];
+
+    //             // no arguments
+    //             if (candidates.Count == 1)
+    //             {
+    //                 if (!(returnType is null) && !returnType.IsEquivalentTo(firstCandidate.PropertyType))
+    //                     return null;
+    //                 return firstCandidate;
+    //             }
+    //             else
+    //             {
+    //                 if (returnType is null)
+    //                     // if we are here we have no args or property type to select over and we have more than one property with that name
+    //                     throw ThrowHelper.GetAmbiguousMatchException(firstCandidate);
+    //             }
+    //         }
+
+    //         if ((bindingAttr & BindingFlags.ExactBinding) != 0)
+    //             return System.DefaultBinder.ExactPropertyBinding(candidates.ToArray(), returnType, types);
+
+    //         binder ??= Loader.GetDefaultBinder();
+
+    //         return binder.SelectProperty(bindingAttr, candidates.ToArray(), returnType, types, modifiers);
+    //     }
+    // }
+
+    // private QueryResult<M> Query<M>(BindingFlags bindingAttr) where M : MemberInfo
+    // {
+    //     return Query<M>(null, bindingAttr, null);
+    // }
+
+    // private QueryResult<M> Query<M>(string name, BindingFlags bindingAttr) where M : MemberInfo
+    // {
+    //     if (name is null)
+    //     {
+    //         throw new ArgumentNullException(nameof(name));
+    //     }
+
+    //     return Query<M>(name, bindingAttr, null);
+    // }
+
+    // private QueryResult<M> Query<M>(string? optionalName, BindingFlags bindingAttr, Func<M, bool>? optionalPredicate) where M : MemberInfo
+    // {
+    //     MemberPolicies<M> policies = MemberPolicies<M>.Default;
+    //     bindingAttr = policies.ModifyBindingFlags(bindingAttr);
+    //     bool immediateTypeOnly = NeedToSearchImmediateTypeOnly(bindingAttr);
+    //     bool ignoreCase = (bindingAttr & BindingFlags.IgnoreCase) != 0;
+
+    //     TypeComponentsCache cache = Cache;
+    //     QueriedMemberList<M> queriedMembers;
+    //     if (optionalName == null)
+    //         queriedMembers = cache.GetQueriedMembers<M>(immediateTypeOnly);
+    //     else
+    //         queriedMembers = cache.GetQueriedMembers<M>(optionalName, ignoreCase: ignoreCase, immediateTypeOnly: immediateTypeOnly);
+
+    //     if (optionalPredicate != null)
+    //         queriedMembers = queriedMembers.Filter(optionalPredicate);
+    //     return new QueryResult<M>(bindingAttr, queriedMembers);
+    // }
+
+    // private static bool NeedToSearchImmediateTypeOnly(BindingFlags bf)
+    // {
+    //     if ((bf & (BindingFlags.Static | BindingFlags.FlattenHierarchy)) == (BindingFlags.Static | BindingFlags.FlattenHierarchy))
+    //         return false;
+
+    //     if ((bf & (BindingFlags.Instance | BindingFlags.DeclaredOnly)) == BindingFlags.Instance)
+    //         return false;
+
+    //     return true;
+    // }
+
+    // private TypeComponentsCache Cache => _lazyCache ??= new TypeComponentsCache(this);
+
+    // private volatile TypeComponentsCache? _lazyCache;
+
+    // private const int GenericParameterCountAny = -1;
 }

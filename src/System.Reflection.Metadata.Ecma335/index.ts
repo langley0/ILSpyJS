@@ -32,6 +32,7 @@ export * from "System.Reflection.Metadata/Ecma335/MetadataTokens";
 export * from "System.Reflection.Metadata/Ecma335/SerializedMetadataHeaps";
 export * from "System.Reflection.Metadata/Ecma335/MetadataRootBuilder";
 export * from "System.Reflection.Metadata/Ecma335/MetadataStreamConstants";
+export * from "System.Reflection.Metadata/Ecma335/MetadataReaderExtensions";
 
 export * from "System.Reflection.Metadata/PortablePdb/DebugMetadataHeader";
 export * from "System.Reflection.Metadata/PortablePdb/Tables.Debug";

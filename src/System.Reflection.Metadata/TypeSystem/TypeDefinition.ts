@@ -1,7 +1,7 @@
 import assert from "assert";
 import { MetadataReader } from "../MetadataReader";
 import { TypeAttributes, } from "System.Reflection"
-import { EntityHandle, StringHandle, TypeDefinitionHandle } from "System.Reflection.Metadata";
+import { CustomAttributeHandleCollection, EntityHandle, StringHandle, TypeDefinitionHandle } from "System.Reflection.Metadata";
 import { TokenTypeIds, TypeDefTreatment } from "System.Reflection.Metadata.Ecma335";
 
 export class TypeDefinition {
@@ -129,13 +129,12 @@ export class TypeDefinition {
     //     return new TypeLayout((int)size, packingSize);
     // }
 
-    // /// <summary>
-    // /// Returns the enclosing type of a specified nested type or nil handle if the type is not nested.
-    // /// </summary>
-    // public TypeDefinitionHandle GetDeclaringType()
-    // {
-    //     return _reader.NestedClassTable.FindEnclosingType(Handle);
-    // }
+    /// <summary>
+    /// Returns the enclosing type of a specified nested type or nil handle if the type is not nested.
+    /// </summary>
+    public GetDeclaringType(): TypeDefinitionHandle {
+        return this._reader.NestedClassTable.FindEnclosingType(this.Handle);
+    }
 
     // public GenericParameterHandleCollection GetGenericParameters()
     // {
@@ -180,10 +179,9 @@ export class TypeDefinition {
     //     return new InterfaceImplementationHandleCollection(_reader, Handle);
     // }
 
-    // public CustomAttributeHandleCollection GetCustomAttributes()
-    // {
-    //     return new CustomAttributeHandleCollection(_reader, Handle);
-    // }
+    public GetCustomAttributes(): CustomAttributeHandleCollection {
+        return new CustomAttributeHandleCollection(this._reader, this.Handle.ToEntityHandle());
+    }
 
     // public DeclarativeSecurityAttributeHandleCollection GetDeclarativeSecurityAttributes()
     // {

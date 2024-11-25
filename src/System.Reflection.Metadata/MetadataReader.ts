@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Guid, Throw, sizeof } from "System";
+import { Guid, Throw, Type, sizeof } from "System";
 import { TypeAttributes, } from "System.Reflection";
 import { BitArithmetic, MemoryBlock } from "System.Reflection.Internal";
 import {
@@ -28,6 +28,11 @@ import {
     ExportedTypeHandle,
     ExportedType,
     MemberReferenceHandle,
+    AssemblyReference,
+    TypeReference,
+    ModuleReferenceHandle,
+    ModuleReference,
+    TypeSpecificationHandle,
 } from "System.Reflection.Metadata";
 import {
     StringHeap,
@@ -112,7 +117,9 @@ import {
     HasCustomDebugInformationTag,
     TypeDefTreatment,
     TypeRefSignatureTreatment,
+    TypeRefTreatment,
 } from "System.Reflection.Metadata.Ecma335";
+import { TypeSpecification } from "./TypeSystem/TypeSpecification";
 
 class ProjectionInfo {
     public readonly WinRTNamespace: string;
@@ -152,7 +159,7 @@ export class MetadataReader {
     public readonly Block: MemoryBlock;
 
     // // A row id of "mscorlib" AssemblyRef in a WinMD file (each WinMD file must have such a reference).
-    // public readonly WinMDMscorlibRef: number;
+    public readonly WinMDMscorlibRef: number = 0;
 
     // Keeps the underlying memory alive.
     private readonly _memoryOwnerObj?: object;
@@ -265,9 +272,9 @@ export class MetadataReader {
         // //  read
         // this.NamespaceCache = new NamespaceCache(this);
 
-        // if (this._metadataKind != MetadataKind.Ecma335) {
-        //     WinMDMscorlibRef = FindMscorlibAssemblyRefNoProjection();
-        // }
+        if (this._metadataKind != MetadataKind.Ecma335) {
+            this.WinMDMscorlibRef = this.FindMscorlibAssemblyRefNoProjection();
+        }
     }
 
     // #endregion
@@ -1190,10 +1197,9 @@ export class MetadataReader {
         return new ModuleDefinition(this);
     }
 
-    // public AssemblyReference GetAssemblyReference(AssemblyReferenceHandle handle)
-    // {
-    //     return new AssemblyReference(this, handle.Value);
-    // }
+    public GetAssemblyReference(handle: AssemblyReferenceHandle): AssemblyReference {
+        return new AssemblyReference(this, handle.Value);
+    }
 
     public GetTypeDefinition(handle: TypeDefinitionHandle): TypeDefinition {
         // PERF: This code pattern is JIT friendly and results in very efficient code.
@@ -1221,22 +1227,20 @@ export class MetadataReader {
         return this.CalculateTypeDefTreatmentAndRowId(handle);
     }
 
-    // public TypeReference GetTypeReference(TypeReferenceHandle handle)
-    // {
-    //     // PERF: This code pattern is JIT friendly and results in very efficient code.
-    //     return new TypeReference(this, GetTypeRefTreatmentAndRowId(handle));
-    // }
+    public GetTypeReference(handle: TypeReferenceHandle): TypeReference {
+        // PERF: This code pattern is JIT friendly and results in very efficient code.
+        // return new TypeReference(this, GetTypeRefTreatmentAndRowId(handle));
+        throw new Error('Not implemented');
+    }
 
-    // private uint GetTypeRefTreatmentAndRowId(TypeReferenceHandle handle)
-    // {
-    //     // PERF: This code pattern is JIT friendly and results in very efficient code.
-    //     if (_metadataKind == MetadataKind.Ecma335)
-    //     {
-    //         return (uint)handle.RowId;
-    //     }
+    private GetTypeRefTreatmentAndRowId(handle: TypeReferenceHandle): number {
+        // PERF: This code pattern is JIT friendly and results in very efficient code.
+        if (this._metadataKind == MetadataKind.Ecma335) {
+            return handle.RowId;
+        }
 
-    //     return CalculateTypeRefTreatmentAndRowId(handle);
-    // }
+        return this.CalculateTypeRefTreatmentAndRowId(handle);
+    }
 
     public GetExportedType(handle: ExportedTypeHandle): ExportedType {
         return new ExportedType(this, handle.RowId);
@@ -1375,15 +1379,13 @@ export class MetadataReader {
     //     return new StandaloneSignature(this, handle);
     // }
 
-    // public TypeSpecification GetTypeSpecification(TypeSpecificationHandle handle)
-    // {
-    //     return new TypeSpecification(this, handle);
-    // }
+    public GetTypeSpecification(handle: TypeSpecificationHandle): TypeSpecification {
+        return new TypeSpecification(this, handle);
+    }
 
-    // public ModuleReference GetModuleReference(ModuleReferenceHandle handle)
-    // {
-    //     return new ModuleReference(this, handle);
-    // }
+    public GetModuleReference(handle: ModuleReferenceHandle): ModuleReference {
+        return new ModuleReference(this, handle);
+    }
 
     // public InterfaceImplementation GetInterfaceImplementation(InterfaceImplementationHandle handle)
     // {
@@ -1581,38 +1583,31 @@ export class MetadataReader {
         return TypeDefTreatment.None;
     }
 
-    // private int GetProjectionIndexForTypeReference(TypeReferenceHandle typeRef, out bool isIDisposable)
-    // {
-    //     InitializeProjectedTypes();
+    private GetProjectionIndexForTypeReference(typeRef: TypeReferenceHandle): number {
+        MetadataReader.InitializeProjectedTypes();
 
-    //     int index = StringHeap.BinarySearchRaw(s_projectedTypeNames!, TypeRefTable.GetName(typeRef));
-    //     if (index >= 0 && StringHeap.EqualsRaw(TypeRefTable.GetNamespace(typeRef), s_projectionInfos![index].WinRTNamespace))
-    //     {
-    //         isIDisposable = s_projectionInfos[index].IsIDisposable;
-    //         return index;
-    //     }
+        const index = this.StringHeap.BinarySearchRaw(MetadataReader.s_projectedTypeNames!, this.TypeRefTable.GetName(typeRef));
+        if (index >= 0 && this.TypeRefTable.GetNamespace(typeRef).GetString(this) == MetadataReader.s_projectionInfos![index].WinRTNamespace) {
+            return index;
+        }
 
-    //     isIDisposable = false;
-    //     return -1;
-    // }
+        return -1;
+    }
 
-    // internal static AssemblyReferenceHandle GetProjectedAssemblyRef(int projectionIndex)
-    // {
-    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
-    //     return AssemblyReferenceHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].AssemblyRef);
-    // }
+    public static GetProjectedAssemblyRef(projectionIndex: number): AssemblyReferenceHandle {
+        assert(MetadataReader.s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < MetadataReader.s_projectionInfos.length);
+        return AssemblyReferenceHandle.FromVirtualIndex(MetadataReader.s_projectionInfos[projectionIndex].AssemblyRef);
+    }
 
-    // internal static StringHandle GetProjectedName(int projectionIndex)
-    // {
-    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
-    //     return StringHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].ClrName);
-    // }
+    public static GetProjectedName(projectionIndex: number): StringHandle {
+        assert(MetadataReader.s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < MetadataReader.s_projectionInfos.length);
+        return StringHandle.FromVirtualIndex(MetadataReader.s_projectionInfos[projectionIndex].ClrName);
+    }
 
-    // internal static StringHandle GetProjectedNamespace(int projectionIndex)
-    // {
-    //     assert(s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < s_projectionInfos.Length);
-    //     return StringHandle.FromVirtualIndex(s_projectionInfos[projectionIndex].ClrNamespace);
-    // }
+    public static GetProjectedNamespace(projectionIndex: number): StringHandle {
+        assert(MetadataReader.s_projectionInfos != undefined && projectionIndex >= 0 && projectionIndex < MetadataReader.s_projectionInfos.length);
+        return StringHandle.FromVirtualIndex(MetadataReader.s_projectionInfos[projectionIndex].ClrNamespace);
+    }
 
     // internal static TypeRefSignatureTreatment GetProjectedSignatureTreatment(int projectionIndex)
     // {
@@ -1803,40 +1798,33 @@ export class MetadataReader {
 
     // #region TypeRef
 
-    // internal uint CalculateTypeRefTreatmentAndRowId(TypeReferenceHandle handle)
-    // {
-    //     assert(_metadataKind != MetadataKind.Ecma335);
+    public CalculateTypeRefTreatmentAndRowId(handle: TypeReferenceHandle): number {
+        assert(this._metadataKind != MetadataKind.Ecma335);
 
-    //     int projectionIndex = GetProjectionIndexForTypeReference(handle, out _);
-    //     if (projectionIndex >= 0)
-    //     {
-    //         return TreatmentAndRowId((byte)TypeRefTreatment.UseProjectionInfo, projectionIndex);
-    //     }
-    //     else
-    //     {
-    //         return TreatmentAndRowId((byte)GetSpecialTypeRefTreatment(handle), handle.RowId);
-    //     }
-    // }
+        const projectionIndex = this.GetProjectionIndexForTypeReference(handle);
+        if (projectionIndex >= 0) {
+            return MetadataReader.TreatmentAndRowId(TypeRefTreatment.UseProjectionInfo, projectionIndex);
+        }
+        else {
+            return MetadataReader.TreatmentAndRowId(this.GetSpecialTypeRefTreatment(handle), handle.RowId);
+        }
+    }
 
-    // private TypeRefTreatment GetSpecialTypeRefTreatment(TypeReferenceHandle handle)
-    // {
-    //     if (StringHeap.EqualsRaw(TypeRefTable.GetNamespace(handle), "System"))
-    //     {
-    //         StringHandle name = TypeRefTable.GetName(handle);
+    private GetSpecialTypeRefTreatment(handle: TypeReferenceHandle): TypeRefTreatment {
+        if (this.TypeRefTable.GetNamespace(handle).GetString(this) == "System") {
+            const name = this.TypeRefTable.GetName(handle);
 
-    //         if (StringHeap.EqualsRaw(name, "MulticastDelegate"))
-    //         {
-    //             return TypeRefTreatment.SystemDelegate;
-    //         }
+            if (name.GetString(this) == "MulticastDelegate") {
+                return TypeRefTreatment.SystemDelegate;
+            }
 
-    //         if (StringHeap.EqualsRaw(name, "Attribute"))
-    //         {
-    //             return TypeRefTreatment.SystemAttribute;
-    //         }
-    //     }
+            if (name.GetString(this) == "Attribute") {
+                return TypeRefTreatment.SystemAttribute;
+            }
+        }
 
-    //     return TypeRefTreatment.None;
-    // }
+        return TypeRefTreatment.None;
+    }
 
     private IsSystemAttribute(handle: TypeReferenceHandle): boolean {
         return this.TypeRefTable.GetNamespace(handle).GetString(this) == "System" &&
@@ -2128,18 +2116,15 @@ export class MetadataReader {
 
     // #region AssemblyRef
 
-    // private int FindMscorlibAssemblyRefNoProjection()
-    // {
-    //     for (int i = 1; i <= AssemblyRefTable.NumberOfNonVirtualRows; i++)
-    //     {
-    //         if (StringHeap.EqualsRaw(AssemblyRefTable.GetName(i), "mscorlib"))
-    //         {
-    //             return i;
-    //         }
-    //     }
+    private FindMscorlibAssemblyRefNoProjection(): number {
+        for (let i = 1; i <= this.AssemblyRefTable.NumberOfNonVirtualRows; i++) {
+            if (this.AssemblyRefTable.GetName(i).GetString(this) == "mscorlib") {
+                return i;
+            }
+        }
 
-    //     throw new BadImageFormatException(SR.WinMDMissingMscorlibRef);
-    // }
+        Throw.BadImageFormatException("WinMDMissingMscorlibRef");
+    }
 
     // #endregion
 

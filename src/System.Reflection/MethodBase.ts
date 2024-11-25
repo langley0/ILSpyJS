@@ -7,11 +7,19 @@
 // namespace System.Reflection
 
 import { ParameterInfo } from "./ParameterInfo";
+import { MemberInfo } from "./MemberInfo";
+import { MemberTypes } from "./MemberTypes";
+import { Type } from "System";
 
-export abstract class MethodBase  {
-    //         internal const int MaxStackAllocArgCount = 4;
+export abstract class MethodBase implements MemberInfo {
+    public static readonly MaxStackAllocArgCount = 4;
 
-    //         protected MethodBase() { }
+    protected constructor() { }
+
+    public abstract get Name(): string;
+    public abstract get MemberType(): MemberTypes;
+    public abstract GetCustomAttributes(attributeType: Type, inherit?: boolean): object[];
+    public abstract IsDefined(attributeType: Type, inherit: boolean): boolean
 
     //         public abstract ParameterInfo[] GetParameters();
     //         public abstract MethodAttributes Attributes { get; }
@@ -259,15 +267,13 @@ export abstract class MethodBase  {
     //     [MethodImplAttribute(MethodImplOptions.InternalCall)]
     //     public static extern MethodBase? GetCurrentMethod();
 
-        public GetParametersAsSpan() : ParameterInfo[] 
-        {
-            return this.GetParametersInternal();
-        }
+    public GetParametersAsSpan(): ParameterInfo[] {
+        return this.GetParametersInternal();
+    }
 
-        public  GetParametersInternal():ParameterInfo[] 
-        {
-            throw new Error("NotImplementedException");
-        }
+    public GetParametersInternal(): ParameterInfo[] {
+        throw new Error("NotImplementedException");
+    }
 
     //     internal virtual int GetParametersCount()
     //     {

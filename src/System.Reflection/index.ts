@@ -1,4 +1,7 @@
-
+export * from "./FieldAttributes";
+export * from "./CallingConventions";
+export * from "./ParameterModifier";
+export * from "./BindingFlags";
 export * from "./MemberInfo";
 export * from "./GenericParameterAttributes";
 export * from "./TypeAttributes";
@@ -24,6 +27,9 @@ export * from "./AssemblyNameHelpers";
 export * from "./CustomAttributeData";
 export * from "./MethodInfo";
 export * from "./AssemblyNameFormatter";
+export * from "./EventInfo";
+export * from "./FieldInfo";
+
 
 export * from 'System.Reflection.MetadataLoadContext/MetadataAssemblyResolver';
 export * from 'System.Reflection.MetadataLoadContext/MetadataLoadContext';

@@ -8,7 +8,7 @@
 
 import { Throw } from "System";
 import { AssemblyName } from "System.Reflection";
-import { RoAssemblyName, RoAssembly, RoType } from "System.Reflection.TypeLoading";
+import { RoAssemblyName, RoAssembly, RoType, TypeContext } from "System.Reflection.TypeLoading";
 
 // #if NET8_0_OR_GREATER
 //   const  s_charsToEscape = SearchValues.Create("\\[]+*&,");
@@ -63,13 +63,11 @@ export function TypeNameContainsTypeParserMetacharacters(identifier: string): bo
 //             return copy;
 //         }
 
-//         public static ReadOnlyCollection<T> ToReadOnlyCollection<T>(this IEnumerable<T> enumeration)
-//         {
-//             List<T> list = new List<T>(enumeration);
-//             return Array.AsReadOnly(list.ToArray());
-//         }
+export function ToReadOnlyCollection<T>(enumeration: Array<T>): Array<T> {
+    return [...enumeration];
+}
 
-//         public static int GetTokenRowNumber(this int token) => token & 0x00ffffff;
+export function GetTokenRowNumber(token: number) { return token & 0x00ffffff; }
 
 //         public static RoMethod? FilterInheritedAccessor(this RoMethod accessor)
 //         {
@@ -106,35 +104,27 @@ export function TypeNameContainsTypeParserMetacharacters(identifier: string): bo
 //             return "[" + new string(',', rank - 1) + "]";
 //         }
 
-//         // Escape identifiers as described in "Specifying Fully Qualified Type Names" on msdn.
-//         // Current link is http://msdn.microsoft.com/en-us/library/yfsftwz6(v=vs.110).aspx
-//         public static string EscapeTypeNameIdentifier(this string identifier)
-//         {
-//             // Some characters in a type name need to be escaped
-//             if (TypeNameContainsTypeParserMetacharacters(identifier))
-//             {
-//                 StringBuilder sbEscapedName = new StringBuilder(identifier.Length);
-//                 foreach (char c in identifier)
-//                 {
-//                     if (c.NeedsEscapingInTypeName())
-//                         sbEscapedName.Append('\\');
+// Escape identifiers as described in "Specifying Fully Qualified Type Names" on msdn.
+// Current link is http://msdn.microsoft.com/en-us/library/yfsftwz6(v=vs.110).aspx
+export function EscapeTypeNameIdentifier(identifier: string) {
+    // Some characters in a type name need to be escaped
+    if (TypeNameContainsTypeParserMetacharacters(identifier)) {
+        const sbEscapedName = new Array<string>(identifier.length);
+        for (const c of identifier) {
+            if (NeedsEscapingInTypeName(c))
+                sbEscapedName.push('\\');
 
-//                     sbEscapedName.Append(c);
-//                 }
-//                 identifier = sbEscapedName.ToString();
-//             }
-//             return identifier;
-//         }
+            sbEscapedName.push(c);
+        }
+        identifier = sbEscapedName.join('');
+    }
+    return identifier;
+}
 
 
-//         public static bool NeedsEscapingInTypeName(this char c)
-//         {
-// #if NET8_0_OR_GREATER
-//             return s_charsToEscape.Contains(c);
-// #else
-//             return s_charsToEscape.IndexOf(c) >= 0;
-// #endif
-//         }
+export function NeedsEscapingInTypeName(c: string): boolean {
+    return s_charsToEscape.indexOf(c) >= 0;
+}
 
 //         public static string UnescapeTypeNameIdentifier(this string identifier)
 //         {
@@ -395,6 +385,8 @@ export function ToRoAssemblyName(assemblyName: AssemblyName): RoAssemblyName {
 //         //
 //         public static string? GetDisposedString(this MetadataLoadContext loader) => loader.IsDisposed ? SR.MetadataLoadContextDisposed : undefined;
 
-//         public static TypeContext ToTypeContext(this RoType[] instantiation) => new TypeContext(instantiation, undefined);
+export function ToTypeContext(instantiation: RoType[]): TypeContext {
+    return new TypeContext(instantiation, undefined);
+}
 //     }
 // }

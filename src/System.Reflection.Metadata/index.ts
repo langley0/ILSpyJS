@@ -1,11 +1,14 @@
 export * from './TypeSystem/Handles.TypeSystem';
 export * from './TypeSystem/HandleCollections.TypeSystem';
 export * from './TypeSystem/ModuleDefinition';
+export * from './TypeSystem/ModuleReference';
 export * from './TypeSystem/AssemblyDefinition';
 
 export * from "./TypeSystem/TypeDefinition";
 export * from "./TypeSystem/ExportedType";
 export * from "./TypeSystem/TypeDefinition";
+export * from "./TypeSystem/AssemblyReference";
+export * from "./TypeSystem/TypeReference";
 
 export * from "./HandleKind";
 export * from './Machine';

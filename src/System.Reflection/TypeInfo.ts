@@ -5,15 +5,16 @@
 // using System.Diagnostics.CodeAnalysis;
 // namespace System.Reflection
 import { Type } from "System/Type";
-import { IReflectableType } from "System.Reflection";
+import { IReflectableType, BindingFlags } from "System.Reflection";
+import { Throw } from "System/Throw";
 
 export abstract class TypeInfo extends Type implements IReflectableType {
     protected constructor() { super(); }
 
     public GetTypeInfo(): TypeInfo { return this }
-    //     public virtual Type AsType() => this;
+    public AsType(): Type { return this; }
 
-    //     public virtual Type[] GenericTypeParameters => IsGenericTypeDefinition ? GetGenericArguments() : EmptyTypes;
+    public get GenericTypeParameters(): Type[] { return this.IsGenericTypeDefinition ? this.GetGenericArguments() : Type.EmptyTypes; }
 
     //     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
     //     public virtual EventInfo? GetDeclaredEvent(string name) => GetEvent(name, DeclaredOnlyLookup);
@@ -134,16 +135,15 @@ export abstract class TypeInfo extends Type implements IReflectableType {
     //         return false;
     //     }
 
-    //     internal static string GetRankString(int rank)
-    //     {
-    //         if (rank <= 0)
-    //             throw new IndexOutOfRangeException();
+    public static GetRankString(rank: number): string {
+        if (rank <= 0)
+            Throw.ArgumentOutOfRange('rank');
 
-    //         return rank == 1 ?
-    //             "[*]" :
-    //             "[" + new string(',', rank - 1) + "]";
-    //     }
+        return rank == 1 ?
+            "[*]" :
+            "[" + ',' + (rank - 1).toString() + "]";
+    }
 
-    //     private const BindingFlags DeclaredOnlyLookup = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+    private static readonly DeclaredOnlyLookup: BindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
 }
 

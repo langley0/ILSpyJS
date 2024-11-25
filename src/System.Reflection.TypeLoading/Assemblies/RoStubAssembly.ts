@@ -1,22 +1,27 @@
+import { AssemblyNameData } from "System.Reflection.TypeLoading/AssemblyNameData";
 import { RoAssembly } from "./RoAssembly";
+import { MethodInfo, ModuleResolveEventHandler, } from "System.Reflection";
+import { Stream } from "System.IO";
+import { RoModule } from "System.Reflection.TypeLoading/Modules/RoModule";
+import { AssemblyFileInfo } from "./AssemblyFileInfo";
 
-export abstract class RoStubAssembly extends RoAssembly
-{
+
+export abstract class RoStubAssembly extends RoAssembly {
     public constructor() { super(null!, 0); }
-    // public sealed override string Location => throw null!;
-    // public sealed override MethodInfo EntryPoint => throw null!;
-    // public sealed override string ImageRuntimeVersion => throw null!;
-    // public sealed override bool IsDynamic => throw null!;
-    // public sealed override event ModuleResolveEventHandler? ModuleResolve { add { throw null!; } remove { throw null!; } }
-    // public sealed override IEnumerable<CustomAttributeData> CustomAttributes => throw null!;
-    // public sealed override ManifestResourceInfo? GetManifestResourceInfo(string resourceName) => throw null!;
-    // public sealed override string[] GetManifestResourceNames() => throw null!;
-    // public sealed override Stream GetManifestResourceStream(string name) => throw null!;
-    // protected sealed override AssemblyNameData[] ComputeAssemblyReferences() => throw null!;
-    // protected sealed override AssemblyNameData ComputeNameData() => throw null!;
-    // internal sealed override RoModule GetRoManifestModule() => throw null!;
-    // protected sealed override void IterateTypeForwards(TypeForwardHandler handler) => throw null!;
-    // protected sealed override RoModule LoadModule(string moduleName, bool containsMetadata) => throw null!;
-    // protected sealed override IEnumerable<AssemblyFileInfo> GetAssemblyFileInfosFromManifest(bool includeManifestModule, bool includeResourceModules) => throw null!;
-    // protected sealed override RoModule CreateModule(Stream peStream, bool containsMetadata) => throw null!;
+    // public override get Location(): string { throw null!; }
+    // public override  EntryPoint(): MethodInfo { throw null!; }
+    // public override  ImageRuntimeVersion(): string { throw null!; }
+    // public override  IsDynamic(): boolean { throw null!; }
+    public override get ModuleResolve(): ModuleResolveEventHandler | undefined { throw null!; }
+    // public  override IEnumerable<CustomAttributeData> CustomAttributes { throw null!; }
+    // public override GetManifestResourceInfo(resourceName: string): ManifestResourceInfo | undefined { throw null!; }
+    // public override GetManifestResourceNames(): string[] { throw null!; }
+    // public override  GetManifestResourceStream(name: string): Stream { throw null!; }
+    // protected override ComputeAssemblyReferences(): AssemblyNameData[] { throw null!; }
+    protected override  ComputeNameData(): AssemblyNameData { throw null!; }
+    public override  GetRoManifestModule(): RoModule { throw null!; }
+    // protected override  IterateTypeForwards(handler: TypeForwardHandler): void { throw null!; }
+    protected override  LoadModule(moduleName: string, containsMetadata: boolean): RoModule { throw null!; }
+    protected override GetAssemblyFileInfosFromManifest(includeManifestModule: boolean, includeResourceModules: boolean): Array<AssemblyFileInfo> { throw null!; }
+    protected override  CreateModule(peStream: Stream, containsMetadata: boolean): RoModule { throw null!; }
 }

@@ -1,4 +1,5 @@
 import { TableMask, TokenTypeIds } from "System.Reflection.Metadata.Ecma335";
+import { EntityHandle } from "System.Reflection.Metadata/EntityHandle";
 
 export class ImplementationTag {
     public static readonly NumberOfBits = 2;
@@ -13,17 +14,14 @@ export class ImplementationTag {
         | TableMask.AssemblyRef
         | TableMask.ExportedType;
 
-    // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    // internal static EntityHandle ConvertToHandle(uint implementation)
-    // {
-    //     uint tokenType = (TagToTokenTypeByteVector >> ((int)(implementation & TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
-    //     uint rowId = (implementation >> NumberOfBits);
+    public static ConvertToHandle(implementation: number): EntityHandle {
+        const tokenType = (ImplementationTag.TagToTokenTypeByteVector >> ((implementation & ImplementationTag.TagMask) << 3)) << TokenTypeIds.RowIdBitCount;
+        const rowId = (implementation >> ImplementationTag.NumberOfBits);
 
-    //     if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0)
-    //     {
-    //         Throw.InvalidCodedIndex();
-    //     }
+        if (tokenType == 0 || (rowId & ~TokenTypeIds.RIDMask) != 0) {
+            throw new Error("Invalid implementation tag");
+        }
 
-    //     return new EntityHandle(tokenType | rowId);
-    // }
+        return new EntityHandle(tokenType | rowId);
+    }
 }

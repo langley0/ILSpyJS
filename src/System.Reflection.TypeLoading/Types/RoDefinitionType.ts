@@ -3,8 +3,13 @@
 // using System.Diagnostics.CodeAnalysis;
 // using System.Runtime.InteropServices;
 // namespace System.Reflection.TypeLoading
-
+import assert from "assert";
+import { Type } from "System";
 import { RoInstantiationProviderType, RoType } from "System.Reflection.TypeLoading";
+import { CustomAttributeData } from "System.Reflection/CustomAttributeData";
+import { GenericParameterAttributes } from "System.Reflection/GenericParameterAttributes";
+import { MethodBase } from "System.Reflection/MethodBase";
+import { TypeAttributes } from "System.Reflection/TypeAttributes";
 
 /// <summary>
 /// Base type for all RoTypes that return true for IsTypeDefinition.
@@ -14,78 +19,75 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
         super();
     }
 
-    // public sealed override bool IsTypeDefinition => true;
-    // protected sealed override bool HasElementTypeImpl() => false;
-    // protected sealed override bool IsArrayImpl() => false;
-    // public sealed override bool IsSZArray => false;
-    // public sealed override bool IsVariableBoundArray => false;
-    // protected sealed override bool IsByRefImpl() => false;
-    // protected sealed override bool IsPointerImpl() => false;
-    // public sealed override bool IsFunctionPointer => false;
-    // public sealed override bool IsUnmanagedFunctionPointer => false;
-    // public sealed override bool IsConstructedGenericType => false;
-    // public sealed override bool IsGenericParameter => false;
-    // public sealed override bool IsGenericTypeParameter => false;
-    // public sealed override bool IsGenericMethodParameter => false;
-    // public sealed override bool ContainsGenericParameters => IsGenericTypeDefinition;
+    public override get IsTypeDefinition() { return true; }
+    protected override  HasElementTypeImpl() { return false; }
+    protected override  IsArrayImpl() { return false; }
+    public override get IsSZArray() { return false; }
+    public override get IsVariableBoundArray() { return false; }
+    protected override  IsByRefImpl() { return false; }
+    protected override  IsPointerImpl() { return false; }
+    public override get IsFunctionPointer() { return false; }
+    public override get IsUnmanagedFunctionPointer() { return false; }
+    public override get IsConstructedGenericType() { return false; }
+    public override get IsGenericParameter() { return false; }
+    public override get IsGenericTypeParameter() { return false; }
+    public override get IsGenericMethodParameter() { return false; }
+    public override get ContainsGenericParameters() { return this.IsGenericTypeDefinition; }
 
-    // protected sealed override string? ComputeFullName()
-    // {
-    //     Debug.Assert(!IsConstructedGenericType);
-    //     Debug.Assert(!IsGenericParameter);
-    //     Debug.Assert(!HasElementType);
+    protected override  ComputeFullName(): string | undefined {
+        assert(!this.IsConstructedGenericType);
+        assert(!this.IsGenericParameter);
+        assert(!this.HasElementType);
 
-    //     string name = Name;
+        const name = this.Name;
 
-    //     Type? declaringType = DeclaringType;
-    //     if (declaringType != null)
-    //     {
-    //         string? declaringTypeFullName = declaringType.FullName;
-    //         return declaringTypeFullName + "+" + name;
-    //     }
+        const declaringType = this.DeclaringType;
+        if (declaringType != undefined) {
+            const declaringTypeFullName = declaringType.FullName;
+            return declaringTypeFullName + "+" + name;
+        }
 
-    //     string? ns = Namespace;
-    //     if (ns == null)
-    //         return name;
-    //     return ns + "." + name;
-    // }
+        const ns = this.Namespace;
+        if (ns == undefined)
+            return name;
+        return ns + "." + name;
+    }
 
-    // public sealed override string ToString() => Loader.GetDisposedString() ?? FullName!;
+    public override ToString() { return this.FullName!; }
     public abstract GetGenericParameterCount(): number;
     public abstract GetGenericTypeParametersNoCopy(): RoType[];
 
-    // public sealed override IEnumerable<CustomAttributeData> CustomAttributes
-    // {
-    //     get
-    //     {
-    //         foreach (CustomAttributeData cad in GetTrueCustomAttributes())
-    //         {
-    //             yield return cad;
-    //         }
+    public override get CustomAttributes(): Array<CustomAttributeData> {
+        // const result = new Array<CustomAttributeData>();
+        //     for (const cad of this.GetTrueCustomAttributes())
+        //     {
+        //         result.push(cad);
+        //     }
 
-    //         if (0 != (Attributes & TypeAttributes.Import))
-    //         {
-    //             ConstructorInfo? ci = Loader.TryGetComImportCtor();
-    //             if (ci != null)
-    //                 yield return new RoPseudoCustomAttributeData(ci);
-    //         }
-    //     }
-    // }
+        //     if (0 != (this.Attributes & TypeAttributes.Import))
+        //     {
+        //         const ci = this.Loader.TryGetComImportCtor();
+        //         if (ci != undefined)
+        //             result.push(new RoPseudoCustomAttributeData(ci));
+        //     }
+        //     return result;
+        throw new Error("Not implemented");
+    }
 
-    // protected abstract IEnumerable<CustomAttributeData> GetTrueCustomAttributes();
+    protected abstract GetTrueCustomAttributes(): Array<CustomAttributeData>;
 
-    // public sealed override Type GetGenericTypeDefinition() => IsGenericTypeDefinition ? this : throw new InvalidOperationException(SR.InvalidOperation_NotGenericType);
+    // public  override Type GetGenericTypeDefinition() => IsGenericTypeDefinition ? this : throw new InvalidOperationException(SR.InvalidOperation_NotGenericType);
 
-    // internal sealed override RoType? ComputeBaseTypeWithoutDesktopQuirk() => SpecializeBaseType(Instantiation);
-    // internal abstract RoType? SpecializeBaseType(RoType[] instantiation);
+    public  override  ComputeBaseTypeWithoutDesktopQuirk(): RoType | undefined {  return this.SpecializeBaseType(this.Instantiation); }
+    public abstract  SpecializeBaseType(instantiation: RoType[] ): RoType | undefined;
 
-    // internal sealed override IEnumerable<RoType> ComputeDirectlyImplementedInterfaces() => SpecializeInterfaces(Instantiation);
+    // internal  override IEnumerable<RoType> ComputeDirectlyImplementedInterfaces() => SpecializeInterfaces(Instantiation);
     // internal abstract IEnumerable<RoType> SpecializeInterfaces(RoType[] instantiation);
 
     // [RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
-    // public sealed override Type MakeGenericType(params Type[] typeArguments)
+    // public  override Type MakeGenericType(params Type[] typeArguments)
     // {
-    //     if (typeArguments is null)
+    //     if (typeArguments is undefined)
     //         throw new ArgumentNullException(nameof(typeArguments));
 
     //     if (!IsGenericTypeDefinition)
@@ -100,7 +102,7 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     //     for (int i = 0; i < count; i++)
     //     {
     //         Type typeArgument = typeArguments[i];
-    //         if (typeArgument == null)
+    //         if (typeArgument == undefined)
     //             throw new ArgumentNullException();
     //         if (typeArgument.IsSignatureType())
     //         {
@@ -121,12 +123,12 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     //     return this.GetUniqueConstructedGenericType(runtimeTypeArguments);
     // }
 
-    // public sealed override Guid GUID
+    // public  override Guid GUID
     // {
     //     get
     //     {
     //         CustomAttributeData? cad = TryFindCustomAttribute(Utf8Constants.SystemRuntimeInteropServices, Utf8Constants.GuidAttribute);
-    //         if (cad == null)
+    //         if (cad == undefined)
     //             return default;
     //         IList<CustomAttributeTypedArgument> ctas = cad.ConstructorArguments;
     //         if (ctas.Count != 1)
@@ -140,14 +142,14 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     //     }
     // }
 
-    // public sealed override StructLayoutAttribute? StructLayoutAttribute
+    // public  override StructLayoutAttribute? StructLayoutAttribute
     // {
     //     get
     //     {
     //         // Note: CoreClr checks HasElementType and IsGenericParameter in addition to IsInterface but those properties cannot be true here as this
     //         // RoType subclass is solely for TypeDef types.)
     //         if (IsInterface)
-    //             return null;
+    //             return undefined;
 
     //         TypeAttributes attributes = Attributes;
     //         LayoutKind layoutKind = (attributes & TypeAttributes.LayoutMask) switch
@@ -177,7 +179,7 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
 
     // protected abstract void GetPackSizeAndSize(out int packSize, out int size);
 
-    // protected sealed override TypeCode GetTypeCodeImpl()
+    // protected  override TypeCode GetTypeCodeImpl()
     // {
     //     Type t = IsEnum ? GetEnumUnderlyingType() : this;
     //     CoreTypes ct = Loader.GetAllFoundCoreTypes();
@@ -216,21 +218,21 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     //     return TypeCode.Object;
     // }
 
-    // internal sealed override RoType? GetRoElementType() => null;
-    // public sealed override int GetArrayRank() => throw new ArgumentException(SR.Argument_HasToBeArrayClass);
-    // internal sealed override RoType[] GetGenericTypeArgumentsNoCopy() => Array.Empty<RoType>();
-    // protected internal sealed override RoType[] GetGenericArgumentsNoCopy() => GetGenericTypeParametersNoCopy();
-    // public sealed override GenericParameterAttributes GenericParameterAttributes => throw new InvalidOperationException(SR.Arg_NotGenericParameter);
-    // public sealed override int GenericParameterPosition => throw new InvalidOperationException(SR.Arg_NotGenericParameter);
-    // public sealed override Type[] GetGenericParameterConstraints() => throw new InvalidOperationException(SR.Arg_NotGenericParameter);
-    // public sealed override MethodBase DeclaringMethod => throw new InvalidOperationException(SR.Arg_NotGenericParameter);
-    // public sealed override Type GetFunctionPointerReturnType() => throw new InvalidOperationException(SR.InvalidOperation_NotFunctionPointer);
-    // public sealed override Type[] GetFunctionPointerParameterTypes() => throw new InvalidOperationException(SR.InvalidOperation_NotFunctionPointer);
-    // internal sealed override IEnumerable<ConstructorInfo> GetConstructorsCore(NameFilter? filter) => SpecializeConstructors(filter, this);
-    // internal sealed override IEnumerable<MethodInfo> GetMethodsCore(NameFilter? filter, Type reflectedType) => SpecializeMethods(filter, reflectedType, this);
-    // internal sealed override IEnumerable<EventInfo> GetEventsCore(NameFilter? filter, Type reflectedType) => SpecializeEvents(filter, reflectedType, this);
-    // internal sealed override IEnumerable<FieldInfo> GetFieldsCore(NameFilter? filter, Type reflectedType) => SpecializeFields(filter, reflectedType, this);
-    // internal sealed override IEnumerable<PropertyInfo> GetPropertiesCore(NameFilter? filter, Type reflectedType) => SpecializeProperties(filter, reflectedType, this);
+    public override  GetRoElementType(): RoType | undefined { return undefined }
+    // public  override int GetArrayRank() => throw new ArgumentException(SR.Argument_HasToBeArrayClass);
+    // internal  override RoType[] GetGenericTypeArgumentsNoCopy() => Array.Empty<RoType>();
+    // protected internal  override RoType[] GetGenericArgumentsNoCopy() => GetGenericTypeParametersNoCopy();
+    public override get GenericParameterAttributes(): GenericParameterAttributes { throw new Error("Arg_NotGenericParameter"); }
+    public  override get GenericParameterPosition(): number { throw new Error("Arg_NotGenericParameter");}
+    public  override GetGenericParameterConstraints(): Type[]  { throw new Error("Arg_NotGenericParameter");}
+    public  override get DeclaringMethod(): MethodBase { throw new Error("Arg_NotGenericParameter");}
+    public override  GetFunctionPointerReturnType(): Type { throw new Error("InvalidOperation_NotFunctionPointer"); }
+    public override  GetFunctionPointerParameterTypes(): Type[] { throw new Error("InvalidOperation_NotFunctionPointer"); }
+    // internal  override IEnumerable<ConstructorInfo> GetConstructorsCore(NameFilter? filter) => SpecializeConstructors(filter, this);
+    // internal  override IEnumerable<MethodInfo> GetMethodsCore(NameFilter? filter, Type reflectedType) => SpecializeMethods(filter, reflectedType, this);
+    // internal  override IEnumerable<EventInfo> GetEventsCore(NameFilter? filter, Type reflectedType) => SpecializeEvents(filter, reflectedType, this);
+    // internal  override IEnumerable<FieldInfo> GetFieldsCore(NameFilter? filter, Type reflectedType) => SpecializeFields(filter, reflectedType, this);
+    // internal  override IEnumerable<PropertyInfo> GetPropertiesCore(NameFilter? filter, Type reflectedType) => SpecializeProperties(filter, reflectedType, this);
 
     // // Like CoreGetDeclared but allows specifying an alternate declaringType (which must be a generic instantiation of the true declaring type)
     // internal abstract IEnumerable<ConstructorInfo> SpecializeConstructors(NameFilter? filter, RoInstantiationProviderType declaringType);
@@ -246,4 +248,6 @@ export abstract class RoDefinitionType extends RoInstantiationProviderType {
     public override get Instantiation(): RoType[] {
         return this.GetGenericTypeParametersNoCopy();
     }
+
+
 }

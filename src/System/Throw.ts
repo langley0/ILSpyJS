@@ -11,6 +11,13 @@ export class ArgumentNullException extends Error {
 }
 
 export class Throw {
+    static TableIndexOutOfRange(): never {
+        throw new Error("TableIndexOutOfRange: Table index is out of range.");
+    }
+
+    static TooManySubnamespaces(): never {
+        throw new Error("TooManySubnamespaces: Too many subnamespaces.");
+    }
     
     static InvalidCodedIndex(): never {
         throw new Error("InvalidCodedIndex: Invalid coded index.");

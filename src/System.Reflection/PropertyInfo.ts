@@ -1,12 +1,22 @@
 import { Type } from 'System';
 import { MemberInfo } from './MemberInfo';
 import { ParameterInfo } from './ParameterInfo';
+import { MemberTypes } from './MemberTypes';
 
-export abstract class PropertyInfo extends MemberInfo {
-    protected constructor() { super(); }
+export abstract class PropertyInfo implements MemberInfo {
+    protected constructor() { }
 
-    // public override MemberTypes MemberType => MemberTypes.Property;
+    // of MemberInfo 
+    public abstract get Name(): string;
+    public abstract get DeclaringType(): Type;
+    public abstract get ReflectedType(): Type;
+    public get MemberType(): MemberTypes { return MemberTypes.Property; }
 
+    // of ICustomAttributeProvider 
+    public abstract GetCustomAttributes(attributeTypeOrInherit: Type | boolean, inherit?: boolean): object[];
+    public abstract IsDefined(attributeType: Type, inherit: boolean): boolean;
+    
+    // of PropertyInfo members
     public abstract get PropertyType(): Type;
     public abstract GetIndexParameters(): ParameterInfo[];
 

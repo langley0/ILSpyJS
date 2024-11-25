@@ -3,6 +3,7 @@ export * from "./Version";
 export * from "./Guid";  
 export * from "./Type";
 export * from "./BitConverter";
+export * from "./Attribute"; 
 
 export function sizeof(type: 'byte' | 'int' | 'uint' | 'long' | 'ulong' | 'float' | 'double' | 'boolean' | 'short' | 'ushort' | 'Guid'): number {
     switch (type) {

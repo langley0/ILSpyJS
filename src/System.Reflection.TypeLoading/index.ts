@@ -22,6 +22,7 @@ export * from "./Types/RoDefinitionType";
 export * from "./Assemblies/AssemblyFileInfo";
 export * from "./Assemblies/RoAssembly";
 export * from "./Assemblies/RoStubAssembly";
+export * from "./Assemblies/RoExceptionAssembly";
 
 export * from "./RoAssemblyName";
 export * from "./AssemblyNameData";

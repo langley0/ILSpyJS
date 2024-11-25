@@ -1,119 +1,117 @@
 import assert from "assert";
-import { EntityHandle, TypeDefinitionHandle } from "System.Reflection.Metadata";
-import { EcmaModule, EcmaDefinitionType } from "System.Reflection.TypeLoading.Ecma";
+import { AssemblyReferenceHandle, EntityHandle, HandleKind, ModuleReferenceHandle, TypeDefinitionHandle, TypeReferenceHandle, TypeSpecificationHandle } from "System.Reflection.Metadata";
+import { EcmaModule, EcmaDefinitionType, ToRoAssemblyName, GetTokenFromTypeReferenceHandle } from "System.Reflection.TypeLoading.Ecma";
+import { RoAssembly, RoDefinitionType, RoExceptionAssembly, TypeContext } from "System.Reflection.TypeLoading";
+import { Throw } from "System/Throw";
 
-const s_resolveTypeDef: (handle: EntityHandle, module: EcmaModule) => EcmaDefinitionType =
-    (h, m) => new EcmaDefinitionType(TypeDefinitionHandle.FromEntityHandle(h), m);
+const s_resolveTypeDef = (h: EntityHandle, m: EcmaModule) => new EcmaDefinitionType(TypeDefinitionHandle.FromEntityHandle(h), m);
 
-// public static RoType ResolveTypeDefRefOrSpec(this EntityHandle handle, EcmaModule module, in TypeContext typeContext)
-// {
-//     assert(!handle.IsNil);
-//     assert(module != undefined);
-//     return handle.Kind switch
-//     {
-//         HandleKind.TypeDefinition => ((TypeDefinitionHandle)handle).ResolveTypeDef(module),
-//         HandleKind.TypeReference => ((TypeReferenceHandle)handle).ResolveTypeRef(module),
-//         HandleKind.TypeSpecification => ((TypeSpecificationHandle)handle).ResolveTypeSpec(module, typeContext),
-//         _ => throw new BadImageFormatException(),
-//     };
-// }
+export function ResolveTypeDefRefOrSpec(handle: EntityHandle, module: EcmaModule, typeContext: TypeContext): RoDefinitionType {
+    assert(!handle.IsNil);
+    assert(module != undefined);
+
+    switch (handle.Kind) {
+        case HandleKind.TypeDefinition: return ResolveTypeDef(TypeDefinitionHandle.FromEntityHandle(handle), module);
+        case HandleKind.TypeReference: return ResolveTypeRef(TypeReferenceHandle.FromEntityHandle(handle), module);
+        case HandleKind.TypeSpecification: return ResolveTypeSpec(TypeSpecificationHandle.FromEntityHandle(handle), module, typeContext);
+        default:
+            Throw.BadImageFormatException();
+    }
+}
 
 export function ResolveTypeDef(handle: TypeDefinitionHandle, module: EcmaModule): EcmaDefinitionType {
     assert(!handle.IsNil);
     assert(module != undefined);
 
-    // return module.TypeDefTable.GetOrAdd(handle, module, s_resolveTypeDef);
-    throw new Error("not implemented");
+    return module.TypeDefTable.GetOrAdd(handle.ToEntityHandle(), module, s_resolveTypeDef);
 }
 
 
+const s_resolveTypeRef = (h: EntityHandle, m: EcmaModule) => ComputeTypeRefResolution(TypeReferenceHandle.FromEntityHandle(h), m);
 
-// public static RoDefinitionType ResolveTypeRef(this TypeReferenceHandle handle, EcmaModule module)
-// {
-//     assert(!handle.IsNil);
-//     assert(module != undefined);
+export function ResolveTypeRef(handle: TypeReferenceHandle, module: EcmaModule): RoDefinitionType {
+    assert(!handle.IsNil);
+    assert(module != undefined);
 
-//     return module.TypeRefTable.GetOrAdd(handle, module, s_resolveTypeRef);
-// }
+    return module.TypeRefTable.GetOrAdd(handle.ToEntityHandle(), module, s_resolveTypeRef);
+}
 
-// private static readonly Func<EntityHandle, EcmaModule, RoDefinitionType> s_resolveTypeRef =
-//     (h, m) => ComputeTypeRefResolution((TypeReferenceHandle)h, m);
+export function ComputeTypeRefResolution(handle: TypeReferenceHandle, module: EcmaModule): RoDefinitionType {
+    const reader = module.Reader;
+    const tr = reader.GetTypeReference(handle);
+    const ns = tr.Namespace.GetBytes(reader);
+    const name = tr.Name.GetBytes(reader);
 
-// private static RoDefinitionType ComputeTypeRefResolution(TypeReferenceHandle handle, EcmaModule module)
-// {
-//     MetadataReader reader = module.Reader;
-//     TypeReference tr = handle.GetTypeReference(reader);
-//     ReadOnlySpan<byte> ns = tr.Namespace.AsReadOnlySpan(reader);
-//     ReadOnlySpan<byte> name = tr.Name.AsReadOnlySpan(reader);
+    const scope = tr.ResolutionScope;
+    if (scope.IsNil) {
+        // Special case for non-prime Modules - the type is somewhere in the Assembly. Technically, we're supposed
+        // to walk the manifest module's ExportedType table for non-forwarder entries that have a matching name and
+        // namespace (Ecma-355 11.22.38).
+        //
+        // Pragmatically speaking, searching the entire assembly should get us the same result and avoids writing a significant
+        // code path that will get almost no test coverage as this is an obscure case not produced by mainstream tools..
+        const type = module.GetEcmaAssembly().GetTypeCore(ns, name, false);
+        if (type == undefined)
+            throw new Error("Type not found");
+        return type;
+    }
 
-//     EntityHandle scope = tr.ResolutionScope;
-//     if (scope.IsNil)
-//     {
-//         // Special case for non-prime Modules - the type is somewhere in the Assembly. Technically, we're supposed
-//         // to walk the manifest module's ExportedType table for non-forwarder entries that have a matching name and
-//         // namespace (Ecma-355 11.22.38).
-//         //
-//         // Pragmatically speaking, searching the entire assembly should get us the same result and avoids writing a significant
-//         // code path that will get almost no test coverage as this is an obscure case not produced by mainstream tools..
-//         RoDefinitionType? type = module.GetEcmaAssembly().GetTypeCore(ns, name, ignoreCase: false, out Exception? e);
-//         if (type == undefined)
-//             throw e!;
-//         return type;
-//     }
+    const scopeKind = scope.Kind;
+    switch (scopeKind) {
+        case HandleKind.AssemblyReference:
+            {
+                const arh = AssemblyReferenceHandle.FromEntityHandle(scope);
+                const assembly: RoAssembly = ResolveAssembly(arh, module);
+                const type: RoDefinitionType | undefined = assembly.GetTypeCore(ns, name, false);
+                if (type == undefined)
+                    throw new Error("Type not found");
+                return type;
+            }
 
-//     HandleKind scopeKind = scope.Kind;
-//     switch (scopeKind)
-//     {
-//         case HandleKind.AssemblyReference:
-//             {
-//                 AssemblyReferenceHandle arh = (AssemblyReferenceHandle)scope;
-//                 RoAssembly assembly = arh.ResolveAssembly(module);
-//                 RoDefinitionType? type = assembly.GetTypeCore(ns, name, ignoreCase: false, out Exception? e);
-//                 if (type == undefined)
-//                     throw e!;
-//                 return type;
-//             }
+        case HandleKind.TypeReference:
+            {
+                const outerType = ResolveTypeRef(TypeReferenceHandle.FromEntityHandle(scope), module);
+                const nestedType = outerType.GetNestedTypeCore(name);
+                if (nestedType == undefined) {
+                    throw new Error(`TypeNotFound, ${outerType.ToString()} [], ${outerType.Assembly.FullName}`);
+                }
+                return nestedType;
+            }
 
-//         case HandleKind.TypeReference:
-//             {
-//                 RoDefinitionType outerType = ((TypeReferenceHandle)scope).ResolveTypeRef(module);
-//                 RoDefinitionType? nestedType = outerType.GetNestedTypeCore(name);
-//                 return nestedType ?? throw new TypeLoadException(SR.Format(SR.Format(SR.TypeNotFound, outerType.ToString() + "[]", outerType.Assembly.FullName)));
-//             }
+        case HandleKind.ModuleDefinition:
+            {
+                const type = module.GetTypeCore(ns, name, false);
+                if (type == undefined)
+                    throw new Error("Type not found");
+                return type;
+            }
 
-//         case HandleKind.ModuleDefinition:
-//             {
-//                 RoDefinitionType? type = module.GetTypeCore(ns, name, ignoreCase: false, out Exception? e);
-//                 if (type == undefined)
-//                     throw e!;
-//                 return type;
-//             }
+        case HandleKind.ModuleReference:
+            {
+                const moduleName = module.Reader.GetModuleReference(ModuleReferenceHandle.FromEntityHandle(scope)).Name.GetString(module.Reader);
+                const targetModule = module.GetRoAssembly().GetRoModuleByName(moduleName);
+                if (targetModule == undefined)
+                    Throw.BadImageFormatException(`BadImageFormat_TypeRefModuleNotInManifest, ${module.Assembly.FullName}, ${GetTokenFromTypeReferenceHandle(handle)}`);
 
-//         case HandleKind.ModuleReference:
-//             {
-//                 string moduleName = ((ModuleReferenceHandle)scope).GetModuleReference(module.Reader).Name.GetString(module.Reader);
-//                 RoModule? targetModule = module.GetRoAssembly().GetRoModule(moduleName);
-//                 if (targetModule == undefined)
-//                     throw new BadImageFormatException(SR.Format(SR.BadImageFormat_TypeRefModuleNotInManifest, module.Assembly.FullName, $"0x{handle.GetToken():x8}"));
+                const type = targetModule.GetTypeCore(ns, name, false);
+                if (type == undefined)
+                    throw new Error("Type not found");
 
-//                 RoDefinitionType? type = targetModule.GetTypeCore(ns, name, ignoreCase: false, out Exception? e);
-//                 if (type == undefined)
-//                     throw e!;
-//                 return type;
-//             }
+                return type;
+            }
 
-//         default:
-//             throw new BadImageFormatException(SR.Format(SR.BadImageFormat_TypeRefBadScopeType, module.Assembly.FullName, $"0x{handle.GetToken():x8}"));
-//     }
-// }
+        default:
+            Throw.BadImageFormatException(`SR.BadImageFormat_TypeRefBadScopeType ${module.Assembly.FullName}, ${GetTokenFromTypeReferenceHandle(handle)}`);
+    }
+}
 
-// public static RoType ResolveTypeSpec(this TypeSpecificationHandle handle, EcmaModule module, in TypeContext typeContext)
-// {
-//     assert(!handle.IsNil);
-//     assert(module != undefined);
+export function ResolveTypeSpec(handle: TypeSpecificationHandle, module: EcmaModule, typeContext: TypeContext): RoDefinitionType {
+    assert(!handle.IsNil);
+    assert(module != undefined);
 
-//     return handle.GetTypeSpecification(module.Reader).DecodeSignature(module, typeContext);
-// }
+    // return module.Reader.GetTypeSpecification(handle).DecodeSignature(module, typeContext);
+    throw new Error("Not implemented");
+}
 
 // public static EcmaGenericParameterType ResolveGenericParameter(this GenericParameterHandle handle, EcmaModule module)
 // {
@@ -137,37 +135,30 @@ export function ResolveTypeDef(handle: TypeDefinitionHandle, module: EcmaModule)
 //         };
 //     };
 
-// public static RoAssembly ResolveAssembly(this AssemblyReferenceHandle handle, EcmaModule module)
-// {
-//     RoAssembly? assembly = handle.TryResolveAssembly(module, out Exception? e);
-//     if (assembly == undefined)
-//         throw e!;
-//     return assembly;
-// }
+export function ResolveAssembly(handle: AssemblyReferenceHandle, module: EcmaModule): RoAssembly {
+    const assembly = TryResolveAssembly(handle, module);
+    if (assembly == undefined)
+        throw new Error("Assembly not found");
+    return assembly;
+}
 
-// public static RoAssembly? TryResolveAssembly(this AssemblyReferenceHandle handle, EcmaModule module, out Exception? e)
-// {
-//     e = undefined;
-//     RoAssembly assembly = handle.ResolveToAssemblyOrExceptionAssembly(module);
-//     if (assembly is RoExceptionAssembly exceptionAssembly)
-//     {
-//         e = exceptionAssembly.Exception;
-//         return undefined;
-//     }
-//     return assembly;
-// }
+export function TryResolveAssembly(handle: AssemblyReferenceHandle, module: EcmaModule): RoAssembly | undefined {
+    const assembly = ResolveToAssemblyOrExceptionAssembly(handle, module);
+    const exceptionAssembly = assembly as RoExceptionAssembly;
+    if (exceptionAssembly !== undefined) {
+        return undefined;
+    }
+    return assembly;
+}
 
-// public static RoAssembly ResolveToAssemblyOrExceptionAssembly(this AssemblyReferenceHandle handle, EcmaModule module)
-// {
-//     return module.AssemblyRefTable.GetOrAdd(handle, module, s_resolveAssembly);
-// }
+export function ResolveToAssemblyOrExceptionAssembly(handle: AssemblyReferenceHandle, module: EcmaModule): RoAssembly {
+    return module.AssemblyRefTable.GetOrAdd(handle.ToEntityHandle(), module, s_resolveAssembly);
+}
 
-// private static readonly Func<EntityHandle, EcmaModule, RoAssembly> s_resolveAssembly =
-//     (h, m) =>
-//     {
-//         RoAssemblyName roAssemblyName = ((AssemblyReferenceHandle)h).ToRoAssemblyName(m.Reader);
-//         return m.Loader.ResolveToAssemblyOrExceptionAssembly(roAssemblyName);
-//     };
+const s_resolveAssembly = (h: EntityHandle, m: EcmaModule): RoAssembly => {
+    const roAssemblyName = ToRoAssemblyName(AssemblyReferenceHandle.FromEntityHandle(h), m.Reader);
+    return m.Loader.ResolveToAssemblyOrExceptionAssembly(roAssemblyName);
+};
 
 // public static T ResolveMethod<T>(this MethodDefinitionHandle handle, EcmaModule module, in TypeContext typeContext) where T : MethodBase
 // {

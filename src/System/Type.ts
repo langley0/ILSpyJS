@@ -1,12 +1,3 @@
-// import {
-//     IReflect,
-//     MethodBase,
-//     Assembly,
-//     Module,
-//     TypeAttributes,
-//     GenericParameterAttributes,
-// } from "System.Reflection";
-
 import { Assembly } from "System.Reflection/Assembly";
 import { Module } from "System.Reflection/Module";
 import { IReflect } from "System.Reflection/IReflect";
@@ -17,12 +8,19 @@ import { MemberInfo } from "System.Reflection/MemberInfo";
 import { MemberTypes } from "System.Reflection/MemberTypes";
 import { CustomAttributeData } from "System.Reflection/CustomAttributeData";
 import { ICustomAttributeProvider } from "System.Reflection/ICustomAttributeProvider";
+import { StructLayoutAttribute } from "System.Runtime.InteropServices";
+import { ConstructorInfo } from "System.Reflection/ConstructorInfo";
+import { BindingFlags, CallingConventions, EventInfo, FieldInfo, ParameterModifier } from "System.Reflection";
+import { Binder } from "Microsoft.CSharp.RuntimeBinder";
+import { Throw } from "./Throw";
+
+const DefaultLookup: BindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public;
 
 export abstract class Type implements IReflect, ICustomAttributeProvider, MemberInfo {
     protected constructor() { }
 
     public get MemberType(): MemberTypes { return MemberTypes.TypeInfo }
-    public GetType(): Type  { throw new Error("?????"); }
+    public GetType(): Type { throw new Error("?????"); }
 
     public abstract get Namespace(): string | undefined;
     public abstract get AssemblyQualifiedName(): string | undefined;
@@ -92,139 +90,83 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
     public get Attributes(): TypeAttributes { return this.GetAttributeFlagsImpl(); }
     protected abstract GetAttributeFlagsImpl(): TypeAttributes;
 
-    //         public bool IsAbstract => (GetAttributeFlagsImpl() & TypeAttributes.Abstract) != 0;
-    //         public bool IsImport => (GetAttributeFlagsImpl() & TypeAttributes.Import) != 0;
-    //         public bool IsSealed => (GetAttributeFlagsImpl() & TypeAttributes.Sealed) != 0;
-    //         public bool IsSpecialName => (GetAttributeFlagsImpl() & TypeAttributes.SpecialName) != 0;
+    public get IsAbstract(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.Abstract) != 0; }
+    public get IsImport(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.Import) != 0; }
+    public get IsSealed(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.Sealed) != 0; }
+    public get IsSpecialName(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.SpecialName) != 0; }
 
-    //         public bool IsClass => (GetAttributeFlagsImpl() & TypeAttributes.ClassSemanticsMask) == TypeAttributes.Class && !IsValueType;
+    public get IsClass(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.ClassSemanticsMask) == TypeAttributes.Class && !this.IsValueType; }
 
-    //         public bool IsNestedAssembly => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedAssembly;
-    //         public bool IsNestedFamANDAssem => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamANDAssem;
-    //         public bool IsNestedFamily => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamily;
-    //         public bool IsNestedFamORAssem => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamORAssem;
-    //         public bool IsNestedPrivate => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedPrivate;
-    //         public bool IsNestedPublic => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedPublic;
-    //         public bool IsNotPublic => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NotPublic;
-    //         public bool IsPublic => (GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.Public;
+    public get IsNestedAssembly(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedAssembly; }
+    public get IsNestedFamANDAssem(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamANDAssem; }
+    public get IsNestedFamily(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamily; }
+    public get IsNestedFamORAssem(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedFamORAssem; }
+    public get IsNestedPrivate(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedPrivate; }
+    public get IsNestedPublic(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NestedPublic; }
+    public get IsNotPublic(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.NotPublic; }
+    public get IsPublic(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.VisibilityMask) == TypeAttributes.Public; }
 
-    //         public bool IsAutoLayout => (GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.AutoLayout;
-    //         public bool IsExplicitLayout => (GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.ExplicitLayout;
-    //         public bool IsLayoutSequential => (GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.SequentialLayout;
+    public get IsAutoLayout(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.AutoLayout; }
+    public get IsExplicitLayout(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.ExplicitLayout; }
+    public get IsLayoutSequential(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.LayoutMask) == TypeAttributes.SequentialLayout; }
 
-    //         public bool IsAnsiClass => (GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.AnsiClass;
-    //         public bool IsAutoClass => (GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.AutoClass;
-    //         public bool IsUnicodeClass => (GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.UnicodeClass;
+    public get IsAnsiClass(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.AnsiClass; }
+    public get IsAutoClass(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.AutoClass; }
+    public get IsUnicodeClass(): boolean { return (this.GetAttributeFlagsImpl() & TypeAttributes.StringFormatMask) == TypeAttributes.UnicodeClass; }
 
-    //         public bool IsCOMObject => IsCOMObjectImpl();
-    //         protected abstract bool IsCOMObjectImpl();
-    //         public bool IsContextful => IsContextfulImpl();
-    //         protected virtual bool IsContextfulImpl() => false;
+    public get IsCOMObject(): boolean { return this.IsCOMObjectImpl(); }
+    protected abstract IsCOMObjectImpl(): boolean;
+    public get IsContextful(): boolean { return this.IsContextfulImpl(); }
+    protected IsContextfulImpl(): boolean { return false; }
 
-    //         public virtual bool IsEnum { [Intrinsic] get => IsSubclassOf(typeof(Enum)); }
-    //         public bool IsMarshalByRef => IsMarshalByRefImpl();
-    //         protected virtual bool IsMarshalByRefImpl() => false;
-    //         public bool IsPrimitive
-    //         {
-    //             [Intrinsic]
-    //             get => IsPrimitiveImpl();
-    //         }
-    //         protected abstract bool IsPrimitiveImpl();
-    //         public bool IsValueType
-    //         {
-    //             [Intrinsic]
-    //             get => IsValueTypeImpl();
-    //         }
-    //         protected virtual bool IsValueTypeImpl() => IsSubclassOf(typeof(ValueType));
+    public get IsEnum(): boolean { /*return this.IsSubclassOf(typeof (Enum));*/ throw new Error("not implemented"); }
+    public get IsMarshalByRef(): boolean { return this.IsMarshalByRefImpl(); }
+    protected IsMarshalByRefImpl(): boolean { return false; }
+    public get IsPrimitive(): boolean { return this.IsPrimitiveImpl(); }
+    protected abstract IsPrimitiveImpl(): boolean;
+    public get IsValueType(): boolean { return this.IsValueTypeImpl(); }
+    protected IsValueTypeImpl(): boolean { /*return this.IsSubclassOf(typeof (ValueType));*/ throw new Error("not implemented"); }
 
-    //         [Intrinsic]
-    //         public bool IsAssignableTo([NotNullWhen(true)] Type? targetType) => targetType?.IsAssignableFrom(this) ?? false;
+    public IsAssignableTo(targetType: Type | undefined): boolean { return targetType?.IsAssignableFrom(this) ?? false; }
 
-    //         public virtual bool IsSignatureType => false;
+    public get IsSignatureType(): boolean { return false; }
 
-    //         public virtual bool IsSecurityCritical => throw NotImplemented.ByDesign;
-    //         public virtual bool IsSecuritySafeCritical => throw NotImplemented.ByDesign;
-    //         public virtual bool IsSecurityTransparent => throw NotImplemented.ByDesign;
+    public IsSecurityCritical(): boolean { throw new Error("NotImplemented.ByDesign"); }
+    public IsSecuritySafeCritical(): boolean { throw new Error("NotImplemented.ByDesign"); }
+    public IsSecurityTransparent(): boolean { throw new Error("NotImplemented.ByDesign"); }
 
-    //         public virtual StructLayoutAttribute? StructLayoutAttribute { throw new Error("NotSupportedException"); }
+    public get StructLayoutAttribute(): StructLayoutAttribute | undefined { throw new Error("NotSupportedException"); }
 
-    //         public ConstructorInfo? TypeInitializer
-    //         {
-    //             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //             get => GetConstructorImpl(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, undefined, CallingConventions.Any, EmptyTypes, undefined);
-    //         }
+    public get TypeInitializer(): ConstructorInfo | undefined {
+        return this.GetConstructorImpl(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, undefined, CallingConventions.Any, Type.EmptyTypes, undefined);
+    }
 
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-    //         public ConstructorInfo? GetConstructor(Type[] types) => GetConstructor(BindingFlags.Public | BindingFlags.Instance, undefined, types, undefined);
 
-    //         /// <summary>
-    //         /// Searches for a constructor whose parameters match the specified argument types, using the specified binding constraints.
-    //         /// </summary>
-    //         /// <param name="bindingAttr">
-    //         /// A bitwise combination of the enumeration values that specify how the search is conducted.
-    //         /// -or-
-    //         /// Default to return undefined.
-    //         /// </param>
-    //         /// <param name="types">
-    //         /// An array of Type objects representing the number, order, and type of the parameters for the constructor to get.
-    //         /// -or-
-    //         /// An empty array of the type <see cref="Type"/> (that is, Type[] types = Array.Empty{Type}()) to get a constructor that takes no parameters.
-    //         /// -or-
-    //         /// <see cref="EmptyTypes"/>.
-    //         /// </param>
-    //         /// <returns>
-    //         /// A <see cref="ConstructorInfo"/> object representing the constructor that matches the specified requirements, if found; otherwise, undefined.
-    //         /// </returns>
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //         public ConstructorInfo? GetConstructor(BindingFlags bindingAttr, Type[] types) => GetConstructor(bindingAttr, binder: undefined, types, modifiers: undefined);
+    public GetConstructor(
+        bindingAttr: BindingFlags = BindingFlags.Public | BindingFlags.Instance,
+        binder: Binder | undefined = undefined,
+        callConvention: CallingConventions = CallingConventions.Any,
+        types: Type[] = [],
+        modifiers: ParameterModifier[] | undefined = undefined
+    ): ConstructorInfo | undefined {
+        Throw.ThrowIfNull(types);
+
+        for (let i = 0; i < types.length; i++) {
+            Throw.ThrowIfNull(types[i], 'types');
+        }
+        return this.GetConstructorImpl(bindingAttr, binder, callConvention, types, modifiers);
+    }
 
     //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //         public ConstructorInfo? GetConstructor(BindingFlags bindingAttr, Binder? binder, Type[] types, ParameterModifier[]? modifiers) => GetConstructor(bindingAttr, binder, CallingConventions.Any, types, modifiers);
+    protected abstract GetConstructorImpl(bindingAttr: BindingFlags, binder: Binder | undefined, callConvention: CallingConventions, types: Type[], modifiers: ParameterModifier[] | undefined): ConstructorInfo | undefined;
 
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //         public ConstructorInfo? GetConstructor(BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[] types, ParameterModifier[]? modifiers)
-    //         {
-    //             ArgumentNullException.ThrowIfNull(types);
+    public abstract GetEvent(name: string, bindingAttr?: BindingFlags): EventInfo | undefined;
 
-    //             for (int i = 0; i < types.Length; i++)
-    //             {
-    //                 ArgumentNullException.ThrowIfNull(types[i], nameof(types));
-    //             }
-    //             return GetConstructorImpl(bindingAttr, binder, callConvention, types, modifiers);
-    //         }
+    public abstract GetEvents(bindingAttr?: BindingFlags): EventInfo[];
 
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //         protected abstract ConstructorInfo? GetConstructorImpl(BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[] types, ParameterModifier[]? modifiers);
+    public abstract GetField(name: string, bindingAttr?: BindingFlags): FieldInfo | undefined;
 
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-    //         public ConstructorInfo[] GetConstructors() => GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    //         public abstract ConstructorInfo[] GetConstructors(BindingFlags bindingAttr);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents)]
-    //         public EventInfo? GetEvent(string name) => GetEvent(name, DefaultLookup);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
-    //         public abstract EventInfo? GetEvent(string name, BindingFlags bindingAttr);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents)]
-    //         public virtual EventInfo[] GetEvents() => GetEvents(DefaultLookup);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
-    //         public abstract EventInfo[] GetEvents(BindingFlags bindingAttr);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]
-    //         public FieldInfo? GetField(string name) => GetField(name, DefaultLookup);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
-    //         public abstract FieldInfo? GetField(string name, BindingFlags bindingAttr);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]
-    //         public FieldInfo[] GetFields() => GetFields(DefaultLookup);
-
-    //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
-    //         public abstract FieldInfo[] GetFields(BindingFlags bindingAttr);
+    public abstract GetFields(bindingAttr?: BindingFlags): FieldInfo[];
 
     public GetFunctionPointerCallingConventions(): Type[] { throw new Error("NotSupportedException"); }
     public GetFunctionPointerReturnType(): Type { throw new Error("NotSupportedException"); }
@@ -676,7 +618,7 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
     //             return ToString();
     //         }
 
-    //         public override string ToString() => "Type: " + Name;  // Why do we add the "Type: " prefix?
+    public ToString() { return "Type: " + this.Name; } // Why do we add the "Type: " prefix?
 
     //         public override bool Equals(object? o) => o == undefined ? false : Equals(o as Type);
     public GetHashCode(): number {
@@ -686,7 +628,9 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
         }
         return 0;
     }
-    //         public virtual bool Equals(Type? o) => o == undefined ? false : ReferenceEquals(this.UnderlyingSystemType, o.UnderlyingSystemType);
+    public Equals(o: Type | undefined): boolean {
+        return o == undefined ? false : this.UnderlyingSystemType == o.UnderlyingSystemType;
+    }
 
     //         [Intrinsic]
     //         public static bool operator ==(Type? left, Type? right)
@@ -752,33 +696,30 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
     //=========================================================================================================
     // From Helpers
     //     [Obsolete(Obsoletions.LegacyFormatterMessage, DiagnosticId = Obsoletions.LegacyFormatterDiagId, UrlFormat = Obsoletions.SharedUrlFormat)]
-    //         public virtual bool IsSerializable
-    //         {
-    //             get
-    //             {
-    //                 if ((GetAttributeFlagsImpl() & TypeAttributes.Serializable) != 0)
-    //                     return true;
+    public get IsSerializable(): boolean {
+        // if ((GetAttributeFlagsImpl() & TypeAttributes.Serializable) != 0)
+        //     return true;
 
-    //                 Type? underlyingType = UnderlyingSystemType;
-    //                 if (underlyingType is RuntimeType)
-    //                 {
-    //                     do
-    //                     {
-    //                         // In all sane cases we only need to compare the direct level base type with
-    //                         // System.Enum and System.MulticastDelegate. However, a generic parameter can
-    //                         // have a base type constraint that is Delegate or even a real delegate type.
-    //                         // Let's maintain compatibility and return true for them.
-    //                         if (underlyingType == typeof(Delegate) || underlyingType == typeof(Enum))
-    //                             return true;
+        // Type? underlyingType = UnderlyingSystemType;
+        // if (underlyingType is RuntimeType)
+        // {
+        //     do
+        //     {
+        //         // In all sane cases we only need to compare the direct level base type with
+        //         // System.Enum and System.MulticastDelegate. However, a generic parameter can
+        //         // have a base type constraint that is Delegate or even a real delegate type.
+        //         // Let's maintain compatibility and return true for them.
+        //         if (underlyingType == typeof(Delegate) || underlyingType == typeof(Enum))
+        //             return true;
 
-    //                         underlyingType = underlyingType.BaseType;
-    //                     }
-    //                     while (underlyingType != undefined);
-    //                 }
+        //         underlyingType = underlyingType.BaseType;
+        //     }
+        //     while (underlyingType != undefined);
+        // }
 
-    //                 return false;
-    //             }
-    //         }
+        // return false;
+        throw new Error("NotImplemented");
+    }
 
     public get ContainsGenericParameters(): boolean {
         if (this.HasElementType)
@@ -809,47 +750,44 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
         return rootElementType;
     }
 
-    //         public bool IsVisible
-    //         {
-    //             get
-    //             {
-    // #if CORECLR
-    //                 if (this is RuntimeType rt)
-    //                     return RuntimeTypeHandle.IsVisible(rt);
-    // #endif //CORECLR
+    public get IsVisible(): boolean {
+        // #if CORECLR
+        //                 if (this is RuntimeType rt)
+        //                     return RuntimeTypeHandle.IsVisible(rt);
+        // #endif //CORECLR
 
-    //                 if (IsGenericParameter)
-    //                     return true;
+        //                 if (IsGenericParameter)
+        //                     return true;
 
-    //                 if (HasElementType)
-    //                     return GetElementType()!.IsVisible;
+        //                 if (HasElementType)
+        //                     return GetElementType()!.IsVisible;
 
-    //                 Type type = this;
-    //                 while (type.IsNested)
-    //                 {
-    //                     if (!type.IsNestedPublic)
-    //                         return false;
+        //                 Type type = this;
+        //                 while (type.IsNested)
+        //                 {
+        //                     if (!type.IsNestedPublic)
+        //                         return false;
 
-    //                     // this should be undefined for non-nested types.
-    //                     type = type.DeclaringType!;
-    //                 }
+        //                     // this should be undefined for non-nested types.
+        //                     type = type.DeclaringType!;
+        //                 }
 
-    //                 // Now "type" should be a top level type
-    //                 if (!type.IsPublic)
-    //                     return false;
+        //                 // Now "type" should be a top level type
+        //                 if (!type.IsPublic)
+        //                     return false;
 
-    //                 if (IsGenericType && !IsGenericTypeDefinition)
-    //                 {
-    //                     foreach (Type t in GetGenericArguments())
-    //                     {
-    //                         if (!t.IsVisible)
-    //                             return false;
-    //                     }
-    //                 }
+        //                 if (IsGenericType && !IsGenericTypeDefinition)
+        //                 {
+        //                     foreach (Type t in GetGenericArguments())
+        //                     {
+        //                         if (!t.IsVisible)
+        //                             return false;
+        //                     }
+        //                 }
 
-    //                 return true;
-    //             }
-    //         }
+        //                 return true;
+        throw new Error("NotImplemented");
+    }
 
     //         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
     //         public virtual Type[] FindInterfaces(TypeFilter filter, object? filterCriteria)
@@ -1055,55 +993,52 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
     //             return ret;
     //         }
 
-    //         public virtual bool IsSubclassOf(Type c)
-    //         {
-    //             Type? p = this;
-    //             if (p == c)
-    //                 return false;
-    //             while (p != undefined)
-    //             {
-    //                 if (p == c)
-    //                     return true;
-    //                 p = p.BaseType;
-    //             }
-    //             return false;
-    //         }
+    public IsSubclassOf(c: Type): boolean {
+        let p: Type | undefined = this;
+        if (p.Name == c.Name)
+            return false;
+        while (p != undefined) {
+            if (p == c)
+                return true;
+            p = p.BaseType;
+        }
+        return false;
+    }
 
-    //         [Intrinsic]
-    //         public virtual bool IsAssignableFrom([NotNullWhen(true)] Type? c)
-    //         {
-    //             if (c == undefined)
-    //                 return false;
+    public IsAssignableFrom(c: Type | undefined): boolean {
+        // if (c == undefined)
+        //     return false;
 
-    //             if (this == c)
-    //                 return true;
+        // if (this == c)
+        //     return true;
 
-    //             // For backward-compatibility, we need to special case for the types
-    //             // whose UnderlyingSystemType are runtime implemented.
-    //             Type toType = this.UnderlyingSystemType;
-    //             if (toType is RuntimeType)
-    //                 return toType.IsAssignableFrom(c);
+        // // For backward-compatibility, we need to special case for the types
+        // // whose UnderlyingSystemType are runtime implemented.
+        // const toType = this.UnderlyingSystemType;
+        // if (toType is RuntimeType)
+        //     return toType.IsAssignableFrom(c);
 
-    //             // If c is a subclass of this class, then c can be cast to this type.
-    //             if (c.IsSubclassOf(this))
-    //                 return true;
+        // // If c is a subclass of this class, then c can be cast to this type.
+        // if (c.IsSubclassOf(this))
+        //     return true;
 
-    //             if (this.IsInterface)
-    //             {
-    //                 return c.ImplementInterface(this);
-    //             }
-    //             else if (IsGenericParameter)
-    //             {
-    //                 Type[] constraints = GetGenericParameterConstraints();
-    //                 for (int i = 0; i < constraints.Length; i++)
-    //                     if (!constraints[i].IsAssignableFrom(c))
-    //                         return false;
+        // if (this.IsInterface)
+        // {
+        //     return c.ImplementInterface(this);
+        // }
+        // else if (IsGenericParameter)
+        // {
+        //     Type[] constraints = GetGenericParameterConstraints();
+        //     for (int i = 0; i < constraints.Length; i++)
+        //         if (!constraints[i].IsAssignableFrom(c))
+        //             return false;
 
-    //                 return true;
-    //             }
+        //     return true;
+        // }
 
-    //             return false;
-    //         }
+        // return false;
+        throw new Error("NotImplemented");
+    }
 
     //         // IL2085 is produced due to the "this" of the method not being annotated and used in effectively this.GetInterfaces()
     //         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2085:UnrecognizedReflectionPattern",
@@ -1274,10 +1209,10 @@ export abstract class Type implements IReflect, ICustomAttributeProvider, Member
     public abstract IsDefined(attributeType: Type, inherit: boolean): boolean;
     public abstract GetCustomAttributes(attributeTypeOrInherit: Type | boolean, inherit?: boolean): object[];
 
-    public CustomAttributes(): Array<CustomAttributeData> { return this.GetCustomAttributesData(); }
+    public get CustomAttributes(): Array<CustomAttributeData> { return this.GetCustomAttributesData(); }
     public GetCustomAttributesData(): Array<CustomAttributeData> { throw new Error("NotImplemented.ByDesign"); }
     public get IsCollectible(): boolean { return true; }
-    public get MetadataToken(): boolean { throw new Error("invalid operation"); }
+    public get MetadataToken(): number { throw new Error("invalid operation"); }
 
     // public override boolean Equals(object? obj) => base.Equals(obj);
     // public GetHashCode(): number { throw new Error("NotImplemented.ByDesign"); }
